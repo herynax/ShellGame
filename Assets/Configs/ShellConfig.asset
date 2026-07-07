@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a9e9144450d1e954fa6e46f46dd28228, type: 3}
+  m_Name: ShellConfig
+  m_EditorClassIdentifier: Assembly-CSharp::ShellGame.Shells.ShellConfig
+  LiftHeight: 0.35
+  LiftDuration: 0.35
+  LiftEase: 27
+  HoldRevealedDuration: 0.6
+  ShuffleMoveDuration: 0.5
+  ShuffleEase: 4
+  HoverScale: 1.05
+  HoverTweenDuration: 0.12
+  SpawnScaleDuration: 0.25
+  SpawnEase: 27
+  AudioEvents: {fileID: 11400000, guid: 31e3f4f1b9c82c048bbf46c6e062ed09, type: 2}

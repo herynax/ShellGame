@@ -1,4 +1,13 @@
 ﻿<Solution>
-  <Project Path="Assembly-CSharp-Editor.csproj" />
+  <Project Path="LeanCommon.csproj" />
   <Project Path="Assembly-CSharp.csproj" />
+  <Project Path="FMODUnityResonanceEditor.csproj" />
+  <Project Path="CW.Common.csproj" />
+  <Project Path="FMODUnityEditor.csproj" />
+  <Project Path="Assembly-CSharp-firstpass.csproj" />
+  <Project Path="FMODUnity.csproj" />
+  <Project Path="FMODUnityHaptics.csproj" />
+  <Project Path="Assembly-CSharp-Editor.csproj" />
+  <Project Path="FMODUnityResonance.csproj" />
+  <Project Path="LeanPool.csproj" />
 </Solution>
