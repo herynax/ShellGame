@@ -547,7 +547,7 @@ MonoBehaviour:
   _interactionCamera: {fileID: 330585545}
   _shellLayerMask:
     serializedVersion: 2
-    m_Bits: 64
+    m_Bits: 0
 --- !u!1 &410087039
 GameObject:
   m_ObjectHideFlags: 0
@@ -746,6 +746,74 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.22, y: 0.06, z: 0.22}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!1001 &659511551
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 4506794951650960793, guid: 0b581cc20d0c1324da6d2da32a70657c,
+        type: 3}
+      propertyPath: m_Name
+      value: PostEffectController
+      objectReference: {fileID: 0}
+    - target: {fileID: 6469012551491128034, guid: 0b581cc20d0c1324da6d2da32a70657c,
+        type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -0.11674
+      objectReference: {fileID: 0}
+    - target: {fileID: 6469012551491128034, guid: 0b581cc20d0c1324da6d2da32a70657c,
+        type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 6469012551491128034, guid: 0b581cc20d0c1324da6d2da32a70657c,
+        type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -8.14556
+      objectReference: {fileID: 0}
+    - target: {fileID: 6469012551491128034, guid: 0b581cc20d0c1324da6d2da32a70657c,
+        type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6469012551491128034, guid: 0b581cc20d0c1324da6d2da32a70657c,
+        type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6469012551491128034, guid: 0b581cc20d0c1324da6d2da32a70657c,
+        type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6469012551491128034, guid: 0b581cc20d0c1324da6d2da32a70657c,
+        type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6469012551491128034, guid: 0b581cc20d0c1324da6d2da32a70657c,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6469012551491128034, guid: 0b581cc20d0c1324da6d2da32a70657c,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6469012551491128034, guid: 0b581cc20d0c1324da6d2da32a70657c,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 0b581cc20d0c1324da6d2da32a70657c, type: 3}
 --- !u!1 &700002469
 GameObject:
   m_ObjectHideFlags: 0
@@ -1095,7 +1163,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: db29ca9e6befafa45b1ef33577dfd317, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ShellGame.Gameplay.ShellsTableController
-  _shellPrefab: {fileID: 5847015906687454183, guid: 574e2b8e1ee7afb46827ae88adcd5b22, type: 3}
+  _shellPrefab: {fileID: 5847015906687454183, guid: 574e2b8e1ee7afb46827ae88adcd5b22,
+    type: 3}
   _shellConfig: {fileID: 11400000, guid: 64065b5a9fcb2e348b621e5a95a14e80, type: 2}
   _slots:
   - {fileID: 112157313}
@@ -1110,7 +1179,8 @@ MonoBehaviour:
   _shellLayerMask:
     serializedVersion: 2
     m_Bits: 64
-  _markerPrefab: {fileID: 4461832433151595333, guid: fe48ff3c8905d8c4486b83b8db47a842, type: 3}
+  _markerPrefab: {fileID: 4461832433151595333, guid: fe48ff3c8905d8c4486b83b8db47a842,
+    type: 3}
   _progressionConfig: {fileID: 11400000, guid: 93d2f6479303d02459f1984b0146ca64, type: 2}
   _maxPrewarmCount: 8
   _roundGenerator: {fileID: 1371983840}
@@ -1129,7 +1199,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b2d92acebbfa37249bba6ad602bc3ecc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ShellGame.Gameplay.RoundGenerator
-  _shellPrefab: {fileID: 5847015906687454183, guid: 574e2b8e1ee7afb46827ae88adcd5b22, type: 3}
+  _shellPrefab: {fileID: 5847015906687454183, guid: 574e2b8e1ee7afb46827ae88adcd5b22,
+    type: 3}
   _shellConfig: {fileID: 11400000, guid: 64065b5a9fcb2e348b621e5a95a14e80, type: 2}
   _slots:
   - {fileID: 112157313}
@@ -1140,7 +1211,8 @@ MonoBehaviour:
   - {fileID: 956415339}
   - {fileID: 517642201}
   - {fileID: 700002471}
-  _markerPrefab: {fileID: 4461832433151595333, guid: fe48ff3c8905d8c4486b83b8db47a842, type: 3}
+  _markerPrefab: {fileID: 4461832433151595333, guid: fe48ff3c8905d8c4486b83b8db47a842,
+    type: 3}
   _progressionConfig: {fileID: 11400000, guid: 93d2f6479303d02459f1984b0146ca64, type: 2}
   _maxPrewarmCount: 8
 --- !u!1 &1757617767
@@ -1378,3 +1450,4 @@ SceneRoots:
   - {fileID: 832575519}
   - {fileID: 1371983838}
   - {fileID: 1947550782}
+  - {fileID: 659511551}
