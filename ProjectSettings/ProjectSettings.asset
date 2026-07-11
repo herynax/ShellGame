@@ -449,6 +449,9 @@ PlayerSettings:
   - m_BuildTarget: WebGLSupport
     m_APIs: 0b000000
     m_Automatic: 1
+  - m_BuildTarget: WindowsStandaloneSupport
+    m_APIs: 0200000012000000
+    m_Automatic: 0
   m_BuildTargetVRSettings:
   - m_BuildTarget: Standalone
     m_Enabled: 0
@@ -857,7 +860,7 @@ PlayerSettings:
   qnxGraphicConfPath: 
   apiCompatibilityLevel: 6
   captureStartupLogs: {}
-  activeInputHandler: 0
+  activeInputHandler: 2
   windowsGamepadBackendHint: 0
   cloudProjectId: 55e679a7-0bdf-47cf-bcee-56a195930d09
   framebufferDepthMemorylessMode: 0

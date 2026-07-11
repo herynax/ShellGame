@@ -211,7 +211,7 @@ MonoBehaviour:
     m_Value: 0
   ditherThreshold:
     m_OverrideState: 1
-    m_Value: 4.83
+    m_Value: 3.79
   ditherStrength:
     m_OverrideState: 1
     m_Value: 0.29
@@ -879,7 +879,7 @@ MonoBehaviour:
     m_Value: 480
   colorPrecision:
     m_OverrideState: 1
-    m_Value: 20
+    m_Value: 100
 --- !u!114 &6785656874041892683
 MonoBehaviour:
   m_ObjectHideFlags: 3
