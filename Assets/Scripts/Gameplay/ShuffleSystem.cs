@@ -53,8 +53,12 @@ namespace ShellGame.Gameplay
                 return;
             }
 
-            var firstPosition = firstSlot.Position;
-            var secondPosition = secondSlot.Position;
+            // Состояние TrackShuffle из ГДД: "игровое поле генерирует событие
+            // после каждого обмена двух наперстков — OnCupSwap(CupA, CupB)".
+            // Раскрываем его по индексам слотов, которыми обмениваются наперстки —
+            // именно по слотам противник визуально отслеживает метки.
+            GameEvents.RaiseCupSwapPerformed(firstSlot.Index, secondSlot.Index);
+
             int completedMoves = 0;
             void OnShellMoved()
             {

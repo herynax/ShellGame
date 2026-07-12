@@ -12,8 +12,7 @@ namespace ShellGame.Tweening
     /// Важно для пула: все Sequence/Tween сохраняются в полях и убиваются в
     /// Kill() — это обязательно вызывать из Shell.OnReturnToPool(), иначе
     /// твин с колбэком может выстрелить уже после того, как объект вернулся
-    /// в пул и был переиспользован под другой наперсток (частый источник
-    /// багов при пулинге + твинах).
+    /// в пул и был переиспользован под другой наперсток.
     /// </summary>
     [RequireComponent(typeof(Transform))]
     public sealed class ShellAnimator : MonoBehaviour
@@ -23,17 +22,13 @@ namespace ShellGame.Tweening
         private Tween _hoverTween;
         private Vector3 _baseScale;
 
+        /// <summary>Исходный масштаб наперстка — нужен Shell'у, чтобы корректно восстановить масштаб при возврате из пула.</summary>
         public Vector3 BaseScale => _baseScale;
 
         public void Initialize(ShellConfig config)
         {
             _config = config;
             _baseScale = transform.localScale;
-            if (_baseScale == Vector3.zero)
-            {
-                _baseScale = Vector3.one;
-                transform.localScale = _baseScale;
-            }
         }
 
         /// <summary>Убить все активные твины на этом наперстке. Вызывать при возврате в пул.</summary>
@@ -44,8 +39,6 @@ namespace ShellGame.Tweening
             _hoverTween?.Kill();
             _hoverTween = null;
 
-            // DOTween полезно убивать по конкретному Transform целиком —
-            // страхует от твинов, запущенных не через это поле (на будущее).
             transform.DOKill();
             transform.localScale = _baseScale;
         }
@@ -65,26 +58,29 @@ namespace ShellGame.Tweening
             _hoverTween = transform.DOScale(targetScale, _config.HoverTweenDuration).SetEase(Ease.OutQuad);
         }
 
-        /// <summary>
-        /// Поднять наперсток, подержать паузу (видно, что под ним) и опустить обратно.
-        /// onPeakReached вызывается в верхней точке — удобно синхронизировать
-        /// момент показа метки (включение визуала метки) со временем взлёта.
-        /// </summary>
+        /// <summary>Подъём/показ с длительностью паузы из ShellConfig (стандартный случай — выбор игрока/AI).</summary>
         public void PlayReveal(Action onPeakReached, Action onComplete)
         {
-            PlayReveal(_config.HoldRevealedDuration, onPeakReached, onComplete);
+            PlayReveal(-1f, onPeakReached, onComplete);
         }
 
+        /// <summary>
+        /// Подъём/показ с явно заданной длительностью паузы в верхней точке —
+        /// используется для предварительного показа меток в начале раунда
+        /// (RoundGenerator.RevealMarkers), где пауза берётся из настроек раунда,
+        /// а не из ShellConfig.
+        /// </summary>
         public void PlayReveal(float holdDuration, Action onPeakReached, Action onComplete)
         {
             _activeSequence?.Kill();
             var startPos = transform.localPosition;
             var peakPos = startPos + Vector3.up * _config.LiftHeight;
+            var resolvedHold = holdDuration >= 0f ? holdDuration : _config.HoldRevealedDuration;
 
             _activeSequence = DOTween.Sequence()
                 .Append(transform.DOLocalMove(peakPos, _config.LiftDuration).SetEase(_config.LiftEase))
                 .AppendCallback(() => onPeakReached?.Invoke())
-                .AppendInterval(holdDuration)
+                .AppendInterval(resolvedHold)
                 .Append(transform.DOLocalMove(startPos, _config.LiftDuration).SetEase(Ease.InOutSine))
                 .OnComplete(() => onComplete?.Invoke());
         }

@@ -74,7 +74,6 @@ namespace ShellGame.Shells
 
             marker.transform.SetParent(null, true);
             marker.Hide();
-            Debug.Log($"Shell {name}: attached marker {marker.name} (hasMarker={HasMarker})");
         }
 
         public void SetMarker(bool hasMarker)
@@ -82,7 +81,6 @@ namespace ShellGame.Shells
             HasMarker = hasMarker;
             if (_marker != null)
                 _marker.Hide();
-            Debug.Log($"Shell {name}: marker state set to {HasMarker}");
         }
 
         public void RevealMarker(float holdDuration)
@@ -151,7 +149,6 @@ namespace ShellGame.Shells
             SetInteractable(false);
             _audio?.PlayOneShot(_config.AudioEvents.Select, transform.position);
             GameEvents.RaiseShellSelected(this);
-            Debug.Log($"Shell {name}: player selected shell with marker={HasMarker}");
 
             ShowMarkerVisual();
             _animator.PlayReveal(

@@ -1,4 +1,7 @@
 using System.Collections.Generic;
+using ShellGame.AI;
+using ShellGame.Core;
+using ShellGame.Health;
 using ShellGame.Shells;
 using UnityEngine;
 
@@ -15,10 +18,17 @@ namespace ShellGame.Gameplay
         [SerializeField] private RoundProgressionConfig _progressionConfig;
         [SerializeField] private int _maxPrewarmCount = 8;
 
+        [Header("Здоровье и противник")]
+        [SerializeField] private HealthProgressionConfig _healthProgressionConfig;
+        [SerializeField] private EnemyAIConfig _enemyAIConfig;
+        [SerializeField] private TurnSide _startingSide = TurnSide.Player;
+
         [SerializeField] private RoundGenerator _roundGenerator;
         [SerializeField] private RoundInputSystem _inputSystem;
         [SerializeField] private ShuffleSystem _shuffleSystem;
         [SerializeField] private GameManager _gameManager;
+        private HealthController _healthController;
+        private EnemyAIController _enemyAI;
 
         private void Awake()
         {
@@ -30,6 +40,10 @@ namespace ShellGame.Gameplay
                 _shuffleSystem = GetComponentInChildren<ShuffleSystem>();
             if (_gameManager == null)
                 _gameManager = GetComponent<GameManager>();
+            if (_healthController == null)
+                _healthController = GetComponentInChildren<HealthController>();
+            if (_enemyAI == null)
+                _enemyAI = GetComponentInChildren<EnemyAIController>();
 
             if (_gameManager == null)
                 _gameManager = gameObject.AddComponent<GameManager>();
@@ -39,10 +53,22 @@ namespace ShellGame.Gameplay
                 _inputSystem = gameObject.AddComponent<RoundInputSystem>();
             if (_shuffleSystem == null)
                 _shuffleSystem = gameObject.AddComponent<ShuffleSystem>();
+            if (_healthController == null)
+                _healthController = gameObject.AddComponent<HealthController>();
+            if (_enemyAI == null)
+                _enemyAI = gameObject.AddComponent<EnemyAIController>();
 
             _roundGenerator.Initialize(_shellPrefab, _shellConfig, _slots, _markerPrefab, _progressionConfig, _maxPrewarmCount);
             _inputSystem.Initialize(_interactionCamera, _shellLayerMask);
-            _gameManager.Initialize(_roundGenerator, _inputSystem, _shuffleSystem);
+            _enemyAI.Initialize(_enemyAIConfig);
+            _gameManager.Initialize(
+                _roundGenerator,
+                _inputSystem,
+                _shuffleSystem,
+                _healthController,
+                _enemyAI,
+                _healthProgressionConfig,
+                _startingSide);
         }
 
         public void SetupRound(int shellCount, int markerCount)

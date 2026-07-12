@@ -46,7 +46,6 @@ namespace ShellGame.Pooling
         {
             var instance = LeanPool.Spawn(_shellPrefab, position, rotation, _poolParent);
             instance.transform.localScale = _shellPrefab.transform.localScale;
-            Debug.Log($"ShellPoolService: spawned shell at {position} with prefab scale {instance.transform.localScale}");
             _active.Add(instance);
             instance.OnSpawnFromPool();
             return instance;

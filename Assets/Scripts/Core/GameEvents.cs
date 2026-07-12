@@ -24,6 +24,30 @@ namespace ShellGame.Core
         public static event Action RoundShuffleStarted;
         public static event Action RoundShuffleCompleted;
 
+        /// <summary>
+        /// Состояние TrackShuffle из ГДД: "игровое поле генерирует событие
+        /// после каждого обмена двух наперстков — OnCupSwap(CupA, CupB)".
+        /// Аргументы — индексы слотов (Shell.SlotIndex), которыми обменялись.
+        /// </summary>
+        public static event Action<int /*slotA*/, int /*slotB*/> CupSwapPerformed;
+
+        /// <summary>Любое изменение здоровья стороны — включая инициализацию в начале уровня: (сторона, текущее, максимум).</summary>
+        public static event Action<TurnSide, int, int> HealthChanged;
+
+        /// <summary>
+        /// Именно момент нанесения урона (в отличие от HealthChanged не
+        /// стреляет при инициализации здоровья) — на это реагирует визуальный
+        /// фидбек (тряска камеры/модели, виньетка и т.д.).
+        /// Аргументы: сторона, сколько урона, здоровье после удара, максимум, умер ли от этого удара.
+        /// </summary>
+        public static event Action<TurnSide, int, int, int, bool> DamageTaken;
+
+        /// <summary>Сторона получила урон при здоровье уже на нуле — гибель.</summary>
+        public static event Action<TurnSide> SideDied;
+
+        /// <summary>Инициатива перешла к новой стороне (после промаха).</summary>
+        public static event Action<TurnSide> ActiveSideChanged;
+
         public static void RaiseShellHoverEnter(Shell shell) => ShellHoverEnter?.Invoke(shell);
         public static void RaiseShellHoverExit(Shell shell) => ShellHoverExit?.Invoke(shell);
         public static void RaiseShellSelected(Shell shell) => ShellSelected?.Invoke(shell);
@@ -31,5 +55,13 @@ namespace ShellGame.Core
         public static void RaiseRoundSetupStarted() => RoundSetupStarted?.Invoke();
         public static void RaiseRoundShuffleStarted() => RoundShuffleStarted?.Invoke();
         public static void RaiseRoundShuffleCompleted() => RoundShuffleCompleted?.Invoke();
+        public static void RaiseCupSwapPerformed(int slotA, int slotB) => CupSwapPerformed?.Invoke(slotA, slotB);
+        public static void RaiseHealthChanged(TurnSide side, int current, int max) => HealthChanged?.Invoke(side, current, max);
+
+        public static void RaiseDamageTaken(TurnSide side, int amount, int currentHealth, int maxHealth, bool died) =>
+            DamageTaken?.Invoke(side, amount, currentHealth, maxHealth, died);
+
+        public static void RaiseSideDied(TurnSide side) => SideDied?.Invoke(side);
+        public static void RaiseActiveSideChanged(TurnSide side) => ActiveSideChanged?.Invoke(side);
     }
 }

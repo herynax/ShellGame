@@ -10,6 +10,8 @@ namespace ShellGame.Gameplay
 
         public RoundParameters GetRoundParameters(int levelIndex, int roundIndex)
         {
+            float difficultyIndex = ComputeDifficultyIndex(levelIndex, roundIndex);
+
             if (_entries != null)
             {
                 foreach (var entry in _entries)
@@ -22,20 +24,26 @@ namespace ShellGame.Gameplay
                             RoundIndex = roundIndex,
                             CupCount = entry.CupCount,
                             MarkerCount = entry.MarkerCount,
+                            DifficultyIndex = difficultyIndex,
                         };
                     }
                 }
             }
 
-            return CalculateParameters(levelIndex, roundIndex);
+            return CalculateParameters(levelIndex, roundIndex, difficultyIndex);
         }
 
-        private RoundParameters CalculateParameters(int levelIndex, int roundIndex)
+        /// <summary>Индекс сложности из ГДД: D = L + 0.45 * R.</summary>
+        private static float ComputeDifficultyIndex(int levelIndex, int roundIndex)
         {
-            float complexity = levelIndex + 0.45f * roundIndex;
-            int cupCount = Mathf.Clamp(3 + Mathf.FloorToInt(complexity / 2.2f), 3, 8);
+            return levelIndex + 0.45f * roundIndex;
+        }
+
+        private RoundParameters CalculateParameters(int levelIndex, int roundIndex, float difficultyIndex)
+        {
+            int cupCount = Mathf.Clamp(3 + Mathf.FloorToInt(difficultyIndex / 2.2f), 3, 8);
             int maxMarkers = 1 + Mathf.FloorToInt((cupCount - 2) / 2f);
-            float maxMarkerProbability = Mathf.Min(0.15f * complexity, 0.85f);
+            float maxMarkerProbability = Mathf.Min(0.15f * difficultyIndex, 0.85f);
             int markerCount = Random.value < maxMarkerProbability ? maxMarkers : Mathf.Max(1, maxMarkers - 1);
 
             return new RoundParameters
@@ -44,6 +52,7 @@ namespace ShellGame.Gameplay
                 RoundIndex = roundIndex,
                 CupCount = cupCount,
                 MarkerCount = markerCount,
+                DifficultyIndex = difficultyIndex,
             };
         }
     }

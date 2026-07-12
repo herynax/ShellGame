@@ -62,7 +62,6 @@ namespace ShellGame.Gameplay
 
             parameters.CupCount = Mathf.Clamp(parameters.CupCount, 1, _slots.Count);
             parameters.MarkerCount = Mathf.Clamp(parameters.MarkerCount, 0, parameters.CupCount);
-            Debug.Log($"RoundGenerator: level={levelIndex}, round={roundIndex}, cups={parameters.CupCount}, markers={parameters.MarkerCount}");
 
             _spawnedSlots.Clear();
             _spawnedSlots.AddRange(PickRandomSlots(parameters.CupCount));
@@ -99,7 +98,6 @@ namespace ShellGame.Gameplay
                 shell.AttachMarker(marker);
                 shell.SetMarker(hasMarker);
                 shell.PlaySpawnIn();
-                Debug.Log($"RoundGenerator: spawned shell #{i} slot={slot.Index} hasMarker={hasMarker}");
 
                 slot.OccupyingShell = shell;
                 _activeShells.Add(shell);
