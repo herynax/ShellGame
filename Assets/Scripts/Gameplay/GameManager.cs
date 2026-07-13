@@ -182,10 +182,8 @@ namespace ShellGame.Gameplay
 
                         if (_selectedShell.HasMarker)
                         {
-                            // Попадание: урон получает ДРУГАЯ сторона, инициатива
-                            // остаётся у текущей активной стороны (ГДД: "Если
-                            // выбранный наперсток содержит метку - соперник
-                            // получает урон").
+                            // Попадание: урон получает ДРУГАЯ сторона, а ход
+                            // передаётся следующему игроку.
                             var damagedSide = Opposite(_activeSide);
                             int damage = _healthProgressionConfig != null ? _healthProgressionConfig.DamagePerHit : 1;
                             bool died = _healthController != null && _healthController.ApplyDamage(damagedSide, damage);
@@ -197,14 +195,9 @@ namespace ShellGame.Gameplay
                                 break;
                             }
                         }
-                        else
-                        {
-                            // Промах: инициатива переходит противнику (ГДД: "Если
-                            // игрок ошибается - инициатива переходит противнику").
-                            _activeSide = Opposite(_activeSide);
-                            GameEvents.RaiseActiveSideChanged(_activeSide);
-                        }
 
+                        _activeSide = Opposite(_activeSide);
+                        GameEvents.RaiseActiveSideChanged(_activeSide);
                         _state = RoundState.Cleanup;
                         break;
 
