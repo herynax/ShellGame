@@ -51,15 +51,24 @@ namespace ShellGame.Health
             if (died)
                 _dead.Add(side);
 
-            // Отдельное событие именно "удар произошёл" — на него реагирует
-            // визуальный фидбек (тряска/виньетка), в отличие от HealthChanged
-            // оно не стреляет при Initialize().
             GameEvents.RaiseDamageTaken(side, amount, newHealth, GetMaxHealth(side), died);
 
             if (died)
                 GameEvents.RaiseSideDied(side);
 
             return died;
+        }
+
+        /// <summary>Восстанавливает здоровье (предмет "Хилка"). Мёртвых не лечит — воскрешения пока нет.</summary>
+        public void Heal(TurnSide side, int amount)
+        {
+            if (_dead.Contains(side) || amount <= 0)
+                return;
+
+            int max = GetMaxHealth(side);
+            int newHealth = Mathf.Min(max, GetHealth(side) + amount);
+            _current[side] = newHealth;
+            GameEvents.RaiseHealthChanged(side, newHealth, max);
         }
     }
 }

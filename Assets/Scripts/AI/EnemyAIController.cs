@@ -16,15 +16,10 @@ namespace ShellGame.AI
     /// GameManager. Поэтому этот класс не гоняет собственный игровой цикл —
     /// GameManager явно вызывает Enter-методы в те же моменты, когда обычный
     /// раунд показывает метки/перемешивает/ждёт выбора, но только если
-    /// активная сторона — противник. Это не нарушает принцип ГДД "FSM
-    /// отвечает только за порядок состояний": порядок здесь просто совпадает
-    /// с порядком стадий раунда, а не дублируется отдельным циклом.
+    /// активная сторона — противник.
     ///
-    /// Расходуемые предметы противника (Пассатижи/Монокль/Молоток/Метка/
-    /// Наркотики/Двойной урон) сюда пока не подключены — система предметов
-    /// появляется со 2 уровня и требует отдельной итерации (инвентарь,
-    /// CanUse/ShouldUse/IgnoreChance). Место для неё отмечено TODO в
-    /// DecisionRoutine и не потребует изменений в остальном FSM.
+    /// Расходуемые предметы противника (кроме Монокля — см. ResyncKnowledge)
+    /// сюда пока не подключены — см. TODO в DecisionRoutine.
     /// </summary>
     public sealed class EnemyAIController : MonoBehaviour
     {
@@ -77,10 +72,20 @@ namespace ShellGame.AI
         }
 
         /// <summary>
+        /// Эффект предмета "Монокль" в руках противника — полностью
+        /// пересобирает Knowledge из истинного состояния поля (упрощённая,
+        /// но честная трактовка ГДД: "после использования состояние Knowledge
+        /// обновляется"). Можно вызывать даже вне TrackShuffle.
+        /// </summary>
+        public void ResyncKnowledge(IReadOnlyList<Shell> shells)
+        {
+            _knowledge.Observe(shells);
+        }
+
+        /// <summary>
         /// Состояния Decision + Attack. Возвращает выбранный наперсток через
         /// onShellChosen — вызывающий код (GameManager) сам решает, что с ним
-        /// делать (обычно — Shell.Select(), как и для игрока), чтобы вся
-        /// дальнейшая обработка результата шла по единому пути.
+        /// делать (обычно — Shell.Select(), как и для игрока).
         /// </summary>
         public void MakeDecisionAndAttack(IReadOnlyList<Shell> shells, Action<Shell> onShellChosen)
         {
@@ -92,14 +97,15 @@ namespace ShellGame.AI
         {
             // TODO: здесь будет проход по инвентарю расходуемых предметов
             // противника (CanUse -> ShouldUse -> IgnoreChance -> Apply ->
-            // обновление Knowledge, повтор цикла) — см. "Список расходуемых
-            // предметов" и таблицы CanUse/ShouldUse в ГДД. Пока пропускается.
+            // обновление Knowledge, повтор цикла) — см. таблицы CanUse/ShouldUse
+            // в ГДД. Монокль уже готов (ResyncKnowledge выше), остальные
+            // предметы (Пассатижи/Молоток/Метка/Наркотики/Двойной урон)
+            // потребуют инвентаря у противника — пока пропускается.
 
             float delay = _config.EvaluateDecisionDelay(_currentDifficultyIndex);
             if (delay > 0f)
                 yield return new WaitForSeconds(delay);
 
-            // Этап 2: выбор цели среди отслеживаемых меток.
             var tracked = _knowledge.GetTrackedEntries();
             int targetSlotIndex;
             if (tracked.Count > 0)
@@ -112,8 +118,6 @@ namespace ShellGame.AI
                 targetSlotIndex = shells[UnityEngine.Random.Range(0, shells.Count)].SlotIndex;
             }
 
-            // Этап 3: проверка вероятности ошибки — даже зная цель, ИИ может
-            // отказаться от неё и выбрать случайный другой допустимый наперсток.
             float pError = _config.EvaluateDecisionErrorProbability(_currentDifficultyIndex);
             if (UnityEngine.Random.value < pError)
             {
@@ -126,7 +130,6 @@ namespace ShellGame.AI
             onShellChosen?.Invoke(targetShell);
         }
 
-        /// <summary>Состояние EndTurn — вызывается GameManager на стадии Cleanup, чисто для порядка/логирования состояния.</summary>
         public void EnterEndTurn()
         {
             State = EnemyAIState.EndTurn;

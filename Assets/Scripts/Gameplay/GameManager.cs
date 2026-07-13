@@ -1,7 +1,10 @@
 using System.Collections;
+using System.Collections.Generic;
 using ShellGame.AI;
 using ShellGame.Core;
+using ShellGame.Feedback;
 using ShellGame.Health;
+using ShellGame.Items;
 using ShellGame.Shells;
 using UnityEngine;
 
@@ -15,6 +18,7 @@ namespace ShellGame.Gameplay
         [SerializeField] private HealthController _healthController;
         [SerializeField] private EnemyAIController _enemyAI;
         [SerializeField] private HealthProgressionConfig _healthProgressionConfig;
+        [SerializeField] private TurnIndicatorController _turnIndicator;
         [SerializeField] private TurnSide _startingSide = TurnSide.Player;
 
         [SerializeField] private int _levelIndex = 0;
@@ -30,6 +34,14 @@ namespace ShellGame.Gameplay
         private TurnSide _activeSide;
         private int _healthInitializedForLevel = -1;
 
+        // Множитель урона на следующий УДАЧНЫЙ удар каждой стороны (предмет "Двойной урон").
+        // Промах его не сжигает — см. DoubleDamageItemDefinition.
+        private readonly Dictionary<TurnSide, int> _nextHitMultiplier = new Dictionary<TurnSide, int>
+        {
+            { TurnSide.Player, 1 },
+            { TurnSide.Enemy, 1 },
+        };
+
         public RoundState State => _state;
         public TurnSide ActiveSide => _activeSide;
 
@@ -40,7 +52,8 @@ namespace ShellGame.Gameplay
             HealthController healthController,
             EnemyAIController enemyAI,
             HealthProgressionConfig healthProgressionConfig,
-            TurnSide startingSide)
+            TurnSide startingSide,
+            TurnIndicatorController turnIndicator)
         {
             _roundGenerator = roundGenerator;
             _inputSystem = inputSystem;
@@ -49,6 +62,7 @@ namespace ShellGame.Gameplay
             _enemyAI = enemyAI;
             _healthProgressionConfig = healthProgressionConfig;
             _startingSide = startingSide;
+            _turnIndicator = turnIndicator;
         }
 
         private void Start()
@@ -63,8 +77,11 @@ namespace ShellGame.Gameplay
                 _healthController = GetComponentInChildren<HealthController>();
             if (_enemyAI == null)
                 _enemyAI = GetComponentInChildren<EnemyAIController>();
+            if (_turnIndicator == null)
+                _turnIndicator = GetComponentInChildren<TurnIndicatorController>();
 
             _activeSide = _startingSide;
+            _turnIndicator?.SetImmediate(_activeSide);
 
             StartRound();
         }
@@ -81,6 +98,33 @@ namespace ShellGame.Gameplay
             StartCoroutine(RunRoundRoutine());
         }
 
+        /// <summary>Собрать контекст для использования предмета указанной стороной прямо сейчас (текущий раунд/наперстки/здоровье).</summary>
+        public ItemEffectContext CreateItemContext(TurnSide userSide)
+        {
+            return new ItemEffectContext
+            {
+                UserSide = userSide,
+                Health = _healthController,
+                ActiveShells = _roundGenerator != null ? _roundGenerator.ActiveShells : null,
+                EnemyAI = _enemyAI,
+                SetNextHitDamageMultiplier = SetNextHitDamageMultiplier,
+            };
+        }
+
+        public void SetNextHitDamageMultiplier(TurnSide side, int multiplier)
+        {
+            _nextHitMultiplier[side] = Mathf.Max(1, multiplier);
+        }
+
+        private int ConsumeDamageMultiplier(TurnSide side)
+        {
+            if (!_nextHitMultiplier.TryGetValue(side, out var multiplier) || multiplier <= 1)
+                return 1;
+
+            _nextHitMultiplier[side] = 1;
+            return multiplier;
+        }
+
         private IEnumerator RunRoundRoutine()
         {
             while (true)
@@ -95,6 +139,7 @@ namespace ShellGame.Gameplay
 
                         EnsureHealthInitializedForLevel();
 
+                        Debug.Log($"GameManager: stage=Generate level={_levelIndex} round={_roundIndex} activeSide={_activeSide}");
                         _currentParameters = _roundGenerator.GenerateRound(_levelIndex, _roundIndex);
                         _state = RoundState.Reveal;
                         break;
@@ -105,18 +150,18 @@ namespace ShellGame.Gameplay
                             yield break;
                         }
 
+                        Debug.Log("GameManager: stage=SpawnPause");
                         yield return new WaitForSeconds(Mathf.Max(0f, _spawnPauseDuration));
 
+                        Debug.Log("GameManager: stage=RevealMarkers");
                         _roundGenerator.RevealMarkers(_revealHoldDuration);
 
-                        // Состояние ObserveMarkers из ГДД — противник получает
-                        // достоверную информацию о раскладке ровно в тот же
-                        // момент, что и игрок визуально её видит.
                         if (_activeSide == TurnSide.Enemy && _enemyAI != null)
                             _enemyAI.EnterObserveMarkers(_roundGenerator.ActiveShells, _currentParameters.DifficultyIndex);
 
                         yield return new WaitForSeconds(Mathf.Max(0f, _roundGenerator.GetRevealDuration(_revealHoldDuration)));
                         _roundGenerator.HideMarkers();
+                        Debug.Log("GameManager: stage=Shuffle");
                         _state = RoundState.Shuffle;
                         break;
 
@@ -129,8 +174,6 @@ namespace ShellGame.Gameplay
                         _inputSystem.SetEnabled(false);
                         yield return new WaitForSeconds(_shuffleDelay);
 
-                        // Состояние TrackShuffle — начинаем слушать OnCupSwap только
-                        // если это ход противника (для хода игрока это не нужно).
                         if (_activeSide == TurnSide.Enemy && _enemyAI != null)
                             _enemyAI.EnterTrackShuffle();
 
@@ -148,6 +191,7 @@ namespace ShellGame.Gameplay
                             yield break;
                         }
 
+                        Debug.Log($"GameManager: stage=Turn activeSide={_activeSide}");
                         _selectedShell = null;
 
                         if (_activeSide == TurnSide.Player)
@@ -159,9 +203,6 @@ namespace ShellGame.Gameplay
                             _inputSystem.SetEnabled(false);
                             if (_enemyAI != null && _roundGenerator != null)
                             {
-                                // Decision + Attack: AI сам выбирает наперсток и вызывает
-                                // Select() на нём — дальше событие ShellSelected обрабатывается
-                                // ровно так же, как и выбор игрока (единый путь для обеих сторон).
                                 _enemyAI.MakeDecisionAndAttack(_roundGenerator.ActiveShells, chosen => chosen.Select());
                             }
                         }
@@ -177,17 +218,19 @@ namespace ShellGame.Gameplay
                             break;
                         }
 
+                        Debug.Log($"GameManager: stage=RevealResult selected={_selectedShell.name} hasMarker={_selectedShell.HasMarker} activeSide={_activeSide}");
                         _selectedShell.RevealResult();
                         yield return new WaitForSeconds(Mathf.Max(_roundEndDelay, _roundGenerator.GetRevealDuration()));
 
                         if (_selectedShell.HasMarker)
                         {
-                            // Попадание: урон получает ДРУГАЯ сторона, а ход
-                            // передаётся следующему игроку.
                             var damagedSide = Opposite(_activeSide);
-                            int damage = _healthProgressionConfig != null ? _healthProgressionConfig.DamagePerHit : 1;
+                            int baseDamage = _healthProgressionConfig != null ? _healthProgressionConfig.DamagePerHit : 1;
+                            int multiplier = ConsumeDamageMultiplier(_activeSide);
+                            int damage = baseDamage * multiplier;
+
                             bool died = _healthController != null && _healthController.ApplyDamage(damagedSide, damage);
-                            Debug.Log($"GameManager: HIT — {damagedSide} takes {damage} damage, died={died}");
+                            Debug.Log($"GameManager: HIT — {damagedSide} takes {damage} damage (x{multiplier}), died={died}");
 
                             if (died)
                             {
@@ -195,9 +238,17 @@ namespace ShellGame.Gameplay
                                 break;
                             }
                         }
+                        else
+                        {
+                            Debug.Log("GameManager: MISS");
+                        }
 
+                        // Механика сохранения инициативы вырезана: ход всегда
+                        // переходит другой стороне после раунда, независимо
+                        // от попадания или промаха.
                         _activeSide = Opposite(_activeSide);
                         GameEvents.RaiseActiveSideChanged(_activeSide);
+
                         _state = RoundState.Cleanup;
                         break;
 
@@ -207,23 +258,38 @@ namespace ShellGame.Gameplay
                             yield break;
                         }
 
+                        Debug.Log("GameManager: stage=Cleanup");
 
-                        if (_activeSide == TurnSide.Enemy && _enemyAI != null)
-                            _enemyAI.EnterEndTurn();
-
+                        // Обратите внимание: _activeSide на этот момент уже
+                        // относится к СЛЕДУЮЩЕМУ раунду (переключён в RevealResult),
+                        // поэтому EnterEndTurn для только что ходившей стороны
+                        // здесь вызвать без доп. состояния нельзя — при
+                        // необходимости завести отдельное поле _lastActingSide.
                         _roundGenerator.ClearRound();
                         _inputSystem.SetEnabled(false);
                         _roundIndex++;
                         yield return new WaitForSeconds(0.1f);
+                        _state = RoundState.InitiativeAnimation;
+                        break;
+
+                    case RoundState.InitiativeAnimation:
+                        Debug.Log($"GameManager: stage=InitiativeAnimation activeSide={_activeSide}");
+                        if (_turnIndicator != null)
+                        {
+                            bool animationDone = false;
+                            _turnIndicator.PlayTransition(_activeSide, () => animationDone = true);
+                            while (!animationDone)
+                                yield return null;
+                        }
+
                         _state = RoundState.Generate;
                         break;
 
                     case RoundState.GameOver:
+                        Debug.Log("GameManager: stage=GameOver");
                         _roundGenerator?.ClearRound();
                         _inputSystem?.SetEnabled(false);
-                        // TODO: здесь подключается катсцена смерти и экран статистики
-                        // (ходы/время/предметы/сохранённые зубы) из раздела "Система
-                        // здоровья" ГДД — отдельная итерация, вне текущего скоупа.
+                        // TODO: катсцена смерти и экран статистики — отдельная итерация.
                         yield break;
 
                     default:
@@ -243,6 +309,7 @@ namespace ShellGame.Gameplay
 
             _healthController.Initialize(playerMax, enemyMax);
             _healthInitializedForLevel = _levelIndex;
+            Debug.Log($"GameManager: health initialized for level={_levelIndex} player={playerMax} enemy={enemyMax}");
         }
 
         private static TurnSide Opposite(TurnSide side) => side == TurnSide.Player ? TurnSide.Enemy : TurnSide.Player;
@@ -276,6 +343,7 @@ namespace ShellGame.Gameplay
             if (_state != RoundState.RevealResult || _selectedShell != shell)
                 return;
 
+            Debug.Log(hasMarker ? "Success" : "Fail");
         }
 
         private void OnShuffleCompleted()

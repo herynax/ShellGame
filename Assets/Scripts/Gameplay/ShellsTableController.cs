@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using ShellGame.AI;
 using ShellGame.Core;
+using ShellGame.Feedback;
 using ShellGame.Health;
 using ShellGame.Shells;
 using UnityEngine;
@@ -23,12 +24,15 @@ namespace ShellGame.Gameplay
         [SerializeField] private EnemyAIConfig _enemyAIConfig;
         [SerializeField] private TurnSide _startingSide = TurnSide.Player;
 
+        [Header("Указатель хода (настраивается вручную — модель стрелки + цели)")]
+        [SerializeField] private TurnIndicatorController _turnIndicator;
+
         [SerializeField] private RoundGenerator _roundGenerator;
         [SerializeField] private RoundInputSystem _inputSystem;
         [SerializeField] private ShuffleSystem _shuffleSystem;
         [SerializeField] private GameManager _gameManager;
-        private HealthController _healthController;
-        private EnemyAIController _enemyAI;
+        [SerializeField] private HealthController _healthController;
+        [SerializeField] private EnemyAIController _enemyAI;
 
         private void Awake()
         {
@@ -44,6 +48,8 @@ namespace ShellGame.Gameplay
                 _healthController = GetComponentInChildren<HealthController>();
             if (_enemyAI == null)
                 _enemyAI = GetComponentInChildren<EnemyAIController>();
+            if (_turnIndicator == null)
+                _turnIndicator = GetComponentInChildren<TurnIndicatorController>();
 
             if (_gameManager == null)
                 _gameManager = gameObject.AddComponent<GameManager>();
@@ -58,6 +64,11 @@ namespace ShellGame.Gameplay
             if (_enemyAI == null)
                 _enemyAI = gameObject.AddComponent<EnemyAIController>();
 
+            // TurnIndicatorController сознательно НЕ авто-создаётся: ему
+            // нужна модель стрелки + цели (_playerTarget/_enemyTarget),
+            // настроенные вручную в сцене. Если его нет — GameManager
+            // просто пропускает анимацию (проверка на null), ничего не упадёт.
+
             _roundGenerator.Initialize(_shellPrefab, _shellConfig, _slots, _markerPrefab, _progressionConfig, _maxPrewarmCount);
             _inputSystem.Initialize(_interactionCamera, _shellLayerMask);
             _enemyAI.Initialize(_enemyAIConfig);
@@ -68,7 +79,8 @@ namespace ShellGame.Gameplay
                 _healthController,
                 _enemyAI,
                 _healthProgressionConfig,
-                _startingSide);
+                _startingSide,
+                _turnIndicator);
         }
 
         public void SetupRound(int shellCount, int markerCount)
