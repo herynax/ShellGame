@@ -33,6 +33,8 @@ namespace ShellGame.Gameplay
         private Shell _selectedShell;
         private TurnSide _activeSide;
         private int _healthInitializedForLevel = -1;
+        private int _turnsCompletedInCurrentRound;
+        private bool _roundLayoutGenerated;
 
         // Множитель урона на следующий УДАЧНЫЙ удар каждой стороны (предмет "Двойной урон").
         // Промах его не сжигает — см. DoubleDamageItemDefinition.
@@ -94,6 +96,8 @@ namespace ShellGame.Gameplay
                 return;
             }
 
+            _turnsCompletedInCurrentRound = 0;
+            _roundLayoutGenerated = false;
             _state = RoundState.Generate;
             StartCoroutine(RunRoundRoutine());
         }
@@ -139,8 +143,17 @@ namespace ShellGame.Gameplay
 
                         EnsureHealthInitializedForLevel();
 
-                        Debug.Log($"GameManager: stage=Generate level={_levelIndex} round={_roundIndex} activeSide={_activeSide}");
-                        _currentParameters = _roundGenerator.GenerateRound(_levelIndex, _roundIndex);
+                        if (!_roundLayoutGenerated)
+                        {
+                            Debug.Log($"GameManager: stage=Generate level={_levelIndex} round={_roundIndex} activeSide={_activeSide}");
+                            _currentParameters = _roundGenerator.GenerateRound(_levelIndex, _roundIndex);
+                            _roundLayoutGenerated = true;
+                        }
+                        else
+                        {
+                            Debug.Log($"GameManager: stage=ReuseRoundLayout level={_levelIndex} round={_roundIndex} activeSide={_activeSide}");
+                        }
+
                         _state = RoundState.Reveal;
                         break;
 
@@ -249,7 +262,16 @@ namespace ShellGame.Gameplay
                         _activeSide = Opposite(_activeSide);
                         GameEvents.RaiseActiveSideChanged(_activeSide);
 
-                        _state = RoundState.Cleanup;
+                        _turnsCompletedInCurrentRound++;
+                        if (_turnsCompletedInCurrentRound < 2)
+                        {
+                            Debug.Log("GameManager: stage=NextTurnInRound");
+                            _state = RoundState.InitiativeAnimation;
+                        }
+                        else
+                        {
+                            _state = RoundState.Cleanup;
+                        }
                         break;
 
                     case RoundState.Cleanup:
@@ -267,6 +289,8 @@ namespace ShellGame.Gameplay
                         // необходимости завести отдельное поле _lastActingSide.
                         _roundGenerator.ClearRound();
                         _inputSystem.SetEnabled(false);
+                        _turnsCompletedInCurrentRound = 0;
+                        _roundLayoutGenerated = false;
                         _roundIndex++;
                         yield return new WaitForSeconds(0.1f);
                         _state = RoundState.InitiativeAnimation;

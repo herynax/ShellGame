@@ -5,13 +5,17 @@ using UnityEngine;
 namespace ShellGame.Health
 {
     /// <summary>
-    /// Здоровье (зубы) игрока и противника.
+    /// Раньше — здоровье (зубы), убывающее к нулю. Теперь — доза наркотика,
+    /// накапливающаяся от нуля к порогу передозировки: чем больше текущее
+    /// значение, тем сильнее "накачана" сторона. При достижении/превышении
+    /// порога — передозировка, смерть наступает сразу этим же уколом (без
+    /// дополнительного "удара при уже нулевом", как было раньше — теперь
+    /// сама метафора этого не требует: перебор дозы убивает сразу).
     ///
-    /// Логика смерти по ГДД: "Когда у игрока не остаётся здоровья (зубов),
-    /// при получении урона он умирает" — то есть само достижение нуля ещё не
-    /// убивает; убивает СЛЕДУЮЩИЙ удар, нанесённый уже при нулевом здоровье.
-    /// ApplyDamage — единственная точка входа для урона, чтобы это правило
-    /// проверялось в одном месте.
+    /// Названия методов (ApplyDamage/Heal/GetHealth/GetMaxHealth) оставлены
+    /// как есть — весь остальной код (GameManager, предметы, фидбек) их уже
+    /// использует, менять сигнатуры не потребовалось, поменялась только
+    /// внутренняя механика и смысл чисел.
     /// </summary>
     public sealed class HealthController : MonoBehaviour
     {
@@ -19,56 +23,80 @@ namespace ShellGame.Health
         private readonly Dictionary<TurnSide, int> _max = new Dictionary<TurnSide, int>();
         private readonly HashSet<TurnSide> _dead = new HashSet<TurnSide>();
 
+        /// <summary>playerMaxHealth/enemyMaxHealth теперь — порог передозировки (толерантность). Доза стартует с нуля, а не с максимума.</summary>
         public void Initialize(int playerMaxHealth, int enemyMaxHealth)
         {
             _max[TurnSide.Player] = playerMaxHealth;
             _max[TurnSide.Enemy] = enemyMaxHealth;
-            _current[TurnSide.Player] = playerMaxHealth;
-            _current[TurnSide.Enemy] = enemyMaxHealth;
+            _current[TurnSide.Player] = 0;
+            _current[TurnSide.Enemy] = 0;
             _dead.Clear();
 
-            GameEvents.RaiseHealthChanged(TurnSide.Player, playerMaxHealth, playerMaxHealth);
-            GameEvents.RaiseHealthChanged(TurnSide.Enemy, enemyMaxHealth, enemyMaxHealth);
+            GameEvents.RaiseHealthChanged(TurnSide.Player, 0, playerMaxHealth);
+            GameEvents.RaiseHealthChanged(TurnSide.Enemy, 0, enemyMaxHealth);
         }
 
+        /// <summary>Текущая доза стороны.</summary>
         public int GetHealth(TurnSide side) => _current.TryGetValue(side, out var v) ? v : 0;
+
+        /// <summary>Порог передозировки (толерантность) стороны.</summary>
         public int GetMaxHealth(TurnSide side) => _max.TryGetValue(side, out var v) ? v : 0;
+
         public bool IsDead(TurnSide side) => _dead.Contains(side);
 
-        /// <summary>Наносит урон стороне. Возвращает true, если сторона умерла именно от этого удара.</summary>
-        public bool ApplyDamage(TurnSide side, int amount)
+        /// <summary>Доля дозы от порога (0..1) — удобно для визуальных эффектов (психоделика и т.п.).</summary>
+        public float GetDoseFraction(TurnSide side)
         {
-            if (_dead.Contains(side))
-                return false;
-
-            bool wasAlreadyAtZero = GetHealth(side) <= 0;
-
-            int newHealth = Mathf.Max(0, GetHealth(side) - amount);
-            _current[side] = newHealth;
-            GameEvents.RaiseHealthChanged(side, newHealth, GetMaxHealth(side));
-
-            bool died = wasAlreadyAtZero;
-            if (died)
-                _dead.Add(side);
-
-            GameEvents.RaiseDamageTaken(side, amount, newHealth, GetMaxHealth(side), died);
-
-            if (died)
-                GameEvents.RaiseSideDied(side);
-
-            return died;
+            int max = GetMaxHealth(side);
+            return max > 0 ? Mathf.Clamp01((float)GetHealth(side) / max) : 0f;
         }
 
-        /// <summary>Восстанавливает здоровье (предмет "Хилка"). Мёртвых не лечит — воскрешения пока нет.</summary>
+        /// <summary>
+        /// Добавляет дозу стороне. Возвращает true, если именно этим уколом
+        /// доза достигла или превысила порог — передозировка, сторона умирает
+        /// немедленно (в отличие от старой модели "убивает следующий удар при
+        /// уже нулевом ХП" — тут порог убивает сразу при пересечении).
+        /// </summary>
+        private void Update()
+        {
+            if (Input.GetKeyDown(KeyCode.Alpha1))
+            {
+                ApplyDamage(TurnSide.Player, 1);
+            }
+        }
+
+        public bool ApplyDamage(TurnSide side, int amount)
+        {
+            if (_dead.Contains(side) || amount <= 0)
+                return false;
+
+            int max = GetMaxHealth(side);
+            int rawDose = GetHealth(side) + amount;
+            bool overdosed = rawDose >= max;
+            int clampedDose = Mathf.Min(max, rawDose);
+            _current[side] = clampedDose;
+
+            GameEvents.RaiseHealthChanged(side, clampedDose, max);
+            GameEvents.RaiseDamageTaken(side, amount, clampedDose, max, overdosed);
+
+            if (overdosed)
+            {
+                _dead.Add(side);
+                GameEvents.RaiseSideDied(side);
+            }
+
+            return overdosed;
+        }
+
+        /// <summary>Снижает дозу (детокс/"Хилка"). Мёртвых не откачивает — воскрешения пока нет.</summary>
         public void Heal(TurnSide side, int amount)
         {
             if (_dead.Contains(side) || amount <= 0)
                 return;
 
-            int max = GetMaxHealth(side);
-            int newHealth = Mathf.Min(max, GetHealth(side) + amount);
-            _current[side] = newHealth;
-            GameEvents.RaiseHealthChanged(side, newHealth, max);
+            int newDose = Mathf.Max(0, GetHealth(side) - amount);
+            _current[side] = newDose;
+            GameEvents.RaiseHealthChanged(side, newDose, GetMaxHealth(side));
         }
     }
 }

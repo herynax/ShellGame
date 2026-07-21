@@ -468,6 +468,7 @@ MonoBehaviour:
   - {fileID: 5246517407016120890}
   - {fileID: 6285586638826647258}
   - {fileID: -6722830694956293799}
+  - {fileID: 7026581034305158478}
 --- !u!114 &169896938054019971
 MonoBehaviour:
   m_ObjectHideFlags: 3
@@ -906,6 +907,22 @@ MonoBehaviour:
     m_OverrideState: 1
     m_Value: 0
   saturation:
+    m_OverrideState: 1
+    m_Value: 0
+--- !u!114 &7026581034305158478
+MonoBehaviour:
+  m_ObjectHideFlags: 3
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 50482a55d8abb804f82494a67dbbf64b, type: 3}
+  m_Name: ChromaticAberrationVolume
+  m_EditorClassIdentifier: Assembly-CSharp::ShellGame.Feedback.ChromaticAberrationVolume
+  active: 1
+  intensity:
     m_OverrideState: 1
     m_Value: 0
 --- !u!114 &8484392388870312458
