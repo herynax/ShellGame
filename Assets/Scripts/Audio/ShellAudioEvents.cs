@@ -1,5 +1,6 @@
 using FMODUnity;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace ShellGame.Audio
 {
@@ -20,14 +21,14 @@ namespace ShellGame.Audio
         [Header("Выбор наперстка игроком")]
         public EventReference Select;
 
-        [Header("Подъём наперстка / показ содержимого")]
-        public EventReference Reveal;
+        [Header("Начало подъёма наперстка (звук лифта вверх) — играется сразу в момент старта анимации и фейдится при достижении пика")]
+        [FormerlySerializedAs("Reveal")]
+        [FormerlySerializedAs("RevealLift")]
+        public EventReference RevealStart;
 
-        [Header("Подъём наперстка / начало опускания")]
-        public EventReference RevealLift;
-
-        [Header("Описание наперстка / после полного опускания")]
-        public EventReference RevealDescription;
+        [Header("Наперсток полностью опустился, показ содержимого закончен")]
+        [FormerlySerializedAs("RevealDescription")]
+        public EventReference RevealEnd;
 
         [Header("Перемещение наперстка во время шаффла")]
         public EventReference ShuffleMove;

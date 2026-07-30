@@ -1,3 +1,5 @@
+using FMOD.Studio;
+using FMODUnity;
 using ShellGame.Audio;
 using ShellGame.Core;
 using ShellGame.Pooling;
@@ -29,6 +31,7 @@ namespace ShellGame.Shells
         private ShellConfig _config;
         private IAudioService _audio;
         private Marker _marker;
+        private EventInstance _revealStartInstance;
 
         public int SlotIndex { get; private set; } = -1;
         public ShellSlot AssignedSlot { get; private set; }
@@ -88,18 +91,23 @@ namespace ShellGame.Shells
             State = ShellState.Revealing;
             ApplySpawnSurfacePosition();
             ShowMarkerVisual();
+
+            // Звук лифта — сразу, синхронно со стартом анимации подъёма.
+            PlayRevealStartSound();
+
             _animator.PlayReveal(
                 holdDuration,
                 onPeakReached: () =>
                 {
-                    // Marker is already visible; the shell lift is the visual cue.
+                    // Лифт долетел до верха — глушим стартовый звук с фейд-аутом ровно здесь.
+                    StopRevealStartSound();
                 },
-                onDescendingStarted: () => PlayRevealLiftSound(),
+                onDescendingStarted: () => { },
                 onComplete: () =>
                 {
                     HideMarkerVisual();
                     State = ShellState.Idle;
-                    PlayRevealDescriptionSound();
+                    PlayRevealEndSound();
                 });
         }
 
@@ -153,18 +161,22 @@ namespace ShellGame.Shells
             GameEvents.RaiseShellSelected(this);
 
             ShowMarkerVisual();
+            PlayRevealStartSound();
+
             _animator.PlayReveal(
                 onPeakReached: () =>
                 {
+                    StopRevealStartSound();
+
                     var revealClip = HasMarker ? _config.AudioEvents.RevealMarked : _config.AudioEvents.RevealEmpty;
                     _audio?.PlayOneShot(revealClip, transform.position);
                     GameEvents.RaiseShellRevealed(this, HasMarker);
                 },
-                onDescendingStarted: () => PlayRevealLiftSound(),
+                onDescendingStarted: () => { },
                 onComplete: () =>
                 {
                     HideMarkerVisual();
-                    PlayRevealDescriptionSound();
+                    PlayRevealEndSound();
                 });
         }
 
@@ -205,35 +217,44 @@ namespace ShellGame.Shells
 
             State = ShellState.Revealing;
             ShowMarkerVisual();
+            PlayRevealStartSound();
+
             _animator.PlayReveal(
-                onPeakReached: () =>
-                {
-                },
-                onDescendingStarted: () => PlayRevealLiftSound(),
+                onPeakReached: () => StopRevealStartSound(),
+                onDescendingStarted: () => { },
                 onComplete: () =>
                 {
                     HideMarkerVisual();
                     State = ShellState.Idle;
-                    PlayRevealDescriptionSound();
+                    PlayRevealEndSound();
                 });
         }
 
-        private void PlayRevealLiftSound()
+        private void PlayRevealStartSound()
         {
-            var liftEvent = _config.AudioEvents.RevealLift;
-            if (liftEvent.IsNull && !_config.AudioEvents.Reveal.IsNull)
-                liftEvent = _config.AudioEvents.Reveal;
+            StopRevealStartSound(); // на случай повторного вызова без завершения предыдущего инстанса
 
-            _audio?.PlayOneShot(liftEvent, transform.position);
+            if (_audio == null)
+                return;
+
+            _revealStartInstance = _audio.CreateInstance(_config.AudioEvents.RevealStart);
+            _revealStartInstance.set3DAttributes(RuntimeUtils.To3DAttributes(transform.position));
+            _revealStartInstance.start();
         }
 
-        private void PlayRevealDescriptionSound()
+        private void StopRevealStartSound()
         {
-            var descriptionEvent = _config.AudioEvents.RevealDescription;
-            if (descriptionEvent.IsNull && !_config.AudioEvents.Reveal.IsNull)
-                descriptionEvent = _config.AudioEvents.Reveal;
+            if (!_revealStartInstance.isValid())
+                return;
 
-            _audio?.PlayOneShot(descriptionEvent, transform.position);
+            _revealStartInstance.stop(FMOD.Studio.STOP_MODE.ALLOWFADEOUT);
+            _revealStartInstance.release();
+            _revealStartInstance.clearHandle();
+        }
+
+        private void PlayRevealEndSound()
+        {
+            _audio?.PlayOneShot(_config.AudioEvents.RevealEnd, transform.position);
         }
 
         private void ApplySpawnSurfacePosition()
@@ -300,6 +321,7 @@ namespace ShellGame.Shells
         public void OnReturnToPool()
         {
             _animator.Kill();
+            StopRevealStartSound();
             State = ShellState.PooledInactive;
             SetInteractable(false);
             if (_marker != null)

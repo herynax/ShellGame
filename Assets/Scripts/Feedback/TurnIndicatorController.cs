@@ -22,6 +22,9 @@ namespace ShellGame.Feedback
         [Header("Анимация поворота")]
         [SerializeField] private float _rotateDuration = 0.6f;
         [SerializeField] private Ease _rotateEase = Ease.InOutBack;
+        
+        // ИСПРАВЛЕНИЕ 1: Используем EventReference для выбора события FMOD в Инспекторе
+        [SerializeField] private FMODUnity.EventReference _rotateSoundEvent;
 
         [Header("Idle-анимация (лёгкое дыхание, пока ход не меняется)")]
         [SerializeField] private bool _playIdleAnimation = true;
@@ -33,6 +36,9 @@ namespace ShellGame.Feedback
         private TurnSide _currentSide;
         private Tween _rotateTween;
         private Tween _idleTween;
+
+        // ИСПРАВЛЕНИЕ 2: Добавляем переменную для инстанса (самого играющего звука)
+        private FMOD.Studio.EventInstance _rotateSoundInstance;
 
         private void Awake()
         {
@@ -66,14 +72,35 @@ namespace ShellGame.Feedback
             StopIdle();
             _rotateTween?.Kill();
 
+            // Если звук уже играет, останавливаем предыдущий
+            if (_rotateSoundInstance.isValid())
+            {
+                _rotateSoundInstance.stop(FMOD.Studio.STOP_MODE.ALLOWFADEOUT);
+            }
+
             var targetEuler = _pointerTransform.localEulerAngles;
             targetEuler.y = ComputeTargetLocalAngleY(side);
+
+            // Создаем экземпляр события (инстанс)
+            _rotateSoundInstance = FMODUnity.RuntimeManager.CreateInstance(_rotateSoundEvent);
+            // Устанавливаем позицию источника звука для 3D
+            _rotateSoundInstance.set3DAttributes(FMODUnity.RuntimeUtils.To3DAttributes(_pointerTransform));
+            // Запускаем звук
+            _rotateSoundInstance.start();
+            // Освобождаем память (звук уничтожится сам после полной остановки)
+            _rotateSoundInstance.release();
 
             _rotateTween = _pointerTransform
                 .DOLocalRotate(targetEuler, _rotateDuration, RotateMode.FastBeyond360)
                 .SetEase(_rotateEase)
                 .OnComplete(() =>
                 {
+                    // Останавливаем звук с фейдаутом по завершении анимации
+                    if (_rotateSoundInstance.isValid())
+                    {
+                        _rotateSoundInstance.stop(FMOD.Studio.STOP_MODE.ALLOWFADEOUT);
+                    }
+
                     PlayIdle();
                     onComplete?.Invoke();
                 });
@@ -82,8 +109,6 @@ namespace ShellGame.Feedback
         /// <summary>
         /// Угол по Y (в локальных координатах _pointerTransform), под который
         /// нужно довернуться, чтобы посмотреть на цель нужной стороны.
-        /// Направление считается только в горизонтальной плоскости — высота
-        /// цели на угол не влияет.
         /// </summary>
         private float ComputeTargetLocalAngleY(TurnSide side)
         {
@@ -101,8 +126,6 @@ namespace ShellGame.Feedback
 
             var worldAngleY = Quaternion.LookRotation(direction, Vector3.up).eulerAngles.y;
 
-            // Если указатель — дочерний объект повёрнутого родителя, переводим
-            // мировой угол в локальный, иначе DOLocalRotate довернёт не туда.
             var parentAngleY = _pointerTransform.parent != null ? _pointerTransform.parent.eulerAngles.y : 0f;
             return worldAngleY - parentAngleY;
         }
@@ -130,6 +153,13 @@ namespace ShellGame.Feedback
         {
             _rotateTween?.Kill();
             StopIdle();
+            
+            // ИСПРАВЛЕНИЕ 3: Хорошая практика глушить звук сразу, если объект выключается (например, меняется сцена)
+            if (_rotateSoundInstance.isValid())
+            {
+                _rotateSoundInstance.stop(FMOD.Studio.STOP_MODE.IMMEDIATE);
+                _rotateSoundInstance.release();
+            }
         }
     }
 }

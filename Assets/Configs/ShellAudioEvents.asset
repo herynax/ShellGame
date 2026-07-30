@@ -33,20 +33,27 @@ MonoBehaviour:
       Data3: 0
       Data4: 0
     Path: 
-  Reveal:
+  RevealStart:
     Guid:
-      Data1: 0
-      Data2: 0
-      Data3: 0
-      Data4: 0
-    Path: 
+      Data1: -527801184
+      Data2: 1323942808
+      Data3: 1782208179
+      Data4: 2074205339
+    Path: event:/SFX/S_RevilStart
+  RevealEnd:
+    Guid:
+      Data1: -2020978990
+      Data2: 1097323474
+      Data3: 1596354432
+      Data4: 1284284225
+    Path: event:/SFX/S_RevilEnd
   ShuffleMove:
     Guid:
-      Data1: 0
-      Data2: 0
-      Data3: 0
-      Data4: 0
-    Path: 
+      Data1: -104055381
+      Data2: 1171375592
+      Data3: -194842187
+      Data4: -1863509082
+    Path: event:/SFX/S_Shuffle
   RevealEmpty:
     Guid:
       Data1: 0

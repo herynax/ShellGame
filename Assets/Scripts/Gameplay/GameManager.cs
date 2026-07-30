@@ -28,6 +28,10 @@ namespace ShellGame.Gameplay
         [SerializeField] private float _roundEndDelay = 0.5f;
         [SerializeField] private float _shuffleDelay = 0.15f;
 
+        [Header("Урон игроку")]
+        [Tooltip("Задержка перед нанесением урона игроку (когда враг поднял наперсток с меткой) — даёт анимации подъёма наперстка доиграть до конца. На урон врагу (от игрока) не влияет — там урон наносится сразу после показа результата.")]
+        [SerializeField] private float _damageToPlayerDelay = 0.5f;
+
         private RoundState _state = RoundState.Idle;
         private RoundParameters _currentParameters;
         private Shell _selectedShell;
@@ -238,6 +242,13 @@ namespace ShellGame.Gameplay
                         if (_selectedShell.HasMarker)
                         {
                             var damagedSide = Opposite(_activeSide);
+
+                            // Урон игроку наносится с задержкой — даём анимации
+                            // подъёма наперстка (у врага) доиграть до конца.
+                            // Урон врагу — сразу, без искусственной паузы.
+                            if (damagedSide == TurnSide.Player && _damageToPlayerDelay > 0f)
+                                yield return new WaitForSeconds(_damageToPlayerDelay);
+
                             int baseDamage = _healthProgressionConfig != null ? _healthProgressionConfig.DamagePerHit : 1;
                             int multiplier = ConsumeDamageMultiplier(_activeSide);
                             int damage = baseDamage * multiplier;
