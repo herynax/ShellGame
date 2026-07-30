@@ -23,6 +23,12 @@ namespace ShellGame.Audio
         [Header("Подъём наперстка / показ содержимого")]
         public EventReference Reveal;
 
+        [Header("Подъём наперстка / начало опускания")]
+        public EventReference RevealLift;
+
+        [Header("Описание наперстка / после полного опускания")]
+        public EventReference RevealDescription;
+
         [Header("Перемещение наперстка во время шаффла")]
         public EventReference ShuffleMove;
 

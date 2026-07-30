@@ -61,7 +61,12 @@ namespace ShellGame.Tweening
         /// <summary>Подъём/показ с длительностью паузы из ShellConfig (стандартный случай — выбор игрока/AI).</summary>
         public void PlayReveal(Action onPeakReached, Action onComplete)
         {
-            PlayReveal(-1f, onPeakReached, onComplete);
+            PlayReveal(-1f, onPeakReached, null, onComplete);
+        }
+
+        public void PlayReveal(Action onPeakReached, Action onDescendingStarted, Action onComplete)
+        {
+            PlayReveal(-1f, onPeakReached, onDescendingStarted, onComplete);
         }
 
         /// <summary>
@@ -72,6 +77,11 @@ namespace ShellGame.Tweening
         /// </summary>
         public void PlayReveal(float holdDuration, Action onPeakReached, Action onComplete)
         {
+            PlayReveal(holdDuration, onPeakReached, null, onComplete);
+        }
+
+        public void PlayReveal(float holdDuration, Action onPeakReached, Action onDescendingStarted, Action onComplete)
+        {
             _activeSequence?.Kill();
             var startPos = transform.localPosition;
             var peakPos = startPos + Vector3.up * _config.LiftHeight;
@@ -81,6 +91,7 @@ namespace ShellGame.Tweening
                 .Append(transform.DOLocalMove(peakPos, _config.LiftDuration).SetEase(_config.LiftEase))
                 .AppendCallback(() => onPeakReached?.Invoke())
                 .AppendInterval(resolvedHold)
+                .AppendCallback(() => onDescendingStarted?.Invoke())
                 .Append(transform.DOLocalMove(startPos, _config.LiftDuration).SetEase(Ease.InOutSine))
                 .OnComplete(() => onComplete?.Invoke());
         }

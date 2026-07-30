@@ -94,10 +94,12 @@ namespace ShellGame.Shells
                 {
                     // Marker is already visible; the shell lift is the visual cue.
                 },
+                onDescendingStarted: () => PlayRevealLiftSound(),
                 onComplete: () =>
                 {
                     HideMarkerVisual();
                     State = ShellState.Idle;
+                    PlayRevealDescriptionSound();
                 });
         }
 
@@ -158,9 +160,11 @@ namespace ShellGame.Shells
                     _audio?.PlayOneShot(revealClip, transform.position);
                     GameEvents.RaiseShellRevealed(this, HasMarker);
                 },
+                onDescendingStarted: () => PlayRevealLiftSound(),
                 onComplete: () =>
                 {
                     HideMarkerVisual();
+                    PlayRevealDescriptionSound();
                 });
         }
 
@@ -205,11 +209,31 @@ namespace ShellGame.Shells
                 onPeakReached: () =>
                 {
                 },
+                onDescendingStarted: () => PlayRevealLiftSound(),
                 onComplete: () =>
                 {
                     HideMarkerVisual();
                     State = ShellState.Idle;
+                    PlayRevealDescriptionSound();
                 });
+        }
+
+        private void PlayRevealLiftSound()
+        {
+            var liftEvent = _config.AudioEvents.RevealLift;
+            if (liftEvent.IsNull && !_config.AudioEvents.Reveal.IsNull)
+                liftEvent = _config.AudioEvents.Reveal;
+
+            _audio?.PlayOneShot(liftEvent, transform.position);
+        }
+
+        private void PlayRevealDescriptionSound()
+        {
+            var descriptionEvent = _config.AudioEvents.RevealDescription;
+            if (descriptionEvent.IsNull && !_config.AudioEvents.Reveal.IsNull)
+                descriptionEvent = _config.AudioEvents.Reveal;
+
+            _audio?.PlayOneShot(descriptionEvent, transform.position);
         }
 
         private void ApplySpawnSurfacePosition()
