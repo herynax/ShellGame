@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -9,6 +10,20 @@ public class SceneLoader : MonoBehaviour
 {
     // Паттерн Singleton для сохранения экземпляра
     public static SceneLoader Instance { get; private set; }
+
+    // === СОБЫТИЯ ДЛЯ СИНХРОНИЗАЦИИ МУЗЫКИ (MusicManager) ===
+    // ScreenGoingBlack(duration) — экран начинает уходить в чёрное (fade-in канваса).
+    //   duration = сколько это займёт секунд (0, если переход мгновенный, как при
+    //   рестарте после смерти игрока) — MusicManager фейдит громкость музыки в 0
+    //   за то же время.
+    // ScreenFullyBlack() — экран уже полностью чёрный и новая сцена загружена,
+    //   но фейд-аут канваса ещё не начался. Момент, когда можно без "мигания"
+    //   для игрока сбросить состояние (например, дозу).
+    // ScreenRevealing(duration) — канвас начинает фейдиться обратно (открывать
+    //   сцену) — MusicManager параллельно фейдит громкость музыки обратно к базовой.
+    public static event Action<float> ScreenGoingBlack;
+    public static event Action ScreenFullyBlack;
+    public static event Action<float> ScreenRevealing;
 
     [Header("Настройки фейда")]
     [Tooltip("CanvasGroup, на котором будет происходить фейдинг (должен быть на объекте SceneLoader)")]
@@ -29,8 +44,8 @@ public class SceneLoader : MonoBehaviour
     
     [Tooltip("Сцена, на которую переходить при смерти врага (победа игрока)")]
     public string nextSceneOnEnemyDeath;
-    [Tooltip("Направленный свет комнаты, который тушим перед переходом на след. сцену")]
-    public Light roomLight;
+    [Tooltip("Тег GameObject'а с направленным светом комнаты в текущей сцене. SceneLoader персистентный (DontDestroyOnLoad), а roomLight — обычный объект сцены, поэтому прямую ссылку в инспекторе назначить нельзя (она обнулится при смене сцены) — свет ищется по тегу каждый раз заново.")]
+    public string roomLightTag = "RoomLight";
     [Tooltip("Длительность затухания света до 0")]
     public float roomDarkenDuration = 1.5f;
     [Tooltip("Intensity света, при пересечении которой (сверху вниз) параллельно начинает фейдиться в чёрное канвас-группа")]
@@ -145,6 +160,7 @@ public class SceneLoader : MonoBehaviour
 
         // 2. ФЕЙД ИН - чёрный экран закрывает всё
         Debug.Log($"[SceneLoader] Начинаем Fade In...");
+        ScreenGoingBlack?.Invoke(fadeDuration);
         yield return fadeCanvasGroup.DOFade(1f, fadeDuration)
             .SetUpdate(true)  // Игнорирует Time.timeScale
             .WaitForCompletion();
@@ -171,12 +187,14 @@ public class SceneLoader : MonoBehaviour
         }
 
         Debug.Log($"[SceneLoader] Сцена загружена! Ждём перед Fade Out...");
+        ScreenFullyBlack?.Invoke();
 
         // 4. Небольшая задержка перед фейд-аутом (дает время новой сцене инициализироваться)
         yield return new WaitForSecondsRealtime(delayBeforeFadeOut);
 
         // 5. ФЕЙД АУТ - чёрный экран исчезает, показывается новая сцена
         Debug.Log($"[SceneLoader] Начинаем Fade Out...");
+        ScreenRevealing?.Invoke(fadeDuration);
         yield return fadeCanvasGroup.DOFade(0f, fadeDuration)
             .SetUpdate(true)
             .WaitForCompletion();
@@ -217,7 +235,9 @@ public class SceneLoader : MonoBehaviour
         if (blockInputDuringLoad)
             fadeCanvasGroup.blocksRaycasts = true;
 
-        // Мгновенное включение чёрного экрана — без анимации
+        // Мгновенное включение чёрного экрана — без анимации.
+        // duration = 0, поэтому MusicManager тоже мгновенно обрежет громкость в 0.
+        ScreenGoingBlack?.Invoke(0f);
         FadeInInstant();
 
         int currentIndex = SceneManager.GetActiveScene().buildIndex;
@@ -226,8 +246,11 @@ public class SceneLoader : MonoBehaviour
         while (!asyncLoad.isDone)
             yield return null;
 
+        ScreenFullyBlack?.Invoke();
+
         yield return new WaitForSecondsRealtime(delayBeforeFadeOut);
 
+        ScreenRevealing?.Invoke(fadeDuration);
         yield return fadeCanvasGroup.DOFade(0f, fadeDuration)
             .SetUpdate(true)
             .WaitForCompletion();
@@ -263,9 +286,11 @@ public class SceneLoader : MonoBehaviour
             isLoading = false;
             yield break;
         }
+
+        Light roomLight = FindRoomLight();
         if (roomLight == null)
         {
-            Debug.LogError("roomLight не назначен в SceneLoader!");
+            Debug.LogError($"[SceneLoader] Не найден объект со светом комнаты (тег '{roomLightTag}') в текущей сцене!");
             isLoading = false;
             yield break;
         }
@@ -285,6 +310,8 @@ public class SceneLoader : MonoBehaviour
                 {
                     canvasFadeStarted = true;
                     Debug.Log($"[SceneLoader] Порог {canvasFadeInTriggerIntensity} пройден, запускаем fade-in канваса параллельно...");
+                    // Канвас (и вместе с ним музыка) уходят в чёрное/тишину за fadeDuration
+                    ScreenGoingBlack?.Invoke(fadeDuration);
                     canvasFadeTween = fadeCanvasGroup.DOFade(1f, fadeDuration).SetUpdate(true);
                 }
             });
@@ -293,10 +320,15 @@ public class SceneLoader : MonoBehaviour
 
         // На случай если свет так и не пересёк порог
         if (!canvasFadeStarted)
+        {
+            ScreenGoingBlack?.Invoke(fadeDuration);
             canvasFadeTween = fadeCanvasGroup.DOFade(1f, fadeDuration).SetUpdate(true);
+        }
 
         if (canvasFadeTween != null)
             yield return canvasFadeTween.WaitForCompletion();
+
+        ScreenFullyBlack?.Invoke();
 
         // ИЗМЕНЕНИЕ: Проверяем галочку перед вызовом загрузки сцены
         if (loadNextSceneByName)
@@ -354,6 +386,7 @@ public class SceneLoader : MonoBehaviour
         yield return new WaitForSecondsRealtime(delayBeforeFadeOut);
 
         Debug.Log($"[SceneLoader] Начинаем Fade Out...");
+        ScreenRevealing?.Invoke(fadeDuration);
         yield return fadeCanvasGroup.DOFade(0f, fadeDuration)
             .SetUpdate(true)
             .WaitForCompletion();
@@ -361,6 +394,20 @@ public class SceneLoader : MonoBehaviour
         Debug.Log($"[SceneLoader] Fade Out завершён!");
         fadeCanvasGroup.blocksRaycasts = false;
         isLoading = false;
+    }
+
+    /// <summary>
+    /// Ищет свет комнаты в текущей загруженной сцене по тегу roomLightTag.
+    /// Вызывается заново при каждой смерти врага, а не кешируется — сам
+    /// SceneLoader переживает смену сцен, а свет каждой сцены свой.
+    /// </summary>
+    private Light FindRoomLight()
+    {
+        if (string.IsNullOrEmpty(roomLightTag))
+            return null;
+
+        GameObject tagged = GameObject.FindGameObjectWithTag(roomLightTag);
+        return tagged != null ? tagged.GetComponent<Light>() : null;
     }
 
     /// <summary>

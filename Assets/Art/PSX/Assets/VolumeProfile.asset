@@ -925,6 +925,24 @@ MonoBehaviour:
   intensity:
     m_OverrideState: 1
     m_Value: 0
+  warpAmplitude:
+    m_OverrideState: 1
+    m_Value: 0
+  warpFrequency:
+    m_OverrideState: 1
+    m_Value: 6
+  warpSpeed:
+    m_OverrideState: 1
+    m_Value: 1.2
+  noiseAmplitude:
+    m_OverrideState: 1
+    m_Value: 0
+  noiseFrequency:
+    m_OverrideState: 1
+    m_Value: 8
+  noiseSpeed:
+    m_OverrideState: 1
+    m_Value: 1
 --- !u!114 &8484392388870312458
 MonoBehaviour:
   m_ObjectHideFlags: 3

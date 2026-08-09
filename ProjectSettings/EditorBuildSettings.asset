@@ -6,7 +6,10 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/Scenes/Kamila_Test_Scene 1.unity
-    guid: 6b225914e383530469a415323baa6290
+    path: Assets/Scenes/Level_1.unity
+    guid: 7d5e029501d1abb498c7f12870efd6d1
+  - enabled: 1
+    path: Assets/Scenes/Level_2.unity
+    guid: d27d85bd1debe7043841f8c9fe7d2811
   m_configObjects: {}
   m_UseUCBPForAssetBundles: 0
