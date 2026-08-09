@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<objects serializationModel="Studio.02.03.00">
+	<object class="ParameterPreset" id="{581b2444-ce23-4dec-ac36-08a7b0c71ead}">
+		<property name="name">
+			<value>Dose Counter</value>
+		</property>
+		<relationship name="folder">
+			<destination>{cdd39a24-9bb1-4d73-9f40-137f0c5d12f1}</destination>
+		</relationship>
+		<relationship name="parameter">
+			<destination>{d7f26a9e-1a1c-4dfc-aa31-18d68c212b1d}</destination>
+		</relationship>
+	</object>
+	<object class="GameParameter" id="{d7f26a9e-1a1c-4dfc-aa31-18d68c212b1d}">
+		<property name="parameterType">
+			<value>1</value>
+		</property>
+		<property name="maximum">
+			<value>6</value>
+		</property>
+		<property name="isGlobal">
+			<value>true</value>
+		</property>
+		<property name="initialValue">
+			<value>0</value>
+		</property>
+		<property name="isExposedRecursively">
+			<value>false</value>
+		</property>
+	</object>
+</objects>
