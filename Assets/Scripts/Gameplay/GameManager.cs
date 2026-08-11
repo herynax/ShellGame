@@ -7,6 +7,7 @@ using ShellGame.Health;
 using ShellGame.Items;
 using ShellGame.Shells;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace ShellGame.Gameplay
 {
@@ -17,6 +18,7 @@ namespace ShellGame.Gameplay
         [SerializeField] private ShuffleSystem _shuffleSystem;
         [SerializeField] private HealthController _healthController;
         [SerializeField] private EnemyAIController _enemyAI;
+        [SerializeField] private RoundStartButton _roundStartButton;
         [SerializeField] private HealthProgressionConfig _healthProgressionConfig;
         [SerializeField] private TurnIndicatorController _turnIndicator;
         [SerializeField] private TurnSide _startingSide = TurnSide.Player;
@@ -38,7 +40,10 @@ namespace ShellGame.Gameplay
         private TurnSide _activeSide;
         private int _healthInitializedForLevel = -1;
         private int _turnsCompletedInCurrentRound;
+        private int _completedRoundsInSession;
         private bool _roundLayoutGenerated;
+        private bool _firstRoundReadyWaited;
+        private GameSessionProgression _sessionProgression;
 
         // Множитель урона на следующий УДАЧНЫЙ удар каждой стороны (предмет "Двойной урон").
         // Промах его не сжигает — см. DoubleDamageItemDefinition.
@@ -57,6 +62,7 @@ namespace ShellGame.Gameplay
             ShuffleSystem shuffleSystem,
             HealthController healthController,
             EnemyAIController enemyAI,
+            RoundStartButton roundStartButton,
             HealthProgressionConfig healthProgressionConfig,
             TurnSide startingSide,
             TurnIndicatorController turnIndicator)
@@ -66,6 +72,7 @@ namespace ShellGame.Gameplay
             _shuffleSystem = shuffleSystem;
             _healthController = healthController;
             _enemyAI = enemyAI;
+            _roundStartButton = roundStartButton;
             _healthProgressionConfig = healthProgressionConfig;
             _startingSide = startingSide;
             _turnIndicator = turnIndicator;
@@ -86,8 +93,36 @@ namespace ShellGame.Gameplay
             if (_turnIndicator == null)
                 _turnIndicator = GetComponentInChildren<TurnIndicatorController>();
 
+            _sessionProgression = FindObjectOfType<GameSessionProgression>();
+            if (_sessionProgression == null)
+            {
+                var progressionObject = new GameObject("GameSessionProgression");
+                _sessionProgression = progressionObject.AddComponent<GameSessionProgression>();
+            }
+
+            _completedRoundsInSession = _sessionProgression.CompletedRoundsInSession;
+
+            if (_sessionProgression.CurrentLevelIndex > 0)
+            {
+                _levelIndex = _sessionProgression.CurrentLevelIndex;
+            }
+            else if (_levelIndex < 0)
+            {
+                _levelIndex = SceneManager.GetActiveScene().buildIndex;
+            }
+
+            _sessionProgression.SetCurrentLevelIndex(_levelIndex);
+
             _activeSide = _startingSide;
             _turnIndicator?.SetImmediate(_activeSide);
+
+            if (_roundStartButton == null)
+                _roundStartButton = GetComponentInChildren<RoundStartButton>(true);
+
+            if (_roundStartButton == null)
+                Debug.LogWarning("GameManager: RoundStartButton is not assigned and was not found in children.");
+            else
+                _roundStartButton.Hide();
 
             StartRound();
         }
@@ -149,8 +184,17 @@ namespace ShellGame.Gameplay
 
                         if (!_roundLayoutGenerated)
                         {
-                            Debug.Log($"GameManager: stage=Generate level={_levelIndex} round={_roundIndex} activeSide={_activeSide}");
-                            _currentParameters = _roundGenerator.GenerateRound(_levelIndex, _roundIndex);
+                            Debug.Log($"GameManager: stage=Generate level={_levelIndex} round={_roundIndex} completedRounds={_completedRoundsInSession} activeSide={_activeSide}");
+                            _currentParameters = _roundGenerator.GenerateRound(_levelIndex, _roundIndex, _completedRoundsInSession);
+
+                            if (_sessionProgression != null)
+                            {
+                                float persistedDifficulty = _sessionProgression.GetDifficultyForRound(_levelIndex, _roundIndex, _completedRoundsInSession);
+                                _currentParameters.DifficultyIndex = persistedDifficulty;
+                                _sessionProgression.SetDifficultyIndex(persistedDifficulty + 0.45f);
+                            }
+
+                            Debug.Log($"GameManager: round generated level={_levelIndex} round={_roundIndex} difficultyIndex={_currentParameters.DifficultyIndex:F2}");
                             _roundLayoutGenerated = true;
                         }
                         else
@@ -158,7 +202,40 @@ namespace ShellGame.Gameplay
                             Debug.Log($"GameManager: stage=ReuseRoundLayout level={_levelIndex} round={_roundIndex} activeSide={_activeSide}");
                         }
 
-                        _state = RoundState.Reveal;
+                        if (!_firstRoundReadyWaited && _completedRoundsInSession == 0)
+                        {
+                            _state = RoundState.WaitForStart;
+                        }
+                        else
+                        {
+                            _state = RoundState.Reveal;
+                        }
+                        break;
+
+                    case RoundState.WaitForStart:
+                        if (_roundStartButton != null)
+                        {
+                            _roundStartButton.Show();
+                        }
+
+                        if (_inputSystem != null)
+                        {
+                            _inputSystem.SetEnabled(true);
+                        }
+
+                        while (_state == RoundState.WaitForStart)
+                            yield return null;
+
+                        if (_roundStartButton != null)
+                        {
+                            _roundStartButton.Hide();
+                        }
+
+                        if (_inputSystem != null)
+                        {
+                            _inputSystem.SetEnabled(false);
+                        }
+
                         break;
 
                     case RoundState.Reveal:
@@ -197,7 +274,7 @@ namespace ShellGame.Gameplay
                         _shuffleSystem.StartShuffling(_roundGenerator.GetShellsInPlayOrder(), () =>
                         {
                             _state = RoundState.PlayerTurn;
-                        });
+                        }, _levelIndex, _roundIndex, _currentParameters.DifficultyIndex);
                         while (_state == RoundState.Shuffle)
                             yield return null;
                         break;
@@ -302,6 +379,8 @@ namespace ShellGame.Gameplay
                         _inputSystem.SetEnabled(false);
                         _turnsCompletedInCurrentRound = 0;
                         _roundLayoutGenerated = false;
+                        _completedRoundsInSession++;
+                        _sessionProgression?.IncrementCompletedRounds();
                         _roundIndex++;
                         yield return new WaitForSeconds(0.1f);
                         _state = RoundState.InitiativeAnimation;
@@ -354,6 +433,7 @@ namespace ShellGame.Gameplay
             GameEvents.ShellSelected += OnShellSelected;
             GameEvents.RoundShuffleCompleted += OnShuffleCompleted;
             GameEvents.ShellRevealed += OnShellRevealed;
+            GameEvents.RoundStartConfirmed += OnRoundStartConfirmed;
         }
 
         private void OnDisable()
@@ -361,6 +441,7 @@ namespace ShellGame.Gameplay
             GameEvents.ShellSelected -= OnShellSelected;
             GameEvents.RoundShuffleCompleted -= OnShuffleCompleted;
             GameEvents.ShellRevealed -= OnShellRevealed;
+            GameEvents.RoundStartConfirmed -= OnRoundStartConfirmed;
         }
 
         private void OnShellSelected(Shell shell)
@@ -379,6 +460,15 @@ namespace ShellGame.Gameplay
                 return;
 
             Debug.Log(hasMarker ? "Success" : "Fail");
+        }
+
+        private void OnRoundStartConfirmed()
+        {
+            if (_state != RoundState.WaitForStart)
+                return;
+
+            _firstRoundReadyWaited = true;
+            _state = RoundState.Reveal;
         }
 
         private void OnShuffleCompleted()

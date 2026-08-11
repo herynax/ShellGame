@@ -3,6 +3,7 @@ using System.Linq;
 using ShellGame.Core;
 using ShellGame.Shells;
 using UnityEngine;
+using DG.Tweening;
 
 namespace ShellGame.Gameplay
 {
@@ -10,13 +11,22 @@ namespace ShellGame.Gameplay
     {
         [SerializeField] private int _swapCount = 6;
         [SerializeField] private float _betweenSwapDelay = 0.1f;
+        [SerializeField] private ShellConfig _shellConfig;
 
         private List<Shell> _shells = new List<Shell>();
         private bool _isRunning;
         private int _currentStep;
+        private int _currentLevelIndex;
+        private int _currentRoundIndex;
+        private float _currentDifficultyIndex;
         private System.Action _onComplete;
 
-        public void StartShuffling(IReadOnlyList<Shell> shells, System.Action onComplete)
+        public void Initialize(ShellConfig shellConfig)
+        {
+            _shellConfig = shellConfig;
+        }
+
+        public void StartShuffling(IReadOnlyList<Shell> shells, System.Action onComplete, int levelIndex, int roundIndex, float difficultyIndex = 0f)
         {
             if (_isRunning)
                 return;
@@ -25,6 +35,9 @@ namespace ShellGame.Gameplay
             _onComplete = onComplete;
             _currentStep = 0;
             _isRunning = true;
+            _currentLevelIndex = Mathf.Max(0, levelIndex);
+            _currentRoundIndex = Mathf.Max(0, roundIndex);
+            _currentDifficultyIndex = difficultyIndex;
             PerformNextSwap();
         }
 
@@ -74,8 +87,21 @@ namespace ShellGame.Gameplay
                     PerformNextSwap();
             }
 
-            firstShell.MoveToSlot(secondSlot, OnShellMoved);
-            secondShell.MoveToSlot(firstSlot, OnShellMoved);
+            float moveDuration = ResolveShuffleMoveDuration();
+            firstShell.MoveToSlot(secondSlot, OnShellMoved, moveDuration);
+            secondShell.MoveToSlot(firstSlot, OnShellMoved, moveDuration);
+        }
+
+        private float ResolveShuffleMoveDuration()
+        {
+            if (_shellConfig == null)
+                return 0.22f;
+
+            float baseDuration = _shellConfig.ShuffleMoveDurationBase;
+            float roundReduction = _shellConfig.ShuffleRoundReduction * Mathf.Max(0, _currentRoundIndex);
+            float levelReduction = _shellConfig.ShuffleLevelReduction * Mathf.Max(0, _currentLevelIndex);
+            float reducedDuration = baseDuration - roundReduction - levelReduction;
+            return Mathf.Max(_shellConfig.ShuffleMoveDurationMin, reducedDuration);
         }
 
         private void Finish()
@@ -84,6 +110,12 @@ namespace ShellGame.Gameplay
             GameEvents.RaiseRoundShuffleCompleted();
             _onComplete?.Invoke();
             _onComplete = null;
+        }
+
+        private void OnDestroy()
+        {
+            // Убиваем все DOTween анимации/задержки, связанные с этой системой
+            DOTween.Kill(this);
         }
     }
 }

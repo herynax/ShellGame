@@ -3,8 +3,10 @@ using FMODUnity;
 using ShellGame.Audio;
 using ShellGame.Core;
 using ShellGame.Pooling;
+using ShellGame.Gameplay;
 using ShellGame.Tweening;
 using UnityEngine;
+using DG.Tweening;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -22,7 +24,7 @@ namespace ShellGame.Shells
     /// </summary>
     [RequireComponent(typeof(ShellAnimator))]
     [RequireComponent(typeof(Collider))]
-    public sealed class Shell : MonoBehaviour, IPoolResettable
+    public sealed class Shell : MonoBehaviour, IPoolResettable, IRoundInputTarget
     {
         [SerializeField] private Collider _clickCollider;
         [SerializeField] private Transform _markerVisualAnchor; // сюда включается спрайт метки при Reveal, если нужно
@@ -181,7 +183,7 @@ namespace ShellGame.Shells
         }
 
         /// <summary>Переместить наперсток на новую позицию слота (используется алгоритмом перемешивания).</summary>
-        public void MoveToSlot(ShellSlot targetSlot, System.Action onComplete = null)
+        public void MoveToSlot(ShellSlot targetSlot, System.Action onComplete = null, float moveDuration = -1f)
         {
             if (targetSlot == null)
             {
@@ -201,7 +203,7 @@ namespace ShellGame.Shells
             {
                 State = ShellState.Idle;
                 onComplete?.Invoke();
-            });
+            }, moveDuration >= 0f ? moveDuration : _config.ShuffleMoveDurationBase);
         }
 
         public void PlaySpawnIn()
@@ -329,6 +331,21 @@ namespace ShellGame.Shells
                 _marker.Hide();
                 _marker = null;
             }
+        }
+
+        private void OnDestroy()
+        {
+            // 1. Убиваем все анимации привязанные к этому Transform
+            transform.DOKill(); 
+            
+            // 2. Убиваем внутренние твины аниматора
+            if (_animator != null)
+            {
+                _animator.Kill();
+            }
+
+            // 3. Останавливаем 3D-звук лифта, чтобы он не завис в воздухе
+            StopRevealStartSound();
         }
     }
 }

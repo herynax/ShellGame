@@ -78,6 +78,9 @@ namespace ShellGame.Feedback
 
         private void Awake()
         {
+
+            Debug.Log($"PsychedelicEffectController: Awake called on GameObject '{gameObject.name}', active={gameObject.activeInHierarchy}");
+
             if (_volume == null)
                 _volume = FindObjectOfType<Volume>();
 
@@ -86,24 +89,20 @@ namespace ShellGame.Feedback
                 _volume.profile.TryGet(out _vignette);
                 _volume.profile.TryGet(out _chromaticAberration);
             }
-
-            if (_vignette == null)
-                Debug.LogWarning("PsychedelicEffectController: на Volume-профиле нет оверрайда Vignette — добавьте его (Add Override → Post-processing → Vignette).");
-
-            if (_chromaticAberration == null)
-                Debug.LogWarning("PsychedelicEffectController: на Volume-профиле нет оверрайда ShellGame → Chromatic Aberration (PSX) — screen warp и шум работать не будут, пока его нет.");
         }
 
         private void OnEnable()
         {
             GameEvents.HealthChanged += OnHealthChanged;
             GameEvents.SideDied += OnSideDied;
+            Debug.Log("PsychedelicEffectController: enabled and subscribed to GameEvents.");
         }
 
         private void OnDisable()
         {
             GameEvents.HealthChanged -= OnHealthChanged;
             GameEvents.SideDied -= OnSideDied;
+            Debug.Log("PsychedelicEffectController: disabled and unsubscribed from GameEvents.");
         }
 
         private void OnHealthChanged(TurnSide side, int current, int max)
@@ -112,6 +111,7 @@ namespace ShellGame.Feedback
                 return;
 
             _targetFraction = max > 0 ? Mathf.Clamp01((float)current / max) : 0f;
+            Debug.Log($"PsychedelicEffectController: OnHealthChanged player current={current} max={max} targetFraction={_targetFraction}");
         }
 
         private void OnSideDied(TurnSide side)
@@ -122,6 +122,7 @@ namespace ShellGame.Feedback
             _isDead = true;
             _currentFraction = 1f;
             _targetFraction = 1f;
+            Debug.Log("PsychedelicEffectController: OnSideDied player — applying death blackout.");
         }
 
         private void Update()

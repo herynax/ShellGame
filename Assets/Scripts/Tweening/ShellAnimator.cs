@@ -97,11 +97,12 @@ namespace ShellGame.Tweening
         }
 
         /// <summary>Переместить наперсток на новую мировую позицию — используется во время шаффла.</summary>
-        public void PlayMoveTo(Vector3 worldPosition, Action onComplete)
+        public void PlayMoveTo(Vector3 worldPosition, Action onComplete, float moveDuration)
         {
             _activeSequence?.Kill();
+            var resolvedDuration = Mathf.Max(0.01f, moveDuration);
             _activeSequence = DOTween.Sequence()
-                .Append(transform.DOMove(worldPosition, _config.ShuffleMoveDuration).SetEase(_config.ShuffleEase))
+                .Append(transform.DOMove(worldPosition, resolvedDuration).SetEase(_config.ShuffleEase))
                 .OnComplete(() => onComplete?.Invoke());
         }
     }

@@ -31,6 +31,15 @@ namespace ShellGame.Feedback
             }
 
             _material = CoreUtils.CreateEngineMaterial(_shader);
+            if (_material == null)
+            {
+                Debug.LogWarning("ChromaticAberrationRendererFeature: материал не создан из шейдера.");
+            }
+            else
+            {
+                Debug.Log("ChromaticAberrationRendererFeature: шейдер найден и материал создан.");
+            }
+
             _pass = new ChromaticAberrationPass(_material) { renderPassEvent = _renderPassEvent };
         }
 
@@ -41,7 +50,11 @@ namespace ShellGame.Feedback
 
             var stack = VolumeManager.instance.stack;
             var component = stack.GetComponent<ChromaticAberrationVolume>();
-            if (component == null || !component.IsActive()) return;
+            if (component == null)
+            {
+                Debug.Log("ChromaticAberrationRendererFeature: ChromaticAberrationVolume component not found in Volume stack.");
+                return;
+            }
 
             _pass.Intensity = component.intensity.value;
             _pass.WarpAmplitude = component.warpAmplitude.value;

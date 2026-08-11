@@ -10,12 +10,14 @@ namespace ShellGame.Gameplay
         [SerializeField] private LayerMask _shellLayerMask;
 
         private bool _isEnabled;
-        private Shell _hoveredShell;
+        private IRoundInputTarget _hoveredTarget;
+        private RoundStartButton _roundStartButton;
 
-        public void Initialize(Camera interactionCamera, LayerMask shellLayerMask)
+        public void Initialize(Camera interactionCamera, LayerMask shellLayerMask, RoundStartButton roundStartButton)
         {
             _interactionCamera = interactionCamera;
             _shellLayerMask = shellLayerMask;
+            _roundStartButton = roundStartButton;
         }
 
         public void SetEnabled(bool enabled)
@@ -23,8 +25,8 @@ namespace ShellGame.Gameplay
             _isEnabled = enabled;
             if (!enabled)
             {
-                _hoveredShell?.OnHoverExit();
-                _hoveredShell = null;
+                _hoveredTarget?.OnHoverExit();
+                _hoveredTarget = null;
             }
         }
 
@@ -39,25 +41,51 @@ namespace ShellGame.Gameplay
 
         private void HandleHover()
         {
-            if (_interactionCamera == null)
+            var interactionCamera = ResolveInteractionCamera();
+            if (interactionCamera == null)
                 return;
 
             var mouse = Mouse.current;
             if (mouse == null)
                 return;
 
-            var ray = _interactionCamera.ScreenPointToRay(mouse.position.ReadValue());
-            Shell shellUnderCursor = null;
+            Ray ray;
+            if (Cursor.lockState == CursorLockMode.Locked || Cursor.visible == false)
+            {
+                ray = interactionCamera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
+            }
+            else
+            {
+                ray = interactionCamera.ScreenPointToRay(mouse.position.ReadValue());
+            }
 
-            if (Physics.Raycast(ray, out var hit, 100f, _shellLayerMask))
-                shellUnderCursor = hit.collider.GetComponentInParent<Shell>();
+            IRoundInputTarget targetUnderCursor = null;
+            bool buttonHit = false;
+            if (_roundStartButton != null && _roundStartButton.gameObject.activeInHierarchy)
+            {
+                var buttonLayerMask = 1 << _roundStartButton.gameObject.layer;
+                if (Physics.Raycast(ray, out var buttonHitInfo, 100f, buttonLayerMask))
+                {
+                    var button = buttonHitInfo.collider.GetComponentInParent<RoundStartButton>();
+                    if (button != null)
+                    {
+                        targetUnderCursor = button;
+                        buttonHit = true;
+                    }
+                }
+            }
 
-            if (shellUnderCursor == _hoveredShell)
+            if (!buttonHit && Physics.Raycast(ray, out var hit, 100f, _shellLayerMask))
+            {
+                targetUnderCursor = hit.collider.GetComponentInParent<Shell>();
+            }
+
+            if (targetUnderCursor == _hoveredTarget)
                 return;
 
-            _hoveredShell?.OnHoverExit();
-            _hoveredShell = shellUnderCursor;
-            _hoveredShell?.OnHoverEnter();
+            _hoveredTarget?.OnHoverExit();
+            _hoveredTarget = targetUnderCursor;
+            _hoveredTarget?.OnHoverEnter();
         }
 
         private void HandleClick()
@@ -69,7 +97,19 @@ namespace ShellGame.Gameplay
             if (!mouse.leftButton.wasPressedThisFrame)
                 return;
 
-            _hoveredShell?.Select();
+            _hoveredTarget?.Select();
+        }
+
+        private Camera ResolveInteractionCamera()
+        {
+            if (_interactionCamera != null)
+                return _interactionCamera;
+
+            _interactionCamera = Camera.main;
+            if (_interactionCamera == null)
+                _interactionCamera = FindObjectOfType<Camera>();
+
+            return _interactionCamera;
         }
     }
 }

@@ -20,7 +20,14 @@ namespace ShellGame.Shells
         public float HoldRevealedDuration = 0.6f;
 
         [Header("Перемещение при перемешивании")]
-        public float ShuffleMoveDuration = 0.22f;
+        [Tooltip("Длительность одного перемещения наперстка в секундах. Это значение используется как базовое для первого раунда первого уровня.")]
+        public float ShuffleMoveDurationBase = 0.22f;
+        [Tooltip("Минимальная длительность одного перемещения. Ниже этого значения скорость уже не будет уменьшаться.")]
+        public float ShuffleMoveDurationMin = 0.12f;
+        [Tooltip("На сколько секунд сокращать длительность каждого следующего раунда.")]
+        public float ShuffleRoundReduction = 0.01f;
+        [Tooltip("На сколько секунд сокращать длительность при переходе на следующий уровень.")]
+        public float ShuffleLevelReduction = 0.03f;
         public Ease ShuffleEase = Ease.InOutSine;
 
         [Header("Наведение курсора")]

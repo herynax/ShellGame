@@ -12,13 +12,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a9e9144450d1e954fa6e46f46dd28228, type: 3}
   m_Name: ShellConfig
   m_EditorClassIdentifier: Assembly-CSharp::ShellGame.Shells.ShellConfig
-  LiftHeight: 0.35
+  LiftHeight: 1
   LiftDuration: 0.35
   LiftEase: 27
   HoldRevealedDuration: 0.6
-  ShuffleMoveDuration: 0.5
+  ShuffleMoveDurationBase: 0.5
+  ShuffleMoveDurationMin: 0.22
+  ShuffleRoundReduction: 0.07
+  ShuffleLevelReduction: 0.05
   ShuffleEase: 4
-  HoverScale: 1.05
+  HoverScale: 1.1
   HoverTweenDuration: 0.12
   SpawnScaleDuration: 0.25
   SpawnEase: 27

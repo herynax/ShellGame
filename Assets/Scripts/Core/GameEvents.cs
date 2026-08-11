@@ -21,6 +21,7 @@ namespace ShellGame.Core
         public static event Action<Shell, bool /*hasMarker*/> ShellRevealed;
 
         public static event Action RoundSetupStarted;
+        public static event Action RoundStartConfirmed;
         public static event Action RoundShuffleStarted;
         public static event Action RoundShuffleCompleted;
 
@@ -53,6 +54,7 @@ namespace ShellGame.Core
         public static void RaiseShellSelected(Shell shell) => ShellSelected?.Invoke(shell);
         public static void RaiseShellRevealed(Shell shell, bool hasMarker) => ShellRevealed?.Invoke(shell, hasMarker);
         public static void RaiseRoundSetupStarted() => RoundSetupStarted?.Invoke();
+        public static void RaiseRoundStartConfirmed() => RoundStartConfirmed?.Invoke();
         public static void RaiseRoundShuffleStarted() => RoundShuffleStarted?.Invoke();
         public static void RaiseRoundShuffleCompleted() => RoundShuffleCompleted?.Invoke();
         public static void RaiseCupSwapPerformed(int slotA, int slotB) => CupSwapPerformed?.Invoke(slotA, slotB);

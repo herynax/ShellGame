@@ -8,9 +8,10 @@ namespace ShellGame.Gameplay
     {
         [SerializeField] private List<RoundProgressionEntry> _entries = new List<RoundProgressionEntry>();
 
-        public RoundParameters GetRoundParameters(int levelIndex, int roundIndex)
+        public RoundParameters GetRoundParameters(int levelIndex, int roundIndex, int completedRoundsBeforeCurrentRound = 0)
         {
-            float difficultyIndex = ComputeDifficultyIndex(levelIndex, roundIndex);
+            int effectiveCompletedRounds = Mathf.Max(0, completedRoundsBeforeCurrentRound);
+            float difficultyIndex = ComputeDifficultyIndex(levelIndex, roundIndex, effectiveCompletedRounds);
 
             if (_entries != null)
             {
@@ -33,10 +34,14 @@ namespace ShellGame.Gameplay
             return CalculateParameters(levelIndex, roundIndex, difficultyIndex);
         }
 
-        /// <summary>Индекс сложности из ГДД: D = L + 0.45 * R.</summary>
-        private static float ComputeDifficultyIndex(int levelIndex, int roundIndex)
+        /// <summary>
+        /// Индекс сложности накапливается по всем раундам текущего игрового сеанса.
+        /// Это даёт плавный рост сложности между уровнями и сброс при новом запуске игры.
+        /// </summary>
+        private static float ComputeDifficultyIndex(int levelIndex, int roundIndex, int completedRoundsBeforeCurrentRound)
         {
-            return levelIndex + 0.45f * roundIndex;
+            int progressionOffset = completedRoundsBeforeCurrentRound + roundIndex;
+            return levelIndex + 0.45f * progressionOffset;
         }
 
         private RoundParameters CalculateParameters(int levelIndex, int roundIndex, float difficultyIndex)

@@ -24,18 +24,21 @@ namespace ShellGame.Gameplay
 
         public IReadOnlyList<Shell> ActiveShells => _activeShells;
 
-        public void Initialize(Shell shellPrefab, ShellConfig shellConfig, List<ShellSlot> slots, Marker markerPrefab, RoundProgressionConfig progressionConfig, int maxPrewarmCount)
+        public void Initialize(Shell shellPrefab, ShellConfig shellConfig, Marker markerPrefab, RoundProgressionConfig progressionConfig, int maxPrewarmCount)
         {
             _shellPrefab = shellPrefab;
             _shellConfig = shellConfig;
-            _slots = slots ?? new List<ShellSlot>();
             _markerPrefab = markerPrefab;
             _progressionConfig = progressionConfig;
             _maxPrewarmCount = maxPrewarmCount;
+
+            ResolveSlots();
         }
 
         private void Awake()
         {
+            ResolveSlots();
+
             if (!ServiceLocator.TryGet<IAudioService>(out _audio))
             {
                 _audio = new FMODAudioService();
@@ -51,13 +54,28 @@ namespace ShellGame.Gameplay
             _pool.Prewarm(_maxPrewarmCount);
         }
 
-        public RoundParameters GenerateRound(int levelIndex, int roundIndex)
+        private void ResolveSlots()
         {
+            if (_slots != null && _slots.Count > 0)
+                return;
+
+            _slots.Clear();
+            var discoveredSlots = GetComponentsInChildren<ShellSlot>(true);
+            if (discoveredSlots != null && discoveredSlots.Length > 0)
+            {
+                foreach (var slot in discoveredSlots)
+                    _slots.Add(slot);
+            }
+        }
+
+        public RoundParameters GenerateRound(int levelIndex, int roundIndex, int completedRoundsBeforeCurrentRound = 0)
+        {
+            ResolveSlots();
             ClearRound();
             GameEvents.RaiseRoundSetupStarted();
 
             var parameters = _progressionConfig != null
-                ? _progressionConfig.GetRoundParameters(levelIndex, roundIndex)
+                ? _progressionConfig.GetRoundParameters(levelIndex, roundIndex, completedRoundsBeforeCurrentRound)
                 : new RoundParameters { LevelIndex = levelIndex, RoundIndex = roundIndex, CupCount = 3, MarkerCount = 1 };
 
             parameters.CupCount = Mathf.Clamp(parameters.CupCount, 1, _slots.Count);

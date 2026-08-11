@@ -4,6 +4,7 @@ namespace ShellGame.Gameplay
     {
         Idle,
         Generate,
+        WaitForStart,
         Reveal,
         Shuffle,
 

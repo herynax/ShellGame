@@ -2,7 +2,6 @@ using DG.Tweening;
 using ShellGame.Core;
 using Unity.Cinemachine;
 using UnityEngine;
-using UnityEngine.UI;
 
 namespace ShellGame.Feedback
 {
@@ -19,13 +18,12 @@ namespace ShellGame.Feedback
         [Tooltip("Сила тряски камеры")]
         [SerializeField] private float _impulseForce = 1f;
 
-        [Header("Красная виньетка (UI Image на весь экран, alpha=0 по умолчанию)")]
-        [SerializeField] private Image _vignetteImage;
+        [Header("Красная виньетка (UI CanvasGroup на весь экран)")]
+        [SerializeField] private CanvasGroup _vignetteCanvasGroup;
         [SerializeField] private float _vignettePeakAlpha = 0.45f;
         [SerializeField] private float _vignetteFadeInDuration = 0.08f;
         [SerializeField] private float _vignetteFadeOutDuration = 0.5f;
 
-        private Vector3 _cameraBasePosition;
         private Tween _cameraShakeTween;
         private Sequence _vignetteSequence;
 
@@ -44,6 +42,8 @@ namespace ShellGame.Feedback
 
         private void ShakeCamera()
         {
+            if (_impulseSource == null) return;
+            
             // Чтобы тряска каждый раз была разной, генерируем случайный вектор направления
             Vector3 randomDirection = new Vector3(Random.Range(-1f, 1f), Random.Range(-1f, 1f), 0f).normalized;
 
@@ -53,18 +53,17 @@ namespace ShellGame.Feedback
 
         private void FlashVignette()
         {
-            if (_vignetteImage == null) return;
+            if (_vignetteCanvasGroup == null) return;
 
             _vignetteSequence?.Kill();
-            _vignetteImage.DOKill();
+            _vignetteCanvasGroup.DOKill(); // Останавливаем предыдущие анимации этого CanvasGroup
 
-            var color = _vignetteImage.color;
-            color.a = 0f;
-            _vignetteImage.color = color;
+            // Сбрасываем прозрачность (у CanvasGroup это свойство alpha, а не color)
+            _vignetteCanvasGroup.alpha = 0f;
 
             _vignetteSequence = DOTween.Sequence()
-                .Append(_vignetteImage.DOFade(_vignettePeakAlpha, _vignetteFadeInDuration))
-                .Append(_vignetteImage.DOFade(0f, _vignetteFadeOutDuration));
+                .Append(_vignetteCanvasGroup.DOFade(_vignettePeakAlpha, _vignetteFadeInDuration))
+                .Append(_vignetteCanvasGroup.DOFade(0f, _vignetteFadeOutDuration));
         }
 
         protected override void OnDisable()

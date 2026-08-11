@@ -74,14 +74,12 @@ namespace ShellGame.Audio
         private void OnEnable()
         {
             SceneLoader.ScreenGoingBlack += HandleScreenGoingBlack;
-            SceneLoader.ScreenFullyBlack += HandleScreenFullyBlack;
             SceneLoader.ScreenRevealing += HandleScreenRevealing;
         }
 
         private void OnDisable()
         {
             SceneLoader.ScreenGoingBlack -= HandleScreenGoingBlack;
-            SceneLoader.ScreenFullyBlack -= HandleScreenFullyBlack;
             SceneLoader.ScreenRevealing -= HandleScreenRevealing;
         }
 
@@ -119,39 +117,7 @@ namespace ShellGame.Audio
         private void HandleScreenGoingBlack(float duration)
         {
             FadeMusicTo(0f, duration);
-        }
-
-        private void HandleScreenFullyBlack()
-        {
-            if (!resetDoseOnSceneLoad)
-                return;
-
-            StartCoroutine(ResetDoseNextFrame());
-        }
-
-        /// <summary>
-        /// Ждём один кадр перед поиском HealthController — на случай, если
-        /// он спавнится и инициализируется (Initialize()) в Start() какого-то
-        /// GameManager'а, а не в Awake(). Без этой задержки есть риск найти
-        /// объект в момент, когда Awake уже отработал, а Start (со своим
-        /// Initialize) — ещё нет.
-        /// </summary>
-        private IEnumerator ResetDoseNextFrame()
-        {
-            yield return null;
-
-            // FindObjectOfType — не самый дешёвый вызов, но тут это разовое
-            // действие раз в переход между сценами, а не в Update.
-            var healthController = FindObjectOfType<HealthController>();
-            if (healthController == null)
-            {
-                Debug.LogWarning("[MusicManager] HealthController не найден на только что загруженной сцене — доза не сброшена.");
-                yield break;
-            }
-
-            healthController.ResetDose(TurnSide.Player);
-            if (resetEnemyDoseToo)
-                healthController.ResetDose(TurnSide.Enemy);
+            FMODUnity.RuntimeManager.StudioSystem.setParameterByName("DoseCounter", 0f);
         }
 
         private void HandleScreenRevealing(float duration)

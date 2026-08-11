@@ -12,7 +12,6 @@ namespace ShellGame.Gameplay
     {
         [SerializeField] private Shell _shellPrefab;
         [SerializeField] private ShellConfig _shellConfig;
-        [SerializeField] private List<ShellSlot> _slots = new List<ShellSlot>();
         [SerializeField] private Camera _interactionCamera;
         [SerializeField] private LayerMask _shellLayerMask;
         [SerializeField] private Marker _markerPrefab;
@@ -29,6 +28,7 @@ namespace ShellGame.Gameplay
 
         [SerializeField] private RoundGenerator _roundGenerator;
         [SerializeField] private RoundInputSystem _inputSystem;
+        [SerializeField] private RoundStartButton _roundStartButton;
         [SerializeField] private ShuffleSystem _shuffleSystem;
         [SerializeField] private GameManager _gameManager;
         [SerializeField] private HealthController _healthController;
@@ -37,11 +37,13 @@ namespace ShellGame.Gameplay
         private void Awake()
         {
             if (_roundGenerator == null)
-                _roundGenerator = GetComponentInChildren<RoundGenerator>();
+                _roundGenerator = GetComponentInChildren<RoundGenerator>(true);
             if (_inputSystem == null)
-                _inputSystem = GetComponentInChildren<RoundInputSystem>();
+                _inputSystem = GetComponentInChildren<RoundInputSystem>(true);
+            if (_roundStartButton == null)
+                _roundStartButton = GetComponentInChildren<RoundStartButton>(true);
             if (_shuffleSystem == null)
-                _shuffleSystem = GetComponentInChildren<ShuffleSystem>();
+                _shuffleSystem = GetComponentInChildren<ShuffleSystem>(true);
             if (_gameManager == null)
                 _gameManager = GetComponent<GameManager>();
             if (_healthController == null)
@@ -57,6 +59,8 @@ namespace ShellGame.Gameplay
                 _roundGenerator = gameObject.AddComponent<RoundGenerator>();
             if (_inputSystem == null)
                 _inputSystem = gameObject.AddComponent<RoundInputSystem>();
+            if (_roundStartButton == null)
+                _roundStartButton = gameObject.AddComponent<RoundStartButton>();
             if (_shuffleSystem == null)
                 _shuffleSystem = gameObject.AddComponent<ShuffleSystem>();
             if (_healthController == null)
@@ -69,15 +73,18 @@ namespace ShellGame.Gameplay
             // настроенные вручную в сцене. Если его нет — GameManager
             // просто пропускает анимацию (проверка на null), ничего не упадёт.
 
-            _roundGenerator.Initialize(_shellPrefab, _shellConfig, _slots, _markerPrefab, _progressionConfig, _maxPrewarmCount);
-            _inputSystem.Initialize(_interactionCamera, _shellLayerMask);
+            _roundGenerator.Initialize(_shellPrefab, _shellConfig, _markerPrefab, _progressionConfig, _maxPrewarmCount);
+            _shuffleSystem.Initialize(_shellConfig);
+            _inputSystem.Initialize(_interactionCamera, _shellLayerMask, _roundStartButton);
             _enemyAI.Initialize(_enemyAIConfig);
+            _roundStartButton?.Hide();
             _gameManager.Initialize(
                 _roundGenerator,
                 _inputSystem,
                 _shuffleSystem,
                 _healthController,
                 _enemyAI,
+                _roundStartButton,
                 _healthProgressionConfig,
                 _startingSide,
                 _turnIndicator);
