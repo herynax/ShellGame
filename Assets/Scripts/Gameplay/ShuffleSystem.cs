@@ -21,6 +21,11 @@ namespace ShellGame.Gameplay
         private float _currentDifficultyIndex;
         private System.Action _onComplete;
 
+        // === ПЕРЕМЕННЫЕ ДЛЯ ОБУЧЕНИЯ ===
+        public bool TutorialStepMode { get; set; }
+        public bool IsWaitingForStep { get; private set; }
+        // ===============================
+
         public void Initialize(ShellConfig shellConfig)
         {
             _shellConfig = shellConfig;
@@ -28,8 +33,7 @@ namespace ShellGame.Gameplay
 
         public void StartShuffling(IReadOnlyList<Shell> shells, System.Action onComplete, int levelIndex, int roundIndex, float difficultyIndex = 0f)
         {
-            if (_isRunning)
-                return;
+            if (_isRunning) return;
 
             _shells = shells.ToList();
             _onComplete = onComplete;
@@ -38,7 +42,19 @@ namespace ShellGame.Gameplay
             _currentLevelIndex = Mathf.Max(0, levelIndex);
             _currentRoundIndex = Mathf.Max(0, roundIndex);
             _currentDifficultyIndex = difficultyIndex;
-            PerformNextSwap();
+            
+            GameEvents.RaiseRoundShuffleStarted();
+
+            // Если режим обучения включен — встаем на паузу, ничего не перемешивая
+            IsWaitingForStep = false;
+            if (TutorialStepMode)
+            {
+                IsWaitingForStep = true;
+            }
+            else
+            {
+                PerformNextSwap();
+            }
         }
 
         private void PerformNextSwap()
@@ -66,25 +82,26 @@ namespace ShellGame.Gameplay
                 return;
             }
 
-            // Состояние TrackShuffle из ГДД: "игровое поле генерирует событие
-            // после каждого обмена двух наперстков — OnCupSwap(CupA, CupB)".
-            // Раскрываем его по индексам слотов, которыми обмениваются наперстки —
-            // именно по слотам противник визуально отслеживает метки.
             GameEvents.RaiseCupSwapPerformed(firstSlot.Index, secondSlot.Index);
 
             int completedMoves = 0;
             void OnShellMoved()
             {
                 completedMoves++;
-                if (completedMoves < 2)
-                    return;
+                if (completedMoves < 2) return;
 
                 (_shells[firstIndex], _shells[secondIndex]) = (_shells[secondIndex], _shells[firstIndex]);
                 _currentStep++;
-                if (_betweenSwapDelay > 0f)
-                    Invoke(nameof(PerformNextSwap), _betweenSwapDelay);
-                else
-                    PerformNextSwap();
+
+                // Останавливаем цикл, если включен режим пошагового обучения
+                if (TutorialStepMode)
+                {
+                    IsWaitingForStep = true;
+                    return;
+                }
+
+                if (_betweenSwapDelay > 0f) Invoke(nameof(PerformNextSwap), _betweenSwapDelay);
+                else PerformNextSwap();
             }
 
             float moveDuration = ResolveShuffleMoveDuration();
@@ -92,11 +109,20 @@ namespace ShellGame.Gameplay
             secondShell.MoveToSlot(firstSlot, OnShellMoved, moveDuration);
         }
 
+        public void TriggerNextStep()
+        {
+            if (!TutorialStepMode || !_isRunning) return;
+
+            if (IsWaitingForStep)
+            {
+                IsWaitingForStep = false;
+                PerformNextSwap();
+            }
+        }
+
         private float ResolveShuffleMoveDuration()
         {
-            if (_shellConfig == null)
-                return 0.22f;
-
+            if (_shellConfig == null) return 0.22f;
             float baseDuration = _shellConfig.ShuffleMoveDurationBase;
             float roundReduction = _shellConfig.ShuffleRoundReduction * Mathf.Max(0, _currentRoundIndex);
             float levelReduction = _shellConfig.ShuffleLevelReduction * Mathf.Max(0, _currentLevelIndex);
@@ -112,10 +138,6 @@ namespace ShellGame.Gameplay
             _onComplete = null;
         }
 
-        private void OnDestroy()
-        {
-            // Убиваем все DOTween анимации/задержки, связанные с этой системой
-            DOTween.Kill(this);
-        }
+        private void OnDestroy() => DOTween.Kill(this);
     }
 }

@@ -18,6 +18,15 @@ namespace ShellGame.Gameplay
         private Vector3 _baseScale;
         private Tween _hoverTween;
         private Tween _clickTween;
+        private bool _isInteractable = true;
+
+        private Vector3 GetSafeBaseScale()
+        {
+            if (_baseScale.x <= 0.001f && _baseScale.y <= 0.001f && _baseScale.z <= 0.001f)
+                return Vector3.one;
+
+            return _baseScale;
+        }
 
         private void Awake()
         {
@@ -25,22 +34,35 @@ namespace ShellGame.Gameplay
                 _clickCollider = GetComponent<Collider>();
 
             _baseScale = transform.localScale;
+            if (_baseScale == Vector3.zero)
+                _baseScale = Vector3.one;
+        }
+
+        public void SetInteractable(bool interactable)
+        {
+            _isInteractable = interactable;
+            if (_clickCollider == null)
+                _clickCollider = GetComponent<Collider>();
+            if (_clickCollider != null)
+                _clickCollider.enabled = interactable;
         }
 
         public void Show()
         {
             gameObject.SetActive(true);
+            _baseScale = GetSafeBaseScale();
             transform.localScale = _baseScale;
             _hoverTween?.Kill();
             _clickTween?.Kill();
             if (_clickCollider != null)
-                _clickCollider.enabled = true;
+                _clickCollider.enabled = _isInteractable;
         }
 
         public void Hide()
         {
             _hoverTween?.Kill();
             _clickTween?.Kill();
+            _baseScale = GetSafeBaseScale();
             transform.localScale = _baseScale;
             if (_clickCollider != null)
                 _clickCollider.enabled = false;
@@ -49,32 +71,42 @@ namespace ShellGame.Gameplay
 
         public void OnHoverEnter()
         {
-            if (!gameObject.activeInHierarchy)
+            if (!gameObject.activeInHierarchy || !_isInteractable)
                 return;
 
+            var safeBaseScale = GetSafeBaseScale();
+            _baseScale = safeBaseScale;
             _hoverTween?.Kill();
-            _hoverTween = transform.DOScale(_baseScale * _hoverScale, _hoverTweenDuration).SetEase(_hoverEase);
+            _hoverTween = transform.DOScale(safeBaseScale * _hoverScale, _hoverTweenDuration).SetEase(_hoverEase);
         }
 
         public void OnHoverExit()
         {
-            if (!gameObject.activeInHierarchy)
+            if (!gameObject.activeInHierarchy || !_isInteractable)
                 return;
 
+            var safeBaseScale = GetSafeBaseScale();
+            _baseScale = safeBaseScale;
             _hoverTween?.Kill();
-            _hoverTween = transform.DOScale(_baseScale, _hoverTweenDuration).SetEase(_hoverEase);
+            _hoverTween = transform.DOScale(safeBaseScale, _hoverTweenDuration).SetEase(_hoverEase);
         }
 
         public void Select()
         {
-            if (!gameObject.activeInHierarchy || _clickCollider == null || !_clickCollider.enabled)
+            if (!gameObject.activeInHierarchy || !_isInteractable || _clickCollider == null || !_clickCollider.enabled)
                 return;
 
+            var safeBaseScale = GetSafeBaseScale();
+            _baseScale = safeBaseScale;
             _clickCollider.enabled = false;
             _hoverTween?.Kill();
             _clickTween?.Kill();
-            _clickTween = transform.DOScale(_baseScale * _clickScale, _clickTweenDuration).SetEase(_clickEase)
-                .OnComplete(() => GameEvents.RaiseRoundStartConfirmed());
+            _clickTween = transform.DOScale(safeBaseScale * _clickScale, _clickTweenDuration).SetEase(_clickEase)
+                .OnComplete(() =>
+                {
+                    transform.localScale = safeBaseScale;
+                    GameEvents.RaiseRoundStartConfirmed();
+                });
         }
 
         private void OnDisable()

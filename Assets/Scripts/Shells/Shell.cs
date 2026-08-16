@@ -157,6 +157,8 @@ namespace ShellGame.Shells
         {
             if (State != ShellState.Idle) return;
 
+            Debug.Log($"[Shell] Select() вызван, slot={SlotIndex}, State={State}, HasMarker={HasMarker}");
+
             State = ShellState.Selected;
             SetInteractable(false);
             _audio?.PlayOneShot(_config.AudioEvents.Select, transform.position);

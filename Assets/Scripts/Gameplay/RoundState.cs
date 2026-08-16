@@ -5,6 +5,7 @@ namespace ShellGame.Gameplay
         Idle,
         Generate,
         WaitForStart,
+        WaitForTutorialReveal,
         Reveal,
         Shuffle,
 

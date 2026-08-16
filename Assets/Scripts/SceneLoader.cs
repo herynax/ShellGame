@@ -27,6 +27,7 @@ public class SceneLoader : MonoBehaviour
     [Header("Смерть (Переход)")]
     public bool loadNextSceneByName = true; 
     public string nextSceneOnEnemyDeath;
+    public string firstSceneOnPlayerDeath = "Tutorial";
     public string roomLightTag = "RoomLight";
     public float roomDarkenDuration = 1.5f;
     public float canvasFadeInTriggerIntensity = 2f;
@@ -128,10 +129,13 @@ public class SceneLoader : MonoBehaviour
 
         if (deadSide == TurnSide.Player)
         {
-            // Смерть игрока -> Рестарт текущей сцены
-            int currentIndex = SceneManager.GetActiveScene().buildIndex;
-            Debug.Log($"[SceneLoader] Рестарт сцены, индекс: {currentIndex}");
-            asyncLoad = SceneManager.LoadSceneAsync(currentIndex);
+            // Смерть игрока -> возврат на стартовую сцену
+            string targetScene = string.IsNullOrEmpty(firstSceneOnPlayerDeath)
+                ? "Tutorial"
+                : firstSceneOnPlayerDeath;
+
+            Debug.Log($"[SceneLoader] Возвращаемся на первую сцену: {targetScene}");
+            asyncLoad = SceneManager.LoadSceneAsync(targetScene);
         }
         else
         {

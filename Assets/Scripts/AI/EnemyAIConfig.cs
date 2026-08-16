@@ -15,10 +15,10 @@ namespace ShellGame.AI
         public float TrackingPmin = 0.05f;
         public float TrackingK = 0.05f;
 
-        [Header("Ошибка на финальном выборе — Perror(D) = max(Pmin, Pbase - k*D)")]
-        public float DecisionErrorPbase = 0.3f;
-        public float DecisionErrorPmin = 0.05f;
-        public float DecisionErrorK = 0.05f;
+        [Header("Баланс точности врага: на низкой сложности ~30% верных выборов, к 5 уровню ~75%")]
+        public float MinCorrectChance = 0.30f;
+        public float MaxCorrectChance = 0.75f;
+        public float DifficultyForMaxCorrect = 5f;
 
         [Header("\"Раздумье\" перед атакой, сек — DecisionDelay(D) = max(Min, Base - k*D)")]
         public float DecisionDelayBase = 1.2f;
@@ -28,8 +28,17 @@ namespace ShellGame.AI
         public float EvaluateTrackingLossProbability(float difficultyIndex) =>
             Mathf.Max(TrackingPmin, TrackingPbase - TrackingK * difficultyIndex);
 
-        public float EvaluateDecisionErrorProbability(float difficultyIndex) =>
-            Mathf.Max(DecisionErrorPmin, DecisionErrorPbase - DecisionErrorK * difficultyIndex);
+        public float EvaluateCorrectChoiceProbability(float difficultyIndex)
+        {
+            float normalized = Mathf.Clamp01(difficultyIndex / Mathf.Max(0.0001f, DifficultyForMaxCorrect));
+            return Mathf.Lerp(MinCorrectChance, MaxCorrectChance, normalized);
+        }
+
+        public float EvaluateDecisionErrorProbability(float difficultyIndex)
+        {
+            float correctChance = EvaluateCorrectChoiceProbability(difficultyIndex);
+            return 1f - correctChance;
+        }
 
         public float EvaluateDecisionDelay(float difficultyIndex) =>
             Mathf.Max(DecisionDelayMin, DecisionDelayBase - DecisionDelayK * difficultyIndex);

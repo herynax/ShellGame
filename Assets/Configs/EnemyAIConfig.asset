@@ -12,12 +12,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 670d021b026ddfb40b1a778759a5a288, type: 3}
   m_Name: EnemyAIConfig
   m_EditorClassIdentifier: Assembly-CSharp::ShellGame.AI.EnemyAIConfig
-  TrackingPbase: 0.25
-  TrackingPmin: 0.05
-  TrackingK: 0.0167
-  DecisionErrorPbase: 0.35
-  DecisionErrorPmin: 0.05
-  DecisionErrorK: 0.025
+  TrackingPbase: 0.3
+  TrackingPmin: 0.1
+  TrackingK: 0.01
+  DecisionErrorPbase: 0.45
+  DecisionErrorPmin: 0.1
+  DecisionErrorK: 0.01
+  DecisionErrorHealthBoost: 0.25
   DecisionDelayBase: 1.2
   DecisionDelayMin: 0.3
   DecisionDelayK: 0.08

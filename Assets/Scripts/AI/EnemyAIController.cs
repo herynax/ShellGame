@@ -29,11 +29,45 @@ namespace ShellGame.AI
         private float _currentDifficultyIndex;
         private bool _isTrackingSwaps;
 
+        // --- Форсированный исход (для обучения/скриптованных сцен) ---
+        private bool _forceCorrectChoice;
+        private bool _forcedChoicePersistent;
+
         public EnemyAIState State { get; private set; } = EnemyAIState.Idle;
 
         public void Initialize(EnemyAIConfig config)
         {
             _config = config;
+        }
+
+        /// <summary>
+        /// Заставляет противника на СЛЕДУЮЩЕМ решении выбрать реально
+        /// помеченный наперсток — в обход Knowledge-модели и вероятностей
+        /// Plose/Perror. Нужно для гарантированных сценариев туториала,
+        /// где игрок должен увидеть попадание врага именно в этом раунде.
+        ///
+        /// Тайминг вызова: любое время ДО того, как GameManager вызовет
+        /// MakeDecisionAndAttack для этого раунда (то есть до фактического
+        /// хода противника) — например, сразу после смены активной стороны
+        /// на Enemy (GameEvents.ActiveSideChanged).
+        /// </summary>
+        /// <param name="persistent">
+        /// Если false (по умолчанию) — форс потребляется один раз и
+        /// автоматически снимается после следующего решения. Если true —
+        /// действует на все последующие решения, пока не будет вызван
+        /// ClearForcedChoice().
+        /// </param>
+        public void ForceCorrectChoice(bool persistent = false)
+        {
+            _forceCorrectChoice = true;
+            _forcedChoicePersistent = persistent;
+        }
+
+        /// <summary>Снимает форс, включённый через ForceCorrectChoice — возвращает обычное поведение ИИ.</summary>
+        public void ClearForcedChoice()
+        {
+            _forceCorrectChoice = false;
+            _forcedChoicePersistent = false;
         }
 
         /// <summary>Состояние ObserveMarkers — фиксируем реальную начальную раскладку меток.</summary>
@@ -103,29 +137,45 @@ namespace ShellGame.AI
             // потребуют инвентаря у противника — пока пропускается.
 
             float delay = _config.EvaluateDecisionDelay(_currentDifficultyIndex);
+            Debug.Log($"[EnemyAI] DecisionRoutine стартовал, delay={delay}, forceCorrect={_forceCorrectChoice}");
             if (delay > 0f)
                 yield return new WaitForSeconds(delay);
 
-            var tracked = _knowledge.GetTrackedEntries();
-            int targetSlotIndex;
-            if (tracked.Count > 0)
+            Shell targetShell;
+
+            if (_forceCorrectChoice)
             {
-                var chosenEntry = tracked[UnityEngine.Random.Range(0, tracked.Count)];
-                targetSlotIndex = chosenEntry.CurrentSlotIndex;
+                // Форс: игнорируем Knowledge и вероятности — берём реально
+                // помеченный наперсток напрямую из состояния поля.
+                targetShell = FindMarkedShell(shells) ?? shells[UnityEngine.Random.Range(0, shells.Count)];
+
+                if (!_forcedChoicePersistent)
+                    _forceCorrectChoice = false;
             }
             else
             {
-                targetSlotIndex = shells[UnityEngine.Random.Range(0, shells.Count)].SlotIndex;
+                var tracked = _knowledge.GetTrackedEntries();
+                int targetSlotIndex;
+                if (tracked.Count > 0)
+                {
+                    var chosenEntry = tracked[UnityEngine.Random.Range(0, tracked.Count)];
+                    targetSlotIndex = chosenEntry.CurrentSlotIndex;
+                }
+                else
+                {
+                    targetSlotIndex = shells[UnityEngine.Random.Range(0, shells.Count)].SlotIndex;
+                }
+
+                float pError = _config.EvaluateDecisionErrorProbability(_currentDifficultyIndex);
+                if (UnityEngine.Random.value < pError)
+                {
+                    targetSlotIndex = shells[UnityEngine.Random.Range(0, shells.Count)].SlotIndex;
+                }
+
+                targetShell = FindShellBySlot(shells, targetSlotIndex) ?? shells[UnityEngine.Random.Range(0, shells.Count)];
             }
 
-            float pError = _config.EvaluateDecisionErrorProbability(_currentDifficultyIndex);
-            if (UnityEngine.Random.value < pError)
-            {
-                targetSlotIndex = shells[UnityEngine.Random.Range(0, shells.Count)].SlotIndex;
-            }
-
-            var targetShell = FindShellBySlot(shells, targetSlotIndex) ?? shells[UnityEngine.Random.Range(0, shells.Count)];
-
+            Debug.Log($"[EnemyAI] Решение принято, targetShell slot={targetShell?.SlotIndex}");
             State = EnemyAIState.Attack;
             onShellChosen?.Invoke(targetShell);
         }
@@ -145,9 +195,15 @@ namespace ShellGame.AI
             return null;
         }
 
-        private void OnDisable()
+        private static Shell FindMarkedShell(IReadOnlyList<Shell> shells)
         {
-            ExitTrackShuffle();
+            foreach (var shell in shells)
+            {
+                if (shell.HasMarker)
+                    return shell;
+            }
+            return null;
         }
+
     }
 }

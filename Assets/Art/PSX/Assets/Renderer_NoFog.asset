@@ -1,5 +1,20 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!114 &-4162374452850903596
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 59ca4f0c5ad8a2148892179848be7e28, type: 3}
+  m_Name: ChromaticAberrationRendererFeature
+  m_EditorClassIdentifier: Assembly-CSharp::ShellGame.Feedback.ChromaticAberrationRendererFeature
+  m_Active: 1
+  _shader: {fileID: 4800000, guid: f34957246d932fd48aa3e881bb936822, type: 3}
+  _renderPassEvent: 1000
 --- !u!114 &-1925210268287778290
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -23,7 +38,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: de640fe3d0db1804a85f9fc8f5cadab6, type: 3}
-  m_Name: Renderer_NoPostFX
+  m_Name: Renderer_NoFog
   m_EditorClassIdentifier: 
   debugShaders:
     debugReplacementPS: {fileID: 4800000, guid: cf852408f2e174538bcd9b7fda1c5ae7,
@@ -44,7 +59,8 @@ MonoBehaviour:
   - {fileID: 2606515335583478340}
   - {fileID: 6965443398785072023}
   - {fileID: 3413204628056034656}
-  m_RendererFeatureMap: 0ec2c510764748e544b20f47e3332c24977bacdfdd39aa6060cdff7886235e2f
+  - {fileID: -4162374452850903596}
+  m_RendererFeatureMap: 0ec2c510764748e544b20f47e3332c24977bacdfdd39aa6060cdff7886235e2fd435a9037d463cc6
   m_UseNativeRenderPass: 1
   xrSystemData: {fileID: 0}
   postProcessData: {fileID: 11400000, guid: 41439944d30ece34e96484bdb6645b55, type: 2}
