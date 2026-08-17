@@ -34,10 +34,6 @@ namespace ShellGame.Gameplay
         [Tooltip("Задержка перед нанесением урона игроку (когда враг поднял наперсток с меткой) — даёт анимации подъёма наперстка доиграть до конца.")]
         [SerializeField] private float _damageToPlayerDelay = 0.5f;
 
-        [Header("Следующий раунд после урона игроку")]
-        [Tooltip("Задержка перед стартом следующего раунда, если был нанесён урон игроку.")]
-        [SerializeField] private float _nextRoundDelayAfterPlayerDamage = 0.8f;
-
         private RoundState _state = RoundState.Idle;
         private RoundParameters _currentParameters;
         private Shell _selectedShell;
@@ -296,14 +292,9 @@ namespace ShellGame.Gameplay
                             if (_enemyAI != null && _roundGenerator != null)
                             {
                                 if (IsTutorialScene())
-                                    _enemyAI.ForceCorrectChoice();
+                                    _enemyAI.ForceCorrectChoice(); // сам найдёт помеченный шелл через FindMarkedShell
 
-                                Debug.Log($"[GameManager] Вызываю MakeDecisionAndAttack, activeSide={_activeSide}, shells={_roundGenerator.ActiveShells.Count}");
-                                _enemyAI.MakeDecisionAndAttack(_roundGenerator.ActiveShells, chosen =>
-                                {
-                                    Debug.Log($"[GameManager] onShellChosen получен, slot={chosen.SlotIndex}, вызываю chosen.Select()");
-                                    chosen.Select();
-                                });
+                                _enemyAI.MakeDecisionAndAttack(_roundGenerator.ActiveShells, chosen => chosen.Select());
                             }
                         }
                         while (_state == RoundState.PlayerTurn) yield return null;
@@ -348,11 +339,6 @@ namespace ShellGame.Gameplay
                             && _completedRoundsInSession == 0 && _tutorialAfterDamagePaused)
                         {
                             while (_tutorialAfterDamagePaused) yield return null;
-                        }
-
-                        if (_selectedShell.HasMarker && Opposite(_activeSide) == TurnSide.Player && _nextRoundDelayAfterPlayerDamage > 0f)
-                        {
-                            yield return new WaitForSeconds(_nextRoundDelayAfterPlayerDamage);
                         }
 
                         _activeSide = Opposite(_activeSide);

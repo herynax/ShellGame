@@ -152,12 +152,10 @@ namespace ShellGame.Shells
             GameEvents.RaiseShellHoverExit(this);
         }
 
-        /// <summary>Вызывается контроллером стола по клику ЛКМ на этот наперсток.</summary>
+        /// <summary>Вызывается контроллером стола по клику ЛКМ на этот наперсток (или EnemyAIController-ом на своём ходу).</summary>
         public void Select()
         {
             if (State != ShellState.Idle) return;
-
-            Debug.Log($"[Shell] Select() вызван, slot={SlotIndex}, State={State}, HasMarker={HasMarker}");
 
             State = ShellState.Selected;
             SetInteractable(false);
@@ -181,6 +179,17 @@ namespace ShellGame.Shells
                 {
                     HideMarkerVisual();
                     PlayRevealEndSound();
+
+                    // ФИКС: раньше здесь State не сбрасывался обратно в Idle
+                    // (в отличие от RevealMarker() и RevealResult(), у которых
+                    // это есть). Из-за этого Shell застревал в State.Selected
+                    // навсегда после Select(), и если GameManager.RevealResult()
+                    // вызывался до того, как игрок/AI успевали заново поднять
+                    // этот же наперсток, guard `if (State != Selected) return;`
+                    // там ложно пропускал повторный вызов _animator.PlayReveal
+                    // поверх ещё не отыгравшего первого — что могло ронять
+                    // исключение и молча останавливать корутину GameManager.
+                    State = ShellState.Idle;
                 });
         }
 
@@ -338,8 +347,8 @@ namespace ShellGame.Shells
         private void OnDestroy()
         {
             // 1. Убиваем все анимации привязанные к этому Transform
-            transform.DOKill(); 
-            
+            transform.DOKill();
+
             // 2. Убиваем внутренние твины аниматора
             if (_animator != null)
             {
