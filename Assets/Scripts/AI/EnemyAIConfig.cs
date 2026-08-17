@@ -25,6 +25,34 @@ namespace ShellGame.AI
         public float DecisionDelayMin = 0.3f;
         public float DecisionDelayK = 0.08f;
 
+        [Header("Штраф точности от собственного HP врага (симметрично 'поплывшему' экрану игрока от дозы)")]
+        [Tooltip("Доля ПОТЕРЯННОГО HP (0..1), начиная с которой враг начинает терять точность. По умолчанию 0.5 — как порог, с которого у игрока включается шумовой джиттер.")]
+        public float HealthPenaltyStartLostFraction = 0.5f;
+        [Tooltip("Максимум, на который снижается шанс верного выбора при HP = 0 (вычитается из шанса верного выбора, 0..1).")]
+        public float HealthPenaltyMaxReduction = 0.4f;
+        [Tooltip("Степень кривой нарастания штрафа после порога — как power curve хроматической аберрации у игрока. 1 = линейно, >1 = штраф резче нарастает ближе к нулю HP.")]
+        public float HealthPenaltyCurvePower = 2f;
+        [Tooltip("Нижняя граница итогового шанса верного выбора — не даём точности упасть до нуля даже при HP=0 и максимальном штрафе.")]
+        public float MinCorrectChanceFloor = 0.05f;
+
+        /// <summary>
+        /// Штраф (0..HealthPenaltyMaxReduction), который нужно вычесть из
+        /// шанса верного выбора при заданной доле HP врага. До порога
+        /// HealthPenaltyStartLostFraction штраф = 0 — совпадает с тем, что
+        /// у игрока шум/джиттер тоже включается только с ~50% дозы.
+        /// </summary>
+        public float EvaluateHealthAccuracyPenalty(float enemyHealthFraction01)
+        {
+            float lostFraction = 1f - Mathf.Clamp01(enemyHealthFraction01);
+            if (lostFraction <= HealthPenaltyStartLostFraction)
+                return 0f;
+
+            float range = Mathf.Max(0.0001f, 1f - HealthPenaltyStartLostFraction);
+            float t = Mathf.Clamp01((lostFraction - HealthPenaltyStartLostFraction) / range);
+            t = Mathf.Pow(t, Mathf.Max(0.0001f, HealthPenaltyCurvePower));
+            return t * HealthPenaltyMaxReduction;
+        }
+
         public float EvaluateTrackingLossProbability(float difficultyIndex) =>
             Mathf.Max(TrackingPmin, TrackingPbase - TrackingK * difficultyIndex);
 
@@ -34,9 +62,11 @@ namespace ShellGame.AI
             return Mathf.Lerp(MinCorrectChance, MaxCorrectChance, normalized);
         }
 
-        public float EvaluateDecisionErrorProbability(float difficultyIndex)
+        public float EvaluateDecisionErrorProbability(float difficultyIndex, float enemyHealthFraction01 = 1f)
         {
             float correctChance = EvaluateCorrectChoiceProbability(difficultyIndex);
+            correctChance -= EvaluateHealthAccuracyPenalty(enemyHealthFraction01);
+            correctChance = Mathf.Clamp(correctChance, MinCorrectChanceFloor, 1f);
             return 1f - correctChance;
         }
 

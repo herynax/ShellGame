@@ -291,8 +291,29 @@ namespace ShellGame.Gameplay
                             // выбора наперстка врагом).
                             if (_enemyAI != null && _roundGenerator != null)
                             {
-                                if (IsTutorialScene())
+                                // БАГФИКС: раньше форс срабатывал на КАЖДЫЙ ход врага,
+                                // пока активна туториальная сцена (IsTutorialScene()
+                                // остаётся true все её раунды, не только первый) — из-за
+                                // этого враг угадывал маркер всегда, а не только в
+                                // единственном скриптованном обучающем раунде.
+                                // ForceCorrectChoice сам себя сбрасывает после одного
+                                // решения (persistent=false), поэтому форсить нужно
+                                // только на входе в самый первый раунд туториала.
+                                if (IsTutorialScene() && _completedRoundsInSession == 0)
                                     _enemyAI.ForceCorrectChoice(); // сам найдёт помеченный шелл через FindMarkedShell
+
+                                // Передаём врагу его текущую долю HP (0..1), чтобы
+                                // EnemyAIConfig мог снижать точность решения по мере
+                                // получения урона — симметрично "поплывшему" экрану
+                                // игрока от дозы. См. EnemyAIConfig.EvaluateHealthAccuracyPenalty.
+                                //
+                                // ДОПУЩЕНИЕ: предполагается метод
+                                // HealthController.GetHealthFraction(TurnSide) -> float(0..1).
+                                // Если в твоём HealthController он называется иначе
+                                // (например GetCurrentHealth/GetMaxHealth раздельно) —
+                                // просто поправь эту одну строку.
+                                if (_healthController != null)
+                                    _enemyAI.SetHealthFraction(_healthController.GetHealthFraction(TurnSide.Enemy));
 
                                 _enemyAI.MakeDecisionAndAttack(_roundGenerator.ActiveShells, chosen => chosen.Select());
                             }

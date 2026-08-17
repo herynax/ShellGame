@@ -27,6 +27,7 @@ namespace ShellGame.AI
 
         private readonly EnemyKnowledgeModel _knowledge = new EnemyKnowledgeModel();
         private float _currentDifficultyIndex;
+        private float _currentHealthFraction = 1f;
         private bool _isTrackingSwaps;
 
         // --- Форсированный исход (для обучения/скриптованных сцен) ---
@@ -68,6 +69,18 @@ namespace ShellGame.AI
         {
             _forceCorrectChoice = false;
             _forcedChoicePersistent = false;
+        }
+
+        /// <summary>
+        /// Текущая доля HP противника (0..1), передаётся GameManager'ом перед
+        /// каждым решением. Чем меньше HP — тем ниже точность решения (см.
+        /// EnemyAIConfig.EvaluateHealthAccuracyPenalty) — аналог "поплывшего"
+        /// экрана игрока от дозы, только выражен через шанс ошибки, а не
+        /// визуально (у противника нет своего экрана).
+        /// </summary>
+        public void SetHealthFraction(float fraction01)
+        {
+            _currentHealthFraction = Mathf.Clamp01(fraction01);
         }
 
         /// <summary>Состояние ObserveMarkers — фиксируем реальную начальную раскладку меток.</summary>
@@ -137,7 +150,7 @@ namespace ShellGame.AI
             // потребуют инвентаря у противника — пока пропускается.
 
             float delay = _config.EvaluateDecisionDelay(_currentDifficultyIndex);
-            Debug.Log($"[EnemyAI] DecisionRoutine стартовал, delay={delay}, forceCorrect={_forceCorrectChoice}");
+            Debug.Log($"[EnemyAI] DecisionRoutine стартовал, delay={delay}, forceCorrect={_forceCorrectChoice}, healthFraction={_currentHealthFraction:F2}");
             if (delay > 0f)
                 yield return new WaitForSeconds(delay);
 
@@ -166,7 +179,7 @@ namespace ShellGame.AI
                     targetSlotIndex = shells[UnityEngine.Random.Range(0, shells.Count)].SlotIndex;
                 }
 
-                float pError = _config.EvaluateDecisionErrorProbability(_currentDifficultyIndex);
+                float pError = _config.EvaluateDecisionErrorProbability(_currentDifficultyIndex, _currentHealthFraction);
                 if (UnityEngine.Random.value < pError)
                 {
                     targetSlotIndex = shells[UnityEngine.Random.Range(0, shells.Count)].SlotIndex;
