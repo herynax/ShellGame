@@ -100,7 +100,7 @@ namespace ShellGame.Gameplay
             if (_enemyAI == null) _enemyAI = GetComponentInChildren<EnemyAIController>();
             if (_turnIndicator == null) _turnIndicator = GetComponentInChildren<TurnIndicatorController>();
 
-            _sessionProgression = FindObjectOfType<GameSessionProgression>();
+            _sessionProgression = FindFirstObjectByType<GameSessionProgression>();
             if (_sessionProgression == null)
             {
                 var progressionObject = new GameObject("GameSessionProgression");
@@ -307,13 +307,11 @@ namespace ShellGame.Gameplay
                                 // получения урона — симметрично "поплывшему" экрану
                                 // игрока от дозы. См. EnemyAIConfig.EvaluateHealthAccuracyPenalty.
                                 //
-                                // ДОПУЩЕНИЕ: предполагается метод
-                                // HealthController.GetHealthFraction(TurnSide) -> float(0..1).
-                                // Если в твоём HealthController он называется иначе
-                                // (например GetCurrentHealth/GetMaxHealth раздельно) —
-                                // просто поправь эту одну строку.
+                                // HealthController.GetDoseFraction(side) возвращает долю
+                                // ДОЗЫ (0 = полное здоровье, 1 = смерть от передозировки),
+                                // поэтому для доли HP её нужно инвертировать.
                                 if (_healthController != null)
-                                    _enemyAI.SetHealthFraction(_healthController.GetHealthFraction(TurnSide.Enemy));
+                                    _enemyAI.SetHealthFraction(1f - _healthController.GetDoseFraction(TurnSide.Enemy));
 
                                 _enemyAI.MakeDecisionAndAttack(_roundGenerator.ActiveShells, chosen => chosen.Select());
                             }
