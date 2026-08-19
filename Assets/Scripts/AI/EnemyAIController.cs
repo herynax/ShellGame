@@ -62,6 +62,7 @@ namespace ShellGame.AI
         {
             _forceCorrectChoice = true;
             _forcedChoicePersistent = persistent;
+            Debug.Log($"[EnemyAI] ForceCorrectChoice ENABLED persistent={persistent} state={State} difficulty={_currentDifficultyIndex:F2}");
         }
 
         /// <summary>Снимает форс, включённый через ForceCorrectChoice — возвращает обычное поведение ИИ.</summary>
@@ -69,6 +70,7 @@ namespace ShellGame.AI
         {
             _forceCorrectChoice = false;
             _forcedChoicePersistent = false;
+            Debug.Log($"[EnemyAI] ForceCorrectChoice CLEARED state={State}");
         }
 
         /// <summary>
@@ -150,20 +152,28 @@ namespace ShellGame.AI
             // потребуют инвентаря у противника — пока пропускается.
 
             float delay = _config.EvaluateDecisionDelay(_currentDifficultyIndex);
-            Debug.Log($"[EnemyAI] DecisionRoutine стартовал, delay={delay}, forceCorrect={_forceCorrectChoice}, healthFraction={_currentHealthFraction:F2}");
+            int markedSlotIndex = FindMarkedShell(shells)?.SlotIndex ?? -1;
+            Debug.Log($"[EnemyAI] Decision START delay={delay:F2} forceCorrect={_forceCorrectChoice} persistent={_forcedChoicePersistent} healthFraction={_currentHealthFraction:F2} difficulty={_currentDifficultyIndex:F2} markedSlot={markedSlotIndex}");
             if (delay > 0f)
                 yield return new WaitForSeconds(delay);
 
             Shell targetShell;
+            string decisionMode;
+            float errorProbability = -1f;
+            float errorRoll = -1f;
 
             if (_forceCorrectChoice)
             {
                 // Форс: игнорируем Knowledge и вероятности — берём реально
                 // помеченный наперсток напрямую из состояния поля.
                 targetShell = FindMarkedShell(shells) ?? shells[UnityEngine.Random.Range(0, shells.Count)];
+                decisionMode = "FORCED_CORRECT";
 
                 if (!_forcedChoicePersistent)
+                {
                     _forceCorrectChoice = false;
+                    Debug.Log("[EnemyAI] ForceCorrectChoice CONSUMED");
+                }
             }
             else
             {
@@ -179,16 +189,19 @@ namespace ShellGame.AI
                     targetSlotIndex = shells[UnityEngine.Random.Range(0, shells.Count)].SlotIndex;
                 }
 
-                float pError = _config.EvaluateDecisionErrorProbability(_currentDifficultyIndex, _currentHealthFraction);
-                if (UnityEngine.Random.value < pError)
+                errorProbability = _config.EvaluateDecisionErrorProbability(_currentDifficultyIndex, _currentHealthFraction);
+                errorRoll = UnityEngine.Random.value;
+                bool madeError = errorRoll < errorProbability;
+                if (madeError)
                 {
                     targetSlotIndex = shells[UnityEngine.Random.Range(0, shells.Count)].SlotIndex;
                 }
 
                 targetShell = FindShellBySlot(shells, targetSlotIndex) ?? shells[UnityEngine.Random.Range(0, shells.Count)];
+                decisionMode = madeError ? "ERROR_REROLL" : "TRACKED_CHOICE";
             }
 
-            Debug.Log($"[EnemyAI] Решение принято, targetShell slot={targetShell?.SlotIndex}");
+            Debug.Log($"[EnemyAI] Decision RESULT mode={decisionMode} targetSlot={targetShell?.SlotIndex} markedSlot={markedSlotIndex} pError={errorProbability:F3} roll={errorRoll:F3} forceCorrectAfter={_forceCorrectChoice}");
             State = EnemyAIState.Attack;
             onShellChosen?.Invoke(targetShell);
         }
