@@ -2,6 +2,7 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
+using UnityEngine.EventSystems; // Добавлено для EventTrigger
 using DG.Tweening;
 using FMODUnity;
 
@@ -9,16 +10,13 @@ using FMODUnity;
 /// Стартовая сцена: тревожный театральный фейд-ин панели яркости,
 /// после "Принять" — спокойный кроссфейд в панель звука, сохранение,
 /// переход в следующую сцену.
-///
-/// При повторном запуске (SettingsInitialized == 1) весь UI пропускается —
-/// настройки подтягиваются из PlayerPrefs, применяются, сразу грузится следующая сцена.
 /// </summary>
 public class IntroSettingsManager : MonoBehaviour
 {
     [Header("Яркость")]
     [SerializeField] private BrightnessController brightnessController;
     [SerializeField] private CanvasGroup brightnessPanel;
-    [SerializeField] private RectTransform brightnessPanelRect; // для шейка во время фликов
+    [SerializeField] private RectTransform brightnessPanelRect;
     [SerializeField] private Slider brightnessSlider;
     [SerializeField] private Button acceptBrightnessButton;
 
@@ -28,6 +26,7 @@ public class IntroSettingsManager : MonoBehaviour
     [SerializeField] private Slider musicSlider;
     [SerializeField] private Slider sfxSlider;
     [SerializeField] private Button soundConfirmButton;
+    [SerializeField, EventRef] private string sfxPreviewEvent; // Тестовый звук при отпускании SFX слайдера
 
     [Header("FMOD Paths")]
     [SerializeField] private string masterBusPath = "bus:/";
@@ -35,9 +34,9 @@ public class IntroSettingsManager : MonoBehaviour
     [SerializeField] private string sfxBusPath = "bus:/SFX";
 
     [Header("Тревожный фейд-ин (яркость)")]
-    [SerializeField] private float darknessPause = 0.5f;      // пауза в темноте перед фликами
-    [SerializeField] private float theatricalFadeDuration = 1.8f; // финальный долгий фейд
-    [SerializeField, EventRef] private string anxietyStingEvent; // опционально, FMOD one-shot
+    [SerializeField] private float darknessPause = 0.5f;
+    [SerializeField] private float theatricalFadeDuration = 1.8f;
+    [SerializeField, EventRef] private string anxietyStingEvent;
 
     [Header("Спокойные переходы")]
     [SerializeField] private float calmFadeDuration = 0.5f;
@@ -117,6 +116,14 @@ public class IntroSettingsManager : MonoBehaviour
         musicSlider.onValueChanged.AddListener(v => ApplyVolumes(masterSlider.value, v, sfxSlider.value));
         sfxSlider.onValueChanged.AddListener(v => ApplyVolumes(masterSlider.value, musicSlider.value, v));
 
+        // Добавляем отслеживание PointerUp (отпускание) для SFX Slider
+        EventTrigger trigger = sfxSlider.gameObject.GetComponent<EventTrigger>();
+        if (trigger == null) trigger = sfxSlider.gameObject.AddComponent<EventTrigger>();
+
+        EventTrigger.Entry pointerUpEntry = new EventTrigger.Entry { eventID = EventTriggerType.PointerUp };
+        pointerUpEntry.callback.AddListener((data) => PlaySFXPreview());
+        trigger.triggers.Add(pointerUpEntry);
+
         yield return CalmCrossfade(brightnessPanel, soundPanel);
 
         bool soundConfirmed = false;
@@ -125,6 +132,9 @@ public class IntroSettingsManager : MonoBehaviour
 
         yield return new WaitUntil(() => soundConfirmed);
         soundConfirmButton.onClick.RemoveListener(OnSoundConfirm);
+        
+        // Очищаем триггер, чтобы не оставался висеть в памяти
+        trigger.triggers.Remove(pointerUpEntry);
 
         yield return soundPanel.DOFade(0f, calmFadeDuration).SetEase(Ease.InOutSine).SetUpdate(true).WaitForCompletion();
         soundPanel.interactable = false;
@@ -140,6 +150,14 @@ public class IntroSettingsManager : MonoBehaviour
 
         // 4. Следующая сцена
         LoadNextScene();
+    }
+
+    private void PlaySFXPreview()
+    {
+        if (!string.IsNullOrEmpty(sfxPreviewEvent))
+        {
+            RuntimeManager.PlayOneShot(sfxPreviewEvent);
+        }
     }
 
     // --- Тревожный фейд-ин: темнота -> флики -> долгий тяжёлый фейд ---
@@ -158,7 +176,6 @@ public class IntroSettingsManager : MonoBehaviour
         if (!string.IsNullOrEmpty(anxietyStingEvent))
             seq.AppendCallback(() => RuntimeManager.PlayOneShot(anxietyStingEvent));
 
-        // флики — рваные скачки alpha перед основным появлением
         seq.Append(panel.DOFade(0.15f, 0.06f));
         seq.Append(panel.DOFade(0.03f, 0.05f));
         seq.Append(panel.DOFade(0.4f, 0.07f));
@@ -169,7 +186,6 @@ public class IntroSettingsManager : MonoBehaviour
             seq.Join(rect.DOShakeAnchorPos(0.35f, strength: 6f, vibrato: 20, randomness: 90, fadeOut: true));
         }
 
-        // основной долгий тяжёлый фейд
         seq.Append(panel.DOFade(1f, theatricalFadeDuration).SetEase(Ease.InOutSine));
 
         seq.OnComplete(() =>
@@ -215,6 +231,8 @@ public class IntroSettingsManager : MonoBehaviour
 
     private void LoadNextScene()
     {
+        FMODUnity.RuntimeManager.StudioSystem.setParameterByName("Game", 1);
+
         if (!string.IsNullOrEmpty(nextSceneName))
         {
             SceneManager.LoadScene(nextSceneName);
