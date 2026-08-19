@@ -32,6 +32,11 @@ public class SceneLoader : MonoBehaviour
     public float roomDarkenDuration = 1.5f;
     public float canvasFadeInTriggerIntensity = 2f;
 
+    [Header("Яркость")]
+    [SerializeField] private Image brightnessOverlay;
+
+    public Image BrightnessOverlay => brightnessOverlay;
+
     private Canvas fadeCanvas;
     private bool isLoading = false;
 
