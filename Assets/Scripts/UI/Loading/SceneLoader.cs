@@ -6,7 +6,6 @@ using UnityEngine.UI;
 using DG.Tweening;
 using ShellGame.Core;
 using ShellGame.Gameplay;
-using ShellGame.Health; // Добавлено для доступа к HealthController
 
 public class SceneLoader : MonoBehaviour
 {
@@ -15,6 +14,7 @@ public class SceneLoader : MonoBehaviour
     public static event Action<float> ScreenGoingBlack;
     public static event Action ScreenFullyBlack;
     public static event Action<float> ScreenRevealing;
+    public static event Action<float> LoadProgressChanged; // 0..1, нормализовано
 
     [Header("Настройки фейда")]
     public CanvasGroup fadeCanvasGroup;
@@ -30,7 +30,13 @@ public class SceneLoader : MonoBehaviour
     public string firstSceneOnPlayerDeath = "Tutorial";
     public string roomLightTag = "RoomLight";
     public float roomDarkenDuration = 1.5f;
-    public float canvasFadeInTriggerIntensity = 2f;
+
+    [Header("Экран загрузки")]
+    [Tooltip("Искусственная минимальная длительность заполнения прогресс-бара (в секундах), чтобы игрок успел прочитать подсказку.")]
+    public float minLoadingDuration = 2.0f;
+
+    [Tooltip("Пауза после того, как прогресс-бар дошел до 100%, перед активацией сцены.")]
+    public float delayAfterFullProgress = 0.4f;
 
     [Header("Яркость")]
     [SerializeField] private Image brightnessOverlay;
@@ -74,19 +80,16 @@ public class SceneLoader : MonoBehaviour
     private void HandleSideDied(TurnSide side)
     {
         if (isLoading) return;
-        
-        // Запускаем единый сценарий смерти для любой из сторон
         StartCoroutine(UnifiedDeathRoutine(side));
     }
 
     /// <summary>
-    /// Единая логика смерти:
-    /// 1. Плавно тушит свет (если есть) и делает Fade In черного экрана
-    /// 2. Ждет полного окончания визуального затемнения
-    /// 3. Ждет окончания звука смерти в FMOD (через HealthController)
-    /// 4. Ждет 0.15 секунд
-    /// 5. Загружает нужную сцену (рестарт для игрока, Next Scene для врага)
-    /// 6. Делает Fade Out (показывает новую сцену)
+    /// Единая логика смерти / перехода:
+    /// 1. Плавно тушит свет и делает Fade In черного экрана
+    /// 2. Показывает подсказку и прогресс-бар (через ScreenFullyBlack)
+    /// 3. Фоном асинхронно грузит сцену и плавно наполняет шкалу (minLoadingDuration)
+    /// 4. Делает паузу на 100% полоски и активирует сцену
+    /// 5. Делает Fade Out (ScreenRevealing)
     /// </summary>
     private IEnumerator UnifiedDeathRoutine(TurnSide deadSide)
     {
@@ -101,7 +104,7 @@ public class SceneLoader : MonoBehaviour
 
         if (blockInputDuringLoad) fadeCanvasGroup.blocksRaycasts = true;
 
-        // --- ШАГ 1: ВИЗУАЛЬНОЕ ЗАТЕМНЕНИЕ (СВЕТ + КАНВАС) ---
+        // --- ШАГ 1: ВИЗУАЛЬНОЕ ЗАТЕМНЕНИЕ ---
         Tween canvasFadeTween = null;
         Light roomLight = FindRoomLight();
 
@@ -122,29 +125,26 @@ public class SceneLoader : MonoBehaviour
             yield return canvasFadeTween.WaitForCompletion();
         }
 
+        // --- ШАГ 2: ЭКРАН СТАЛ ПОЛНОСТЬЮ ЧЕРНЫМ (ПОЯВЛЯЮТСЯ ТУЛТИП И ПРОГРЕСС-БАР) ---
         ScreenFullyBlack?.Invoke();
+        LoadProgressChanged?.Invoke(0f);
 
-        // --- ШАГ 3: КОРОТКАЯ ПАУЗА 0.15 СЕКУНД ---
-        Debug.Log("[SceneLoader] Звук завершён. Ждём 0.25 сек...");
-        yield return new WaitForSecondsRealtime(0.25f);
-        
+        yield return new WaitForSecondsRealtime(0.2f);
 
-        // --- ШАГ 4: ЗАГРУЗКА НУЖНОЙ СЦЕНЫ ---
+        // --- ШАГ 3: ФОНОВАЯ ЗАГРУЗКА СЦЕНЫ ---
         AsyncOperation asyncLoad = null;
 
         if (deadSide == TurnSide.Player)
         {
-            // Смерть игрока -> возврат на стартовую сцену
             string targetScene = string.IsNullOrEmpty(firstSceneOnPlayerDeath)
                 ? "Tutorial"
                 : firstSceneOnPlayerDeath;
 
-            Debug.Log($"[SceneLoader] Возвращаемся на первую сцену: {targetScene}");
+            Debug.Log($"[SceneLoader] Возвращаемся на стартовую сцену: {targetScene}");
             asyncLoad = SceneManager.LoadSceneAsync(targetScene);
         }
         else
         {
-            // Смерть врага -> Загрузка следующей сцены
             EnsureSessionProgression().AdvanceToNextLevel();
 
             if (loadNextSceneByName)
@@ -162,14 +162,10 @@ public class SceneLoader : MonoBehaviour
             }
         }
 
-        // Ждем пока сцена полностью загрузится
-        while (asyncLoad != null && !asyncLoad.isDone)
-        {
-            yield return null;
-        }
+        // Выполняем искусственно растянутое отслеживание загрузки с докруткой бара
+        yield return TrackAsyncLoading(asyncLoad);
 
-        // --- ШАГ 5: ФЕЙД АУТ (ПРОЯВЛЕНИЕ ЭКРАНА) ---
-        Debug.Log($"[SceneLoader] Сцена загружена! Ждём перед Fade Out...");
+        // --- ШАГ 4: ФЕЙД АУТ (ПРОЯВЛЕНИЕ НОВОЙ СЦЕНЫ) ---
         yield return new WaitForSecondsRealtime(delayBeforeFadeOut);
 
         Debug.Log($"[SceneLoader] Начинаем Fade Out...");
@@ -179,15 +175,10 @@ public class SceneLoader : MonoBehaviour
             .SetUpdate(true)
             .WaitForCompletion();
 
-        Debug.Log($"[SceneLoader] Переход завершен!");
         fadeCanvasGroup.blocksRaycasts = false;
         isLoading = false;
     }
 
-    // ==========================================
-    // СТАРЫЕ МЕТОДЫ (Сохранены для внешних вызовов)
-    // ==========================================
-    
     public void LoadScene(string sceneName)
     {
         if (isLoading) return;
@@ -206,12 +197,20 @@ public class SceneLoader : MonoBehaviour
         if (blockInputDuringLoad && fadeCanvasGroup != null) fadeCanvasGroup.blocksRaycasts = true;
 
         ScreenGoingBlack?.Invoke(fadeDuration);
-        if (fadeCanvasGroup != null) yield return fadeCanvasGroup.DOFade(1f, fadeDuration).SetUpdate(true).WaitForCompletion();
-
-        AsyncOperation asyncLoad = (!string.IsNullOrEmpty(sceneName)) ? SceneManager.LoadSceneAsync(sceneName) : SceneManager.LoadSceneAsync(sceneIndex);
-        while (!asyncLoad.isDone) yield return null;
+        if (fadeCanvasGroup != null) 
+            yield return fadeCanvasGroup.DOFade(1f, fadeDuration).SetUpdate(true).WaitForCompletion();
 
         ScreenFullyBlack?.Invoke();
+        LoadProgressChanged?.Invoke(0f);
+
+        yield return new WaitForSecondsRealtime(0.1f);
+
+        AsyncOperation asyncLoad = !string.IsNullOrEmpty(sceneName)
+            ? SceneManager.LoadSceneAsync(sceneName)
+            : SceneManager.LoadSceneAsync(sceneIndex);
+
+        yield return TrackAsyncLoading(asyncLoad);
+
         yield return new WaitForSecondsRealtime(delayBeforeFadeOut);
 
         ScreenRevealing?.Invoke(fadeDuration);
@@ -221,6 +220,56 @@ public class SceneLoader : MonoBehaviour
             fadeCanvasGroup.blocksRaycasts = false;
         }
         isLoading = false;
+    }
+
+    /// <summary>
+    /// Контролирует плавное заполнение шкалы загрузки в течение minLoadingDuration
+    /// и активирует сцену только после завершения и паузы.
+    /// </summary>
+    private IEnumerator TrackAsyncLoading(AsyncOperation asyncLoad)
+    {
+        if (asyncLoad == null) yield break;
+
+        // Не даем сцене активироваться мгновенно
+        asyncLoad.allowSceneActivation = false;
+
+        float displayedProgress = 0f;
+        float elapsedTime = 0f;
+
+        // AsyncOperation.progress доходит максимум до 0.9 пока allowSceneActivation = false
+        while (displayedProgress < 1f || asyncLoad.progress < 0.9f)
+        {
+            elapsedTime += Time.unscaledDeltaTime;
+
+            float realNormalized = Mathf.Clamp01(asyncLoad.progress / 0.9f);
+            float timeNormalized = minLoadingDuration > 0f ? Mathf.Clamp01(elapsedTime / minLoadingDuration) : 1f;
+
+            // Прогресс растет по таймеру, но не обгоняет реальную загрузку данных
+            displayedProgress = Mathf.Min(realNormalized, timeNormalized);
+            LoadProgressChanged?.Invoke(displayedProgress);
+
+            // Если время вышло и сцена в памяти готова
+            if (displayedProgress >= 1f && asyncLoad.progress >= 0.9f)
+                break;
+
+            yield return null;
+        }
+
+        // Фиксируем 100%
+        LoadProgressChanged?.Invoke(1f);
+
+        // Пауза, чтобы игрок увидел полную полоску
+        if (delayAfterFullProgress > 0f)
+        {
+            yield return new WaitForSecondsRealtime(delayAfterFullProgress);
+        }
+
+        // Разрешаем фактическое включение сцены
+        asyncLoad.allowSceneActivation = true;
+        while (!asyncLoad.isDone)
+        {
+            yield return null;
+        }
     }
 
     private Light FindRoomLight()
@@ -233,8 +282,7 @@ public class SceneLoader : MonoBehaviour
     private GameSessionProgression EnsureSessionProgression()
     {
         var progression = FindObjectOfType<GameSessionProgression>();
-        if (progression != null)
-            return progression;
+        if (progression != null) return progression;
 
         var progressionObject = new GameObject("GameSessionProgression");
         progression = progressionObject.AddComponent<GameSessionProgression>();

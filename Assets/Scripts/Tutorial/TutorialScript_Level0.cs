@@ -67,8 +67,12 @@ namespace ShellGame.Tutorial
 
         private void Awake()
         {
-            if (_enemyHealthBarRoot != null) _enemyHealthBarRoot.SetActive(false);
-            if (_playerHealthBarRoot != null) _playerHealthBarRoot.SetActive(false);
+            if (!GameManager.IsTutorialCompleted())
+            {
+                if (_enemyHealthBarRoot != null) _enemyHealthBarRoot.SetActive(false);
+                if (_playerHealthBarRoot != null) _playerHealthBarRoot.SetActive(false);
+            }
+
             if (_sequencer == null) _sequencer = gameObject.AddComponent<TutorialSequencer>();
 
             // ВАЖНО: ShuffleSystem.TutorialStepMode больше НЕ выставляем здесь.
@@ -92,11 +96,37 @@ namespace ShellGame.Tutorial
 
         private void Start()
         {
+            if (GameManager.IsTutorialCompleted())
+            {
+                Debug.Log("[TutorialScript_Level0] Обучение уже пройдено, секвенс не запускается.");
+                return;
+            }
+
+            _sequencer.Completed += OnTutorialCompleted;
             Play();
+        }
+
+        private void OnDestroy()
+        {
+            if (_sequencer != null)
+                _sequencer.Completed -= OnTutorialCompleted;
+        }
+
+        private void OnTutorialCompleted()
+        {
+            PlayerPrefs.SetInt(GameManager.TutorialCompletedPrefKey, 1);
+            PlayerPrefs.Save();
+            Debug.Log("[TutorialScript_Level0] Обучение завершено и сохранено в PlayerPrefs.");
         }
 
         public void Play()
         {
+            if (GameManager.IsTutorialCompleted())
+            {
+                Debug.Log("[TutorialScript_Level0] Play пропущен: обучение уже пройдено.");
+                return;
+            }
+
             var builder = TutorialBuilder.Create();
             int p = _focusPriority;
 

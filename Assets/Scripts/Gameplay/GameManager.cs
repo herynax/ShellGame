@@ -13,6 +13,8 @@ namespace ShellGame.Gameplay
 {
     public sealed class GameManager : MonoBehaviour
     {
+        public const string TutorialCompletedPrefKey = "ShellGame.TutorialCompleted";
+
         [SerializeField] private RoundGenerator _roundGenerator;
         [SerializeField] private RoundInputSystem _inputSystem;
         [SerializeField] private ShuffleSystem _shuffleSystem;
@@ -63,11 +65,16 @@ namespace ShellGame.Gameplay
         private bool IsTutorialScene()
         {
             var currentSceneName = SceneManager.GetActiveScene().name;
-            return currentSceneName.Equals("Tutorial", System.StringComparison.OrdinalIgnoreCase)
+            bool isTutorialScene = currentSceneName.Equals("Tutorial", System.StringComparison.OrdinalIgnoreCase)
                 || currentSceneName.Contains("Tutorial", System.StringComparison.OrdinalIgnoreCase)
                 || currentSceneName.Contains("Level0", System.StringComparison.OrdinalIgnoreCase)
                 || currentSceneName.Contains("Level_0", System.StringComparison.OrdinalIgnoreCase);
+
+            return isTutorialScene && !IsTutorialCompleted();
         }
+
+        public static bool IsTutorialCompleted() =>
+            PlayerPrefs.GetInt(TutorialCompletedPrefKey, 0) == 1;
 
         public void Initialize(
             RoundGenerator roundGenerator,
@@ -299,7 +306,9 @@ namespace ShellGame.Gameplay
                                 // ForceCorrectChoice сам себя сбрасывает после одного
                                 // решения (persistent=false), поэтому форсить нужно
                                 // только на входе в самый первый раунд туториала.
-                                if (IsTutorialScene() && _completedRoundsInSession == 0)
+                                bool shouldForceTutorialChoice = IsTutorialScene() && _completedRoundsInSession == 0;
+                                Debug.Log($"[GameManager] Enemy turn: scene={SceneManager.GetActiveScene().name} level={_levelIndex} round={_roundIndex} completedRounds={_completedRoundsInSession} state={_state} shouldForceTutorialChoice={shouldForceTutorialChoice}");
+                                if (shouldForceTutorialChoice)
                                     _enemyAI.ForceCorrectChoice(); // сам найдёт помеченный шелл через FindMarkedShell
 
                                 // Передаём врагу его текущую долю HP (0..1), чтобы

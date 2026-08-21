@@ -40,6 +40,7 @@ namespace ShellGame.Tutorial
         {
             yield return root.Run(this);
             IsPlaying = false;
+            Debug.Log("[TutorialSequencer] Completed");
             Completed?.Invoke();
         }
     }
