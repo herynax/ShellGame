@@ -177,18 +177,33 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5733654023506277042, guid: 0b581cc20d0c1324da6d2da32a70657c,
         type: 3}
+      propertyPath: fogColor.b
+      value: 0.7164471
+      objectReference: {fileID: 0}
+    - target: {fileID: 5733654023506277042, guid: 0b581cc20d0c1324da6d2da32a70657c,
+        type: 3}
+      propertyPath: fogColor.g
+      value: 0.9042364
+      objectReference: {fileID: 0}
+    - target: {fileID: 5733654023506277042, guid: 0b581cc20d0c1324da6d2da32a70657c,
+        type: 3}
+      propertyPath: fogColor.r
+      value: 0.9433962
+      objectReference: {fileID: 0}
+    - target: {fileID: 5733654023506277042, guid: 0b581cc20d0c1324da6d2da32a70657c,
+        type: 3}
       propertyPath: fogDensity
       value: 0.19
       objectReference: {fileID: 0}
     - target: {fileID: 5733654023506277042, guid: 0b581cc20d0c1324da6d2da32a70657c,
         type: 3}
       propertyPath: noiseScale
-      value: 890
+      value: 953
       objectReference: {fileID: 0}
     - target: {fileID: 5733654023506277042, guid: 0b581cc20d0c1324da6d2da32a70657c,
         type: 3}
       propertyPath: fogAltScale
-      value: 79.5
+      value: 79.53
       objectReference: {fileID: 0}
     - target: {fileID: 5733654023506277042, guid: 0b581cc20d0c1324da6d2da32a70657c,
         type: 3}
@@ -198,7 +213,7 @@ PrefabInstance:
     - target: {fileID: 5733654023506277042, guid: 0b581cc20d0c1324da6d2da32a70657c,
         type: 3}
       propertyPath: fogThinning
-      value: 0
+      value: 10
       objectReference: {fileID: 0}
     - target: {fileID: 5733654023506277042, guid: 0b581cc20d0c1324da6d2da32a70657c,
         type: 3}
