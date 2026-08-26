@@ -57,7 +57,7 @@ Material:
     m_Ints: []
     m_Floats:
     - _CellSize: 0.02
-    - _Metalic: 0
+    - _Metalic: 0.782
     - _QueueControl: 0
     - _QueueOffset: 0
     - _Smoothness: 0

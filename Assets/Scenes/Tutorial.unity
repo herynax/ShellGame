@@ -1147,7 +1147,8 @@ MonoBehaviour:
   firstSceneOnPlayerDeath: Tutorial
   roomLightTag: RoomLight
   roomDarkenDuration: 1.5
-  canvasFadeInTriggerIntensity: 2
+  minLoadingDuration: 2
+  delayAfterFullProgress: 0.4
   brightnessOverlay: {fileID: 0}
 --- !u!114 &1807011000
 MonoBehaviour:
@@ -1569,6 +1570,11 @@ PrefabInstance:
       propertyPath: m_Camera
       value: 
       objectReference: {fileID: 330585545}
+    - target: {fileID: 7611898180330757481, guid: e227562570c26f7428a3c01b27c2bdb4,
+        type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -0.677
+      objectReference: {fileID: 0}
     - target: {fileID: 8502106992822704666, guid: e227562570c26f7428a3c01b27c2bdb4,
         type: 3}
       propertyPath: m_Name
