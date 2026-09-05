@@ -15,6 +15,7 @@ namespace ShellGame.Health
 
         // Инстанс звука смерти, чтобы отслеживать, когда он закончится
         private FMOD.Studio.EventInstance _deathSoundInstance;
+        public float DeathSoundDuration { get; private set; }
 
         public void Initialize(int playerMaxHealth, int enemyMaxHealth)
         {
@@ -59,29 +60,16 @@ namespace ShellGame.Health
             int clampedDose = Mathf.Min(max, rawDose);
             _current[side] = clampedDose;
 
-            // --- ВОСПРОИЗВЕДЕНИЕ ЗВУКОВ ЧЕРЕЗ ПРОВАЙДЕР ---
-            if (HealthSoundProvider.Instance != null)
+            // При смертельном попадании обычные звуки урона не запускаем:
+            // death-звук должен быть единственным звуком этого попадания.
+            if (!overdosed)
             {
-                var provider = HealthSoundProvider.Instance;
-                Vector3 soundPosition = GetSidePosition(side);
-
-                // 1. Звук укола
-                if (!provider.injectionSound.IsNull)
-                {
-                    FMODUnity.RuntimeManager.PlayOneShot(provider.injectionSound);
-                }
-
-                // 2. Звук урона
-                var damageSound = side == TurnSide.Player ? provider.playerDamageSound : provider.enemyDamageSound;
-                if (!damageSound.IsNull)
-                {
-                    FMODUnity.RuntimeManager.PlayOneShot(damageSound, soundPosition);
-                }
+                PlayDamageSounds(side);
             }
 
             GameEvents.RaiseHealthChanged(side, clampedDose, max);
             GameEvents.RaiseDamageTaken(side, amount, clampedDose, max, overdosed);
-            UpdateDoseCounterParameter(side);
+            UpdateDoseCounterParameter(side, overdosed);
 
             if (overdosed)
             {
@@ -97,6 +85,16 @@ namespace ShellGame.Health
                     if (!deathSound.IsNull)
                     {
                         _deathSoundInstance = FMODUnity.RuntimeManager.CreateInstance(deathSound);
+                        if (_deathSoundInstance.getDescription(out var deathDescription) == FMOD.RESULT.OK
+                            && deathDescription.getLength(out int deathLengthMilliseconds) == FMOD.RESULT.OK)
+                        {
+                            DeathSoundDuration = deathLengthMilliseconds / 1000f;
+                        }
+                        else
+                        {
+                            DeathSoundDuration = 0f;
+                        }
+
                         _deathSoundInstance.set3DAttributes(FMODUnity.RuntimeUtils.To3DAttributes(soundPosition));
                         _deathSoundInstance.start();
                         _deathSoundInstance.release(); // FMOD сам удалит объект из памяти после завершения
@@ -139,7 +137,23 @@ namespace ShellGame.Health
             return transform.position;
         }
 
-        private void UpdateDoseCounterParameter(TurnSide side)
+        private void PlayDamageSounds(TurnSide side)
+        {
+            if (HealthSoundProvider.Instance == null)
+                return;
+
+            var provider = HealthSoundProvider.Instance;
+            Vector3 soundPosition = GetSidePosition(side);
+
+            if (!provider.injectionSound.IsNull)
+                FMODUnity.RuntimeManager.PlayOneShot(provider.injectionSound);
+
+            var damageSound = side == TurnSide.Player ? provider.playerDamageSound : provider.enemyDamageSound;
+            if (!damageSound.IsNull)
+                FMODUnity.RuntimeManager.PlayOneShot(damageSound, soundPosition);
+        }
+
+        private void UpdateDoseCounterParameter(TurnSide side, bool ignoreSeekSpeed = false)
         {
             if (side != TurnSide.Player) return;
 
@@ -150,7 +164,7 @@ namespace ShellGame.Health
             // чтобы FMOD не получил значение, выходящее за рамки его шкалы.
             int value = Mathf.Clamp(dose, 0, DoseCounterMax);
             
-            FMODUnity.RuntimeManager.StudioSystem.setParameterByName(DoseCounterParameterName, value);
+            FMODUnity.RuntimeManager.StudioSystem.setParameterByName(DoseCounterParameterName, value, ignoreSeekSpeed);
         }
 
         // --- МЕТОД ДЛЯ SCENE LOADER ---

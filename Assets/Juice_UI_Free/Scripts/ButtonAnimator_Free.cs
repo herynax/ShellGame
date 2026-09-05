@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using DG.Tweening;
+using FMODUnity;
 
 namespace SpankyBoy.JuiceUI.Free
 {
@@ -52,8 +53,13 @@ namespace SpankyBoy.JuiceUI.Free
         public Color flashColor = Color.white;
         public float squeezeAmount = 0.85f;
 
-        // --- AUDIO ---
-        [Header("Audio (Optional)")]
+        // --- FMOD AUDIO ---
+        [Header("FMOD Audio")]
+        [SerializeField] private EventReference fmodHoverEvent;
+        [SerializeField] private EventReference fmodClickEvent;
+
+        // --- UNITY AUDIO (Fallback / Optional) ---
+        [Header("Unity Audio (Optional)")]
         public AudioClip hoverSound;
         public AudioClip clickSound;
         [Tooltip("If left unassigned, will use an AudioSource on this GameObject.")]
@@ -96,7 +102,7 @@ namespace SpankyBoy.JuiceUI.Free
         {
             if (!button.interactable) return;
             isPointerDown = false;
-            PlaySound(hoverSound);
+            PlayHoverSound();
             AnimateHover(true);
         }
 
@@ -113,7 +119,7 @@ namespace SpankyBoy.JuiceUI.Free
         {
             if (!button.interactable) return;
             isPointerDown = true;
-            PlaySound(clickSound);
+            PlayClickSound();
             AnimateClick();
         }
 
@@ -139,16 +145,22 @@ namespace SpankyBoy.JuiceUI.Free
                 switch (hoverEffect)
                 {
                     case HoverEffect.Scale:
-                        hoverTween = transform.DOScale(originalScale * hoverScale, duration).SetEase(hoverEase);
+                        hoverTween = transform.DOScale(originalScale * hoverScale, duration)
+                            .SetEase(hoverEase)
+                            .SetUpdate(true);
                         break;
 
                     case HoverEffect.BounceScale:
-                        hoverTween = transform.DOScale(originalScale * hoverScale, duration).SetEase(Ease.OutBounce);
+                        hoverTween = transform.DOScale(originalScale * hoverScale, duration)
+                            .SetEase(Ease.OutBounce)
+                            .SetUpdate(true);
                         break;
 
                     case HoverEffect.ColorTint:
                         if (targetGraphic) 
-                            hoverTween = targetGraphic.DOColor(hoverColor, duration).SetEase(hoverEase);
+                            hoverTween = targetGraphic.DOColor(hoverColor, duration)
+                                .SetEase(hoverEase)
+                                .SetUpdate(true);
                         break;
 
                     case HoverEffect.Glow:
@@ -158,7 +170,8 @@ namespace SpankyBoy.JuiceUI.Free
                     case HoverEffect.Pulse:
                         hoverTween = transform.DOScale(originalScale * 1.05f, duration / 2)
                             .SetEase(Ease.InOutSine)
-                            .SetLoops(-1, LoopType.Yoyo);
+                            .SetLoops(-1, LoopType.Yoyo)
+                            .SetUpdate(true);
                         break;
                 }
             }
@@ -169,12 +182,16 @@ namespace SpankyBoy.JuiceUI.Free
                     case HoverEffect.Scale:
                     case HoverEffect.BounceScale:
                     case HoverEffect.Pulse:
-                        hoverTween = transform.DOScale(originalScale, duration).SetEase(hoverEase);
+                        hoverTween = transform.DOScale(originalScale, duration)
+                            .SetEase(hoverEase)
+                            .SetUpdate(true);
                         break;
 
                     case HoverEffect.ColorTint:
                         if (targetGraphic) 
-                            hoverTween = targetGraphic.DOColor(originalColor, duration).SetEase(hoverEase);
+                            hoverTween = targetGraphic.DOColor(originalColor, duration)
+                                .SetEase(hoverEase)
+                                .SetUpdate(true);
                         break;
 
                     case HoverEffect.Glow:
@@ -193,11 +210,13 @@ namespace SpankyBoy.JuiceUI.Free
             switch (clickEffect)
             {
                 case ClickEffect.Punch:
-                    transform.DOPunchScale(punchStrength, clickDuration, 1, 0.5f);
+                    transform.DOPunchScale(punchStrength, clickDuration, 1, 0.5f)
+                        .SetUpdate(true);
                     break;
 
                 case ClickEffect.Shake:
-                    transform.DOShakePosition(clickDuration, strength: shakeStrength, vibrato: 20, randomness: 90, fadeOut: true);
+                    transform.DOShakePosition(clickDuration, strength: shakeStrength, vibrato: 20, randomness: 90, fadeOut: true)
+                        .SetUpdate(true);
                     break;
 
                 case ClickEffect.Flash:
@@ -205,6 +224,7 @@ namespace SpankyBoy.JuiceUI.Free
                     {
                         Color currentColor = targetGraphic.color;
                         DOTween.Sequence()
+                            .SetUpdate(true)
                             .Append(targetGraphic.DOColor(flashColor, clickDuration / 2))
                             .Append(targetGraphic.DOColor(currentColor, clickDuration / 2));
                     }
@@ -213,12 +233,14 @@ namespace SpankyBoy.JuiceUI.Free
                 case ClickEffect.Squeeze:
                     Vector3 squeezeScale = new Vector3(currentScale.x * squeezeAmount, currentScale.y * squeezeAmount, 1f);
                     DOTween.Sequence()
+                        .SetUpdate(true)
                         .Append(transform.DOScale(squeezeScale, clickDuration / 2).SetEase(Ease.InQuad))
                         .Append(transform.DOScale(currentScale, clickDuration / 2).SetEase(Ease.OutElastic));
                     break;
 
                 case ClickEffect.Jello:
                     DOTween.Sequence()
+                        .SetUpdate(true)
                         .Append(transform.DOScale(new Vector3(currentScale.x * 1.25f, currentScale.y * 0.75f, 1f), clickDuration / 4))
                         .Append(transform.DOScale(new Vector3(currentScale.x * 0.75f, currentScale.y * 1.25f, 1f), clickDuration / 4))
                         .Append(transform.DOScale(new Vector3(currentScale.x * 1.15f, currentScale.y * 0.85f, 1f), clickDuration / 4))
@@ -258,7 +280,8 @@ namespace SpankyBoy.JuiceUI.Free
                 DOTween.To(() => glowOutline.effectDistance, 
                     x => glowOutline.effectDistance = x,
                     new Vector2(hoverGlowSize, -hoverGlowSize),
-                    duration);
+                    duration)
+                    .SetUpdate(true);
             }
             else
             {
@@ -268,6 +291,7 @@ namespace SpankyBoy.JuiceUI.Free
                         x => glowOutline.effectDistance = x,
                         Vector2.zero,
                         duration)
+                        .SetUpdate(true)
                         .OnComplete(() => 
                         {
                             if (glowOutline != null)
@@ -280,11 +304,29 @@ namespace SpankyBoy.JuiceUI.Free
             }
         }
 
-        private void PlaySound(AudioClip clip)
+        // --- Sound Playback ---
+
+        private void PlayHoverSound()
         {
-            if (clip != null && audioSource != null)
+            if (!fmodHoverEvent.IsNull)
             {
-                audioSource.PlayOneShot(clip, audioVolume);
+                RuntimeManager.PlayOneShot(fmodHoverEvent, transform.position);
+            }
+            else if (hoverSound != null && audioSource != null)
+            {
+                audioSource.PlayOneShot(hoverSound, audioVolume);
+            }
+        }
+
+        private void PlayClickSound()
+        {
+            if (!fmodClickEvent.IsNull)
+            {
+                RuntimeManager.PlayOneShot(fmodClickEvent, transform.position);
+            }
+            else if (clickSound != null && audioSource != null)
+            {
+                audioSource.PlayOneShot(clickSound, audioVolume);
             }
         }
     }

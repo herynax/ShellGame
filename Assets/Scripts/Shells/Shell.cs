@@ -28,12 +28,16 @@ namespace ShellGame.Shells
     {
         [SerializeField] private Collider _clickCollider;
         [SerializeField] private Transform _markerVisualAnchor; // сюда включается спрайт метки при Reveal, если нужно
+        [SerializeField] private Renderer[] _sideRenderers;
 
         private ShellAnimator _animator;
         private ShellConfig _config;
         private IAudioService _audio;
         private Marker _marker;
         private EventInstance _revealStartInstance;
+        private MaterialPropertyBlock _sidePropertyBlock;
+        private Tween _sideTween;
+        private static readonly int SidePropertyId = Shader.PropertyToID("_Side");
 
         public int SlotIndex { get; private set; } = -1;
         public ShellSlot AssignedSlot { get; private set; }
@@ -45,6 +49,9 @@ namespace ShellGame.Shells
             _animator = GetComponent<ShellAnimator>();
             if (_clickCollider == null)
                 _clickCollider = GetComponent<Collider>();
+            if (_sideRenderers == null || _sideRenderers.Length == 0)
+                _sideRenderers = GetComponentsInChildren<Renderer>(true);
+            _sidePropertyBlock = new MaterialPropertyBlock();
         }
 
         /// <summary>Вызывается пул-сервисом сразу после создания/раздачи слота — задаёт зависимости и правило один раз.</summary>
@@ -64,6 +71,45 @@ namespace ShellGame.Shells
         {
             AssignedSlot = slot;
             SlotIndex = slot != null ? slot.Index : -1;
+        }
+
+        public void SetSide(TurnSide side)
+        {
+            SetSideValue(side == TurnSide.Enemy ? 1f : 0f);
+        }
+
+        public void AnimateSide(TurnSide side, float duration)
+        {
+            _sideTween?.Kill();
+            float targetValue = side == TurnSide.Enemy ? 1f : 0f;
+            _sideTween = DOTween.To(
+                    () => GetSideValue(),
+                    SetSideValue,
+                    targetValue,
+                    Mathf.Max(0f, duration))
+                .SetEase(Ease.Linear);
+        }
+
+        private float GetSideValue()
+        {
+            if (_sideRenderers == null || _sideRenderers.Length == 0 || _sidePropertyBlock == null)
+                return 0f;
+
+            _sideRenderers[0].GetPropertyBlock(_sidePropertyBlock);
+            return _sidePropertyBlock.GetFloat(SidePropertyId);
+        }
+
+        private void SetSideValue(float value)
+        {
+            if (_sideRenderers == null || _sidePropertyBlock == null)
+                return;
+
+            _sidePropertyBlock.SetFloat(SidePropertyId, value);
+            foreach (var renderer in _sideRenderers)
+            {
+                if (renderer != null)
+                    renderer.SetPropertyBlock(_sidePropertyBlock);
+            }
         }
 
         public void PlaceAtSurface(Vector3 surfacePoint)
@@ -334,6 +380,8 @@ namespace ShellGame.Shells
         public void OnReturnToPool()
         {
             _animator.Kill();
+            _sideTween?.Kill();
+            _sideTween = null;
             StopRevealStartSound();
             State = ShellState.PooledInactive;
             SetInteractable(false);

@@ -97,24 +97,24 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ShellGame.Feedback.PsychedelicEffectController
   _volume: {fileID: 4213470841031957147}
   _vignetteIntensityMin: 0.15
-  _vignetteIntensityMax: 0.8
+  _vignetteIntensityMax: 2.5
   _vignetteSmoothnessMin: 2
   _vignetteSmoothnessMax: 0.6
-  _chromaticAberrationMax: 5
-  _warpAmplitudeMax: 0.02
-  _warpFrequencyMin: 4
-  _warpFrequencyMax: 10
+  _chromaticAberrationMax: 2
+  _warpAmplitudeMax: 0.1
+  _warpFrequencyMin: 0.5
+  _warpFrequencyMax: 1
   _warpSpeedMin: 0.6
   _warpSpeedMax: 2.5
   _curvePower: 2
   _lateKickStart: 0.2
   _lateKickMultiplier: 0
   _noiseThreshold: 0.2
-  _noiseAmplitudeMax: 1
-  _noiseFrequencyMin: 0.3
+  _noiseAmplitudeMax: 0.15
+  _noiseFrequencyMin: 0.5
   _noiseFrequencyMax: 2
-  _noiseSpeedMin: 1
-  _noiseSpeedMax: 4
+  _noiseSpeedMin: 0.5
+  _noiseSpeedMax: 1
   _extraWarpBoostMax: 0
   _smoothTime: 0.4
 --- !u!1001 &1596051044810909285

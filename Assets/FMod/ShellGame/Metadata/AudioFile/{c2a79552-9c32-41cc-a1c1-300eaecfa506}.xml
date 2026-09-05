@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<objects serializationModel="Studio.02.03.00">
+	<object class="AudioFile" id="{c2a79552-9c32-41cc-a1c1-300eaecfa506}">
+		<property name="assetPath">
+			<value>MainTheme_v.1_CHOIR.wav</value>
+		</property>
+		<property name="isStreaming">
+			<value>true</value>
+		</property>
+		<property name="frequencyInKHz">
+			<value>44.0999985</value>
+		</property>
+		<property name="channelCount">
+			<value>2</value>
+		</property>
+		<property name="length">
+			<value>41.09238095238095</value>
+		</property>
+		<relationship name="masterAssetFolder">
+			<destination>{9bad64b9-b6e3-449e-a1f6-a88b33318a62}</destination>
+		</relationship>
+	</object>
+</objects>

@@ -23,6 +23,13 @@ namespace ShellGame.Gameplay
         private readonly List<ShellSlot> _spawnedSlots = new List<ShellSlot>();
 
         public IReadOnlyList<Shell> ActiveShells => _activeShells;
+        public float LayoutTransitionDuration { get; private set; }
+
+        public void SetSide(TurnSide side)
+        {
+            foreach (var shell in _activeShells)
+                shell?.SetSide(side);
+        }
 
         public void Initialize(Shell shellPrefab, ShellConfig shellConfig, Marker markerPrefab, RoundProgressionConfig progressionConfig, int maxPrewarmCount)
         {
@@ -71,7 +78,6 @@ namespace ShellGame.Gameplay
         public RoundParameters GenerateRound(int levelIndex, int roundIndex, int completedRoundsBeforeCurrentRound = 0)
         {
             ResolveSlots();
-            ClearRound();
             GameEvents.RaiseRoundSetupStarted();
 
             var parameters = _progressionConfig != null
@@ -84,16 +90,42 @@ namespace ShellGame.Gameplay
             _spawnedSlots.Clear();
             _spawnedSlots.AddRange(PickRandomSlots(parameters.CupCount));
 
+            foreach (var slot in _slots)
+                slot.OccupyingShell = null;
+
+            foreach (var marker in _activeMarkers)
+                Destroy(marker.gameObject);
+            _activeMarkers.Clear();
+
+            var previousShells = new List<Shell>(_activeShells);
+            var nextShells = new List<Shell>(_spawnedSlots.Count);
+            LayoutTransitionDuration = previousShells.Count > 0 ? ResolveLayoutMoveDuration(levelIndex, roundIndex) : 0f;
+
             var markerIndices = PickRandomMarkerIndices(parameters.CupCount, parameters.MarkerCount);
             for (int i = 0; i < _spawnedSlots.Count; i++)
             {
                 var slot = _spawnedSlots[i];
-                var shell = _pool.Spawn(slot.SpawnPosition, slot.Rotation);
+                Shell shell;
+                if (i < previousShells.Count)
+                {
+                    shell = previousShells[i];
+                }
+                else
+                {
+                    shell = _pool.Spawn(slot.SpawnPosition, slot.Rotation);
+                }
+
                 if (_shellPrefab != null)
                     shell.transform.localScale = _shellPrefab.transform.localScale;
                 shell.Initialize(_shellConfig, _audio);
                 shell.AssignToSlot(slot);
-                shell.PlaceAtSurface(slot.SpawnPosition);
+                if (i >= previousShells.Count)
+                {
+                    shell.PlaceAtSurface(slot.SpawnPosition);
+                    shell.PlaySpawnIn();
+                }
+                else
+                    shell.MoveToSlot(slot, null, LayoutTransitionDuration);
 
                 var hasMarker = markerIndices.Contains(i);
                 Marker marker = null;
@@ -115,16 +147,32 @@ namespace ShellGame.Gameplay
 
                 shell.AttachMarker(marker);
                 shell.SetMarker(hasMarker);
-                shell.PlaySpawnIn();
 
                 slot.OccupyingShell = shell;
-                _activeShells.Add(shell);
+                nextShells.Add(shell);
                 if (marker != null)
                     _activeMarkers.Add(marker);
             }
 
+            for (int i = _spawnedSlots.Count; i < previousShells.Count; i++)
+                _pool.Despawn(previousShells[i]);
+
+            _activeShells.Clear();
+            _activeShells.AddRange(nextShells);
+
             _audio.PlayOneShot(_shellConfig.AudioEvents.Deal);
             return parameters;
+        }
+
+        private float ResolveLayoutMoveDuration(int levelIndex, int roundIndex)
+        {
+            if (_shellConfig == null)
+                return 0.22f;
+
+            float reducedDuration = _shellConfig.ShuffleMoveDurationBase
+                - _shellConfig.ShuffleRoundReduction * Mathf.Max(0, roundIndex)
+                - _shellConfig.ShuffleLevelReduction * Mathf.Max(0, levelIndex);
+            return Mathf.Max(_shellConfig.ShuffleMoveDurationMin, reducedDuration);
         }
 
         public void ClearRound()

@@ -50,6 +50,7 @@ namespace ShellGame.Audio
         private EventInstance _musicInstance;
         private Tween _volumeTween;
         private float _currentVolume;
+        private bool _stoppedByDeath;
 
         private void Awake()
         {
@@ -75,12 +76,14 @@ namespace ShellGame.Audio
         {
             SceneLoader.ScreenGoingBlack += HandleScreenGoingBlack;
             SceneLoader.ScreenRevealing += HandleScreenRevealing;
+            GameEvents.SideDied += HandleSideDied;
         }
 
         private void OnDisable()
         {
             SceneLoader.ScreenGoingBlack -= HandleScreenGoingBlack;
             SceneLoader.ScreenRevealing -= HandleScreenRevealing;
+            GameEvents.SideDied -= HandleSideDied;
         }
 
         private void OnDestroy()
@@ -97,7 +100,7 @@ namespace ShellGame.Audio
         }
 
         /// <summary>Создаёт и запускает музыку один раз за всю жизнь приложения.</summary>
-        private void StartMusicIfNeeded()
+        private void StartMusicIfNeeded(float initialVolume = -1f)
         {
             if (_musicInstance.isValid())
                 return;
@@ -109,7 +112,7 @@ namespace ShellGame.Audio
             }
 
             _musicInstance = RuntimeManager.CreateInstance(musicEvent);
-            _currentVolume = baseVolume;
+            _currentVolume = initialVolume >= 0f ? initialVolume : baseVolume;
             _musicInstance.setVolume(_currentVolume);
             _musicInstance.start();
         }
@@ -117,12 +120,36 @@ namespace ShellGame.Audio
         private void HandleScreenGoingBlack(float duration)
         {
             FadeMusicTo(0f, duration);
-            FMODUnity.RuntimeManager.StudioSystem.setParameterByName("DoseCounter", 0f);
+            FMODUnity.RuntimeManager.StudioSystem.setParameterByName("Dose Counter", 0f, true);
         }
 
         private void HandleScreenRevealing(float duration)
         {
+            if (_stoppedByDeath)
+            {
+                _stoppedByDeath = false;
+                StartMusicIfNeeded(0f);
+            }
+
             FadeMusicTo(baseVolume, duration);
+        }
+
+        private void HandleSideDied(TurnSide side)
+        {
+            _volumeTween?.Kill();
+            _volumeTween = null;
+            _stoppedByDeath = true;
+
+            // ALLOWFADEOUT запускает AHDSR-релиз FMOD-события.
+            if (_musicInstance.isValid())
+            {
+                _musicInstance.stop(FMOD.Studio.STOP_MODE.ALLOWFADEOUT);
+                _musicInstance.release();
+                _musicInstance.clearHandle();
+            }
+
+            _currentVolume = 0f;
+            FMODUnity.RuntimeManager.StudioSystem.setParameterByName("Dose Counter", 0f, true);
         }
 
         /// <summary>

@@ -50,6 +50,7 @@ namespace ShellGame.Gameplay
 
         private bool _tutorialBeforeDamagePaused;
         private bool _tutorialAfterDamagePaused;
+        private bool _initiativeAnimationPending;
 
         private GameSessionProgression _sessionProgression;
 
@@ -203,6 +204,23 @@ namespace ShellGame.Gameplay
                                 _sessionProgression.SetDifficultyIndex(persistedDifficulty + 0.45f);
                             }
                             _roundLayoutGenerated = true;
+                            if (_roundGenerator.LayoutTransitionDuration > 0f)
+                                yield return new WaitForSeconds(_roundGenerator.LayoutTransitionDuration);
+
+                            if (!_initiativeAnimationPending)
+                            {
+                                if (_turnIndicator != null)
+                                    _turnIndicator.ApplySide(_activeSide, _roundGenerator.ActiveShells);
+                                else
+                                    _roundGenerator.SetSide(_activeSide);
+                            }
+                        }
+
+                        if (_initiativeAnimationPending)
+                        {
+                            _initiativeAnimationPending = false;
+                            _state = RoundState.InitiativeAnimation;
+                            break;
                         }
 
                         bool tutorialGate = IsTutorialScene()
@@ -372,13 +390,13 @@ namespace ShellGame.Gameplay
                         _activeSide = Opposite(_activeSide);
                         GameEvents.RaiseActiveSideChanged(_activeSide);
                         _turnsCompletedInCurrentRound++;
+                        _initiativeAnimationPending = true;
                         if (_turnsCompletedInCurrentRound < 2) _state = RoundState.InitiativeAnimation;
                         else _state = RoundState.Cleanup;
                         break;
 
                     case RoundState.Cleanup:
                         if (_roundGenerator == null || _inputSystem == null) yield break;
-                        _roundGenerator.ClearRound();
                         _inputSystem.SetEnabled(false);
                         _turnsCompletedInCurrentRound = 0;
                         _roundLayoutGenerated = false;
@@ -390,11 +408,22 @@ namespace ShellGame.Gameplay
                         break;
 
                     case RoundState.InitiativeAnimation:
+                        if (_initiativeAnimationPending)
+                        {
+                            _roundLayoutGenerated = false;
+                            _state = RoundState.Generate;
+                            break;
+                        }
+
                         if (_turnIndicator != null)
                         {
                             bool animationDone = false;
-                            _turnIndicator.PlayTransition(_activeSide, () => animationDone = true);
+                            _turnIndicator.PlayTransition(_activeSide, _roundGenerator?.ActiveShells, () => animationDone = true);
                             while (!animationDone) yield return null;
+                        }
+                        else
+                        {
+                            _roundGenerator?.SetSide(_activeSide);
                         }
                         _state = RoundState.Generate;
                         break;

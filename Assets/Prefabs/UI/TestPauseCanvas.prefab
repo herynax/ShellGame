@@ -2693,7 +2693,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 2.22, y: 1.91}
+  m_AnchoredPosition: {x: 2.2199707, y: 1.9099731}
   m_SizeDelta: {x: 1, y: 1}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!223 &7826654235155057415
@@ -2792,8 +2792,9 @@ MonoBehaviour:
   mainCamera: {fileID: 0}
   pauseCamera: {fileID: 0}
   cameraController: {fileID: 0}
+  _brain: {fileID: 0}
   pauseMenuCanvasGroup: {fileID: 7308972783785703130}
-  cursorCanvasGroup: {fileID: 0}
+  crosshairCanvasGroup: {fileID: 0}
   fadeDuration: 0.75
 --- !u!1 &5386041470870701282
 GameObject:
@@ -3630,6 +3631,7 @@ GameObject:
   - component: {fileID: 4352321952970844162}
   - component: {fileID: 8948159197783958476}
   - component: {fileID: 76068307559231906}
+  - component: {fileID: 2812880647932216815}
   m_Layer: 15
   m_Name: Exit
   m_TagString: Untagged
@@ -3714,7 +3716,7 @@ MonoBehaviour:
     m_SelectOnDown: {fileID: 0}
     m_SelectOnLeft: {fileID: 0}
     m_SelectOnRight: {fileID: 0}
-  m_Transition: 1
+  m_Transition: 0
   m_Colors:
     m_NormalColor: {r: 1, g: 1, b: 1, a: 1}
     m_HighlightedColor: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
@@ -3751,6 +3753,49 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
+--- !u!114 &2812880647932216815
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7504861531461203043}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ea88ae0018591542b4329a3c0c57a6a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpankyBoy.JuiceUI.Free.ButtonAnimator_Free
+  hoverEffect: 3
+  hoverDuration: 0.2
+  hoverEase: 6
+  hoverScale: 1.1
+  hoverColor: {r: 0.9, g: 0.9, b: 0.9, a: 1}
+  hoverGlowSize: 5
+  clickEffect: 1
+  clickDuration: 0.2
+  clickEase: 6
+  punchStrength: {x: -0.1, y: -0.1, z: 0}
+  shakeStrength: 10
+  flashColor: {r: 1, g: 1, b: 1, a: 1}
+  squeezeAmount: 0.85
+  fmodHoverEvent:
+    Guid:
+      Data1: 0
+      Data2: 0
+      Data3: 0
+      Data4: 0
+    Path: 
+  fmodClickEvent:
+    Guid:
+      Data1: 0
+      Data2: 0
+      Data3: 0
+      Data4: 0
+    Path: 
+  hoverSound: {fileID: 0}
+  clickSound: {fileID: 0}
+  customAudioSource: {fileID: 0}
+  audioVolume: 1
 --- !u!1 &7545155386745315555
 GameObject:
   m_ObjectHideFlags: 0

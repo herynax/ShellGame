@@ -6,6 +6,7 @@ using UnityEngine.UI;
 using DG.Tweening;
 using ShellGame.Core;
 using ShellGame.Gameplay;
+using ShellGame.Health;
 
 public class SceneLoader : MonoBehaviour
 {
@@ -107,12 +108,19 @@ public class SceneLoader : MonoBehaviour
         // --- ШАГ 1: ВИЗУАЛЬНОЕ ЗАТЕМНЕНИЕ ---
         Tween canvasFadeTween = null;
         Light roomLight = FindRoomLight();
+        float screenFadeDuration = fadeDuration;
+        if (deadSide == TurnSide.Player)
+        {
+            var healthController = FindFirstObjectByType<HealthController>();
+            if (healthController != null && healthController.DeathSoundDuration > 0f)
+                screenFadeDuration = healthController.DeathSoundDuration;
+        }
 
-        Debug.Log($"[SceneLoader] Начинаем затемнение экрана (Смерть: {deadSide})...");
+        Debug.Log($"[SceneLoader] Начинаем затемнение экрана (Смерть: {deadSide}, длительность: {screenFadeDuration:0.###}с)...");
 
-        FMODUnity.RuntimeManager.StudioSystem.setParameterByName("DoseCounter", 0f);
-        ScreenGoingBlack?.Invoke(fadeDuration);
-        canvasFadeTween = fadeCanvasGroup.DOFade(1f, fadeDuration).SetUpdate(true);
+        FMODUnity.RuntimeManager.StudioSystem.setParameterByName("Dose Counter", 0f, true);
+        ScreenGoingBlack?.Invoke(screenFadeDuration);
+        canvasFadeTween = fadeCanvasGroup.DOFade(1f, screenFadeDuration).SetUpdate(true);
 
         if (roomLight != null)
         {

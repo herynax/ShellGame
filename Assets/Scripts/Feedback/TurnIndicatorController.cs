@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using DG.Tweening;
 using ShellGame.Core;
+using ShellGame.Shells;
 using UnityEngine;
 
 namespace ShellGame.Feedback
@@ -16,6 +18,7 @@ namespace ShellGame.Feedback
     public sealed class TurnIndicatorController : MonoBehaviour
     {
         [SerializeField] private Transform _pointerTransform;
+        [SerializeField] private Renderer[] _sideRenderers;
         [SerializeField] private Transform _playerTarget;
         [SerializeField] private Transform _enemyTarget;
 
@@ -36,20 +39,29 @@ namespace ShellGame.Feedback
         private TurnSide _currentSide;
         private Tween _rotateTween;
         private Tween _idleTween;
+        private Tween _sideTween;
 
         // ИСПРАВЛЕНИЕ 2: Добавляем переменную для инстанса (самого играющего звука)
         private FMOD.Studio.EventInstance _rotateSoundInstance;
+        private MaterialPropertyBlock _sidePropertyBlock;
+        private static readonly int SidePropertyId = Shader.PropertyToID("_Side");
 
         private void Awake()
         {
             if (_pointerTransform != null)
                 _baseScale = _pointerTransform.localScale;
+            if (_sideRenderers == null || _sideRenderers.Length == 0)
+                _sideRenderers = _pointerTransform != null
+                    ? _pointerTransform.GetComponentsInChildren<Renderer>(true)
+                    : Array.Empty<Renderer>();
+            _sidePropertyBlock = new MaterialPropertyBlock();
         }
 
         /// <summary>Поставить сторону мгновенно, без анимации поворота (например, в самом начале игры). Запускает idle.</summary>
         public void SetImmediate(TurnSide side)
         {
             _currentSide = side;
+            ApplySide(side, null);
             if (_pointerTransform == null) return;
 
             var euler = _pointerTransform.localEulerAngles;
@@ -62,15 +74,22 @@ namespace ShellGame.Feedback
         /// <summary>Анимированный поворот указателя к новой активной стороне. Idle останавливается на время поворота и возобновляется после.</summary>
         public void PlayTransition(TurnSide side, Action onComplete)
         {
+            PlayTransition(side, null, onComplete);
+        }
+
+        public void PlayTransition(TurnSide side, IReadOnlyList<Shell> shells, Action onComplete)
+        {
             _currentSide = side;
             if (_pointerTransform == null)
             {
+                ApplySide(side, shells);
                 onComplete?.Invoke();
                 return;
             }
 
             StopIdle();
             _rotateTween?.Kill();
+            _sideTween?.Kill();
 
             // Если звук уже играет, останавливаем предыдущий
             if (_rotateSoundInstance.isValid())
@@ -80,6 +99,15 @@ namespace ShellGame.Feedback
 
             var targetEuler = _pointerTransform.localEulerAngles;
             targetEuler.y = ComputeTargetLocalAngleY(side);
+            float targetSideValue = side == TurnSide.Enemy ? 1f : 0f;
+            _sideTween = DOTween.To(
+                    () => GetSideValue(),
+                    SetSideValue,
+                    targetSideValue,
+                    _rotateDuration)
+                .SetEase(Ease.Linear);
+            foreach (var shell in shells ?? Array.Empty<Shell>())
+                shell?.AnimateSide(side, _rotateDuration);
 
             // Создаем экземпляр события (инстанс)
             _rotateSoundInstance = FMODUnity.RuntimeManager.CreateInstance(_rotateSoundEvent);
@@ -104,6 +132,39 @@ namespace ShellGame.Feedback
                     PlayIdle();
                     onComplete?.Invoke();
                 });
+        }
+
+        public void ApplySide(TurnSide side, IReadOnlyList<Shell> shells)
+        {
+            SetSideValue(side == TurnSide.Enemy ? 1f : 0f);
+
+            if (shells == null)
+                return;
+
+            foreach (var shell in shells)
+                shell?.SetSide(side);
+        }
+
+        private float GetSideValue()
+        {
+            if (_sideRenderers == null || _sideRenderers.Length == 0 || _sidePropertyBlock == null)
+                return 0f;
+
+            _sideRenderers[0].GetPropertyBlock(_sidePropertyBlock);
+            return _sidePropertyBlock.GetFloat(SidePropertyId);
+        }
+
+        private void SetSideValue(float value)
+        {
+            if (_sidePropertyBlock == null)
+                return;
+
+            _sidePropertyBlock.SetFloat(SidePropertyId, value);
+            foreach (var renderer in _sideRenderers)
+            {
+                if (renderer != null)
+                    renderer.SetPropertyBlock(_sidePropertyBlock);
+            }
         }
 
         /// <summary>
@@ -152,6 +213,7 @@ namespace ShellGame.Feedback
         private void OnDisable()
         {
             _rotateTween?.Kill();
+            _sideTween?.Kill();
             StopIdle();
             
             // ИСПРАВЛЕНИЕ 3: Хорошая практика глушить звук сразу, если объект выключается (например, меняется сцена)
