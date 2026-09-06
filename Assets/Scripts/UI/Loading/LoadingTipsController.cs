@@ -31,18 +31,18 @@ namespace ShellGame.UI
 
         private void OnEnable()
         {
-            SceneLoader.ScreenFullyBlack += HandleScreenFullyBlack;
+            SceneLoader.LoadingScreenShown += HandleLoadingScreenShown;
             SceneLoader.ScreenRevealing += HandleScreenRevealing;
         }
 
         private void OnDisable()
         {
-            SceneLoader.ScreenFullyBlack -= HandleScreenFullyBlack;
+            SceneLoader.LoadingScreenShown -= HandleLoadingScreenShown;
             SceneLoader.ScreenRevealing -= HandleScreenRevealing;
             activeTween?.Kill();
         }
 
-        private void HandleScreenFullyBlack()
+        private void HandleLoadingScreenShown()
         {
             if (tipCanvasGroup == null || tipText == null) return;
 

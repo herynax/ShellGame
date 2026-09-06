@@ -119,6 +119,12 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
+--- !u!225 &163158609 stripped
+CanvasGroup:
+  m_CorrespondingSourceObject: {fileID: 2334693029107444221, guid: e227562570c26f7428a3c01b27c2bdb4,
+    type: 3}
+  m_PrefabInstance: {fileID: 2073325895}
+  m_PrefabAsset: {fileID: 0}
 --- !u!20 &330585545 stripped
 Camera:
   m_CorrespondingSourceObject: {fileID: 4078946133063985403, guid: c9addad12bab62f499835aa0cad73c8a,
@@ -841,6 +847,11 @@ PrefabInstance:
       propertyPath: m_LocalRotation.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 6973405641497471373, guid: c9addad12bab62f499835aa0cad73c8a,
+        type: 3}
+      propertyPath: _vignetteCanvasGroup
+      value: 
+      objectReference: {fileID: 163158609}
     - target: {fileID: 7241103739546642108, guid: c9addad12bab62f499835aa0cad73c8a,
         type: 3}
       propertyPath: m_Name

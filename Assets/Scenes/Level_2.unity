@@ -579,6 +579,11 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 6973405641497471373, guid: c9addad12bab62f499835aa0cad73c8a,
+        type: 3}
+      propertyPath: _vignetteCanvasGroup
+      value: 
+      objectReference: {fileID: 1237828000}
     - target: {fileID: 7241103739546642108, guid: c9addad12bab62f499835aa0cad73c8a,
         type: 3}
       propertyPath: m_Name
@@ -625,6 +630,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f9dfa5b682dcd46bda6128250e975f58, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Cinemachine::Unity.Cinemachine.CinemachineCamera
+--- !u!225 &1237828000 stripped
+CanvasGroup:
+  m_CorrespondingSourceObject: {fileID: 2334693029107444221, guid: e227562570c26f7428a3c01b27c2bdb4,
+    type: 3}
+  m_PrefabInstance: {fileID: 2073325895}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1252084477
 GameObject:
   m_ObjectHideFlags: 0

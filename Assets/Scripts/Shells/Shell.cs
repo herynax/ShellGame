@@ -236,6 +236,7 @@ namespace ShellGame.Shells
                     // поверх ещё не отыгравшего первого — что могло ронять
                     // исключение и молча останавливать корутину GameManager.
                     State = ShellState.Idle;
+                    SetInteractable(true);
                 });
         }
 
@@ -249,6 +250,7 @@ namespace ShellGame.Shells
             }
 
             State = ShellState.Shuffling;
+            SetInteractable(false);
             if (AssignedSlot != null)
                 AssignedSlot.OccupyingShell = null;
 
@@ -259,6 +261,7 @@ namespace ShellGame.Shells
             _animator.PlayMoveTo(targetSlot.Position, () =>
             {
                 State = ShellState.Idle;
+                SetInteractable(true);
                 onComplete?.Invoke();
             }, moveDuration >= 0f ? moveDuration : _config.ShuffleMoveDurationBase);
         }
@@ -285,6 +288,7 @@ namespace ShellGame.Shells
                 {
                     HideMarkerVisual();
                     State = ShellState.Idle;
+                    SetInteractable(true);
                     PlayRevealEndSound();
                 });
         }

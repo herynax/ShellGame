@@ -2775,8 +2775,8 @@ MonoBehaviour:
   musicSlider: {fileID: 6206938493266441087}
   sfxSlider: {fileID: 2022164554980322219}
   masterBusPath: bus:/
-  musicBusPath: bus:/InGame/Music
-  sfxBusPath: bus:/InGame/SFX
+  musicBusPath: bus:/Music
+  sfxBusPath: bus:/SFX
 --- !u!114 &1496331507654139184
 MonoBehaviour:
   m_ObjectHideFlags: 0

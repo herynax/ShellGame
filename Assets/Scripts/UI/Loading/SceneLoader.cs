@@ -7,6 +7,7 @@ using DG.Tweening;
 using ShellGame.Core;
 using ShellGame.Gameplay;
 using ShellGame.Health;
+using ShellGame.UI;
 
 public class SceneLoader : MonoBehaviour
 {
@@ -14,6 +15,7 @@ public class SceneLoader : MonoBehaviour
 
     public static event Action<float> ScreenGoingBlack;
     public static event Action ScreenFullyBlack;
+    public static event Action LoadingScreenShown;
     public static event Action<float> ScreenRevealing;
     public static event Action<float> LoadProgressChanged; // 0..1, нормализовано
 
@@ -42,6 +44,9 @@ public class SceneLoader : MonoBehaviour
     [Header("Яркость")]
     [SerializeField] private Image brightnessOverlay;
 
+    [Header("Экран статистики забега (при смерти игрока)")]
+    [SerializeField] private RunStatsScreenController runStatsScreen;
+
     public Image BrightnessOverlay => brightnessOverlay;
 
     private Canvas fadeCanvas;
@@ -52,13 +57,24 @@ public class SceneLoader : MonoBehaviour
         if (Instance == null)
         {
             Instance = this;
+
+            // Persist the whole hierarchy. Unity can only preserve a root object;
+            // this also keeps the fade canvas, loading UI and stats screen together
+            // if SceneLoader is moved under another object in the scene.
+            GameObject persistentRoot = transform.root.gameObject;
+            if (persistentRoot != gameObject)
+                transform.SetParent(null, true);
+
             DontDestroyOnLoad(gameObject);
+            Debug.Log($"[SceneLoader] Persistent UI registered: {gameObject.name}");
         }
         else
         {
             Destroy(gameObject);
             return;
         }
+
+        RunStatsTracker.EnsureExists();
 
         if (fadeCanvasGroup == null) fadeCanvasGroup = GetComponentInChildren<CanvasGroup>();
         
@@ -78,6 +94,12 @@ public class SceneLoader : MonoBehaviour
     private void OnEnable() => GameEvents.SideDied += HandleSideDied;
     private void OnDisable() => GameEvents.SideDied -= HandleSideDied;
 
+    private void OnDestroy()
+    {
+        if (Instance == this)
+            Debug.LogWarning("[SceneLoader] Persistent UI was destroyed.");
+    }
+
     private void HandleSideDied(TurnSide side)
     {
         if (isLoading) return;
@@ -87,7 +109,8 @@ public class SceneLoader : MonoBehaviour
     /// <summary>
     /// Единая логика смерти / перехода:
     /// 1. Плавно тушит свет и делает Fade In черного экрана
-    /// 2. Показывает подсказку и прогресс-бар (через ScreenFullyBlack)
+    /// 2. Если умер игрок — показывает экран статистики забега после полного затемнения
+    ///    и только после продолжения включает подсказку и прогресс-бар
     /// 3. Фоном асинхронно грузит сцену и плавно наполняет шкалу (minLoadingDuration)
     /// 4. Делает паузу на 100% полоски и активирует сцену
     /// 5. Делает Fade Out (ScreenRevealing)
@@ -95,49 +118,52 @@ public class SceneLoader : MonoBehaviour
     private IEnumerator UnifiedDeathRoutine(TurnSide deadSide)
     {
         isLoading = true;
+        SetPauseBlocked(true);
 
         if (fadeCanvasGroup == null)
         {
             Debug.LogError("fadeCanvasGroup не назначена в SceneLoader!");
             isLoading = false;
+            SetPauseBlocked(false);
             yield break;
         }
 
         if (blockInputDuringLoad) fadeCanvasGroup.blocksRaycasts = true;
 
         // --- ШАГ 1: ВИЗУАЛЬНОЕ ЗАТЕМНЕНИЕ ---
-        Tween canvasFadeTween = null;
         Light roomLight = FindRoomLight();
         float screenFadeDuration = fadeDuration;
-        if (deadSide == TurnSide.Player)
+        var healthController = FindFirstObjectByType<HealthController>();
+        if (healthController != null && healthController.DeathSoundDuration > 0f)
         {
-            var healthController = FindFirstObjectByType<HealthController>();
-            if (healthController != null && healthController.DeathSoundDuration > 0f)
-                screenFadeDuration = healthController.DeathSoundDuration;
+            screenFadeDuration = healthController.DeathSoundDuration;
         }
 
         Debug.Log($"[SceneLoader] Начинаем затемнение экрана (Смерть: {deadSide}, длительность: {screenFadeDuration:0.###}с)...");
 
         FMODUnity.RuntimeManager.StudioSystem.setParameterByName("Dose Counter", 0f, true);
         ScreenGoingBlack?.Invoke(screenFadeDuration);
-        canvasFadeTween = fadeCanvasGroup.DOFade(1f, screenFadeDuration).SetUpdate(true);
+        yield return fadeCanvasGroup.DOFade(1f, screenFadeDuration)
+            .SetUpdate(true)
+            .WaitForCompletion();
 
         if (roomLight != null)
-        {
-            Tween lightTween = roomLight.DOIntensity(0f, roomDarkenDuration).SetUpdate(true);
-            yield return lightTween.WaitForCompletion();
-        }
+            roomLight.DOIntensity(0f, roomDarkenDuration).SetUpdate(true);
 
-        if (canvasFadeTween != null && canvasFadeTween.IsActive())
-        {
-            yield return canvasFadeTween.WaitForCompletion();
-        }
-
-        // --- ШАГ 2: ЭКРАН СТАЛ ПОЛНОСТЬЮ ЧЕРНЫМ (ПОЯВЛЯЮТСЯ ТУЛТИП И ПРОГРЕСС-БАР) ---
+        // --- ШАГ 2: ЭКРАН СТАЛ ПОЛНОСТЬЮ ЧЕРНЫМ ---
         ScreenFullyBlack?.Invoke();
-        LoadProgressChanged?.Invoke(0f);
 
-        yield return new WaitForSecondsRealtime(0.2f);
+        // --- ШАГ 2.5: ЭКРАН СТАТИСТИКИ ЗАБЕГА (только при смерти игрока) ---
+        if (deadSide == TurnSide.Player)
+        {
+            RunStatsTracker.Instance?.StopClock();
+            if (runStatsScreen != null)
+            yield return runStatsScreen.ShowAndWaitForContinue(BuildStatsSnapshot());
+        }
+
+        // Для врага это происходит сразу после fade, для игрока — после закрытия статистики.
+        LoadingScreenShown?.Invoke();
+        LoadProgressChanged?.Invoke(0f);
 
         // --- ШАГ 3: ФОНОВАЯ ЗАГРУЗКА СЦЕНЫ ---
         AsyncOperation asyncLoad = null;
@@ -153,6 +179,7 @@ public class SceneLoader : MonoBehaviour
         }
         else
         {
+            RunStatsTracker.Instance?.RegisterEnemyDefeated();
             EnsureSessionProgression().AdvanceToNextLevel();
 
             if (loadNextSceneByName)
@@ -185,6 +212,23 @@ public class SceneLoader : MonoBehaviour
 
         fadeCanvasGroup.blocksRaycasts = false;
         isLoading = false;
+        SetPauseBlocked(false);
+    }
+
+    private RunStatsSnapshot BuildStatsSnapshot()
+    {
+        var tracker = RunStatsTracker.Instance;
+        if (tracker == null) return default;
+
+        return new RunStatsSnapshot
+        {
+            ElapsedSeconds = tracker.ElapsedTime,
+            TotalMoves = tracker.TotalMoves,
+            Mistakes = tracker.Mistakes,
+            EnemiesDefeated = tracker.EnemiesDefeated,
+            BestStreak = tracker.BestStreak,
+            Accuracy = tracker.Accuracy,
+        };
     }
 
     public void LoadScene(string sceneName)
@@ -202,6 +246,7 @@ public class SceneLoader : MonoBehaviour
     private IEnumerator LoadSceneRoutine(string sceneName = "", int sceneIndex = -1)
     {
         isLoading = true;
+        SetPauseBlocked(true);
         if (blockInputDuringLoad && fadeCanvasGroup != null) fadeCanvasGroup.blocksRaycasts = true;
 
         ScreenGoingBlack?.Invoke(fadeDuration);
@@ -209,6 +254,7 @@ public class SceneLoader : MonoBehaviour
             yield return fadeCanvasGroup.DOFade(1f, fadeDuration).SetUpdate(true).WaitForCompletion();
 
         ScreenFullyBlack?.Invoke();
+        LoadingScreenShown?.Invoke();
         LoadProgressChanged?.Invoke(0f);
 
         yield return new WaitForSecondsRealtime(0.1f);
@@ -228,6 +274,12 @@ public class SceneLoader : MonoBehaviour
             fadeCanvasGroup.blocksRaycasts = false;
         }
         isLoading = false;
+        SetPauseBlocked(false);
+    }
+
+    private void SetPauseBlocked(bool blocked)
+    {
+        PauseController.Instance?.SetPauseBlocked(blocked);
     }
 
     /// <summary>
@@ -289,7 +341,7 @@ public class SceneLoader : MonoBehaviour
 
     private GameSessionProgression EnsureSessionProgression()
     {
-        var progression = FindObjectOfType<GameSessionProgression>();
+        var progression = FindAnyObjectByType<GameSessionProgression>();
         if (progression != null) return progression;
 
         var progressionObject = new GameObject("GameSessionProgression");

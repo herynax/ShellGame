@@ -167,20 +167,11 @@ namespace ShellGame.Health
             FMODUnity.RuntimeManager.StudioSystem.setParameterByName(DoseCounterParameterName, value, ignoreSeekSpeed);
         }
 
-        // --- МЕТОД ДЛЯ SCENE LOADER ---
-        public bool IsDeathSoundPlaying()
-        {
-            if (!_deathSoundInstance.isValid()) return false;
-            
-            _deathSoundInstance.getPlaybackState(out var state);
-            return state != FMOD.Studio.PLAYBACK_STATE.STOPPED;
-        }
-
         private void OnDisable()
         {
             if (_deathSoundInstance.isValid())
             {
-                _deathSoundInstance.stop(FMOD.Studio.STOP_MODE.IMMEDIATE);
+                _deathSoundInstance.stop(FMOD.Studio.STOP_MODE.ALLOWFADEOUT);
             }
         }
     }

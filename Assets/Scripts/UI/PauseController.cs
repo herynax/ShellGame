@@ -269,9 +269,6 @@ public class PauseController : MonoBehaviour
 
     private IEnumerator ResumeRoutine()
     {
-        // Сначала возвращаем время, чтобы игра не "дёргалась" в момент фейда
-        Time.timeScale = 1f;
-
         // Фейдим UI: меню паузы исчезает (0f), а игровой ПРИЦЕЛ (crosshair)
         // снова появляется (1f).
         activeSequence = DOTween.Sequence().SetUpdate(true);
@@ -297,6 +294,26 @@ public class PauseController : MonoBehaviour
             p.Enabled = false;
             pauseCamera.Priority = p;
         }
+
+        // При нулевом timeScale Cinemachine по умолчанию не продвигает blend.
+        // Разрешаем ему использовать реальное время, пока возвращается игровая камера.
+        bool previousIgnoreTimeScale = false;
+        if (_brain != null)
+        {
+            previousIgnoreTimeScale = _brain.IgnoreTimeScale;
+            _brain.IgnoreTimeScale = true;
+        }
+
+        // Даём Brain обработать смену приоритетов и ждём полного завершения перехода.
+        yield return null;
+        while (_brain != null && _brain.IsBlending)
+            yield return null;
+
+        if (_brain != null)
+            _brain.IgnoreTimeScale = previousIgnoreTimeScale;
+
+        // Игра продолжается только после того, как старая камера стала активной.
+        Time.timeScale = 1f;
 
         // Снова включаем ВСЕ CinemachineStationaryLook на сцене.
         foreach (var look in _allLookControllers)

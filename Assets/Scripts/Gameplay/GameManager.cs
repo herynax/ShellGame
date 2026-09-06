@@ -115,6 +115,8 @@ namespace ShellGame.Gameplay
                 _sessionProgression = progressionObject.AddComponent<GameSessionProgression>();
             }
 
+            RunStatsTracker.EnsureExists();
+
             if (IsTutorialScene())
             {
                 _sessionProgression.Reset();
@@ -123,6 +125,7 @@ namespace ShellGame.Gameplay
                 _roundIndex = 0;
                 _firstRoundReadyWaited = false;
                 _tutorialPlayerChoiceLocked = true;
+                RunStatsTracker.Instance.StartRun();
             }
             else
             {
@@ -473,6 +476,12 @@ namespace ShellGame.Gameplay
             // Блокируем выбор только для игрока — на ход врага этот замок не распространяется.
             if (_activeSide == TurnSide.Player && IsTutorialScene()
                 && _completedRoundsInSession == 0 && _tutorialPlayerChoiceLocked) return;
+
+            // Статистику забега не считаем на форсированном обучающем раунде —
+            // он не отражает реальный навык игрока.
+            bool isTutorialForcedRound = IsTutorialScene() && _completedRoundsInSession == 0;
+            if (!isTutorialForcedRound)
+                RunStatsTracker.Instance?.RegisterMove(_activeSide, shell.HasMarker);
 
             _selectedShell = shell;
             _inputSystem.SetEnabled(false);

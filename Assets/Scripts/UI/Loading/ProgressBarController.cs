@@ -58,20 +58,20 @@ namespace ShellGame.UI
 
         private void OnEnable()
         {
-            SceneLoader.ScreenFullyBlack += HandleScreenFullyBlack;
+            SceneLoader.LoadingScreenShown += HandleLoadingScreenShown;
             SceneLoader.LoadProgressChanged += HandleProgressChanged;
             SceneLoader.ScreenRevealing += HandleScreenRevealing;
         }
 
         private void OnDisable()
         {
-            SceneLoader.ScreenFullyBlack -= HandleScreenFullyBlack;
+            SceneLoader.LoadingScreenShown -= HandleLoadingScreenShown;
             SceneLoader.LoadProgressChanged -= HandleProgressChanged;
             SceneLoader.ScreenRevealing -= HandleScreenRevealing;
             fillTween?.Kill();
         }
 
-        private void HandleScreenFullyBlack()
+        private void HandleLoadingScreenShown()
         {
             fillTween?.Kill();
             SetMaskWidth(0f);

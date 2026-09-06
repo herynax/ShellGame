@@ -33,8 +33,7 @@ namespace ShellGame.Audio
 
         [Header("Трек")]
         [Tooltip("FMOD Event фоновой музыки, например event:/Music/MainTheme")]
-        [EventRef]
-        public string musicEvent;
+        public EventReference musicEvent;
 
         [Header("Громкость")]
         [Range(0f, 1f)]
@@ -105,7 +104,7 @@ namespace ShellGame.Audio
             if (_musicInstance.isValid())
                 return;
 
-            if (string.IsNullOrEmpty(musicEvent))
+            if (musicEvent.IsNull)
             {
                 Debug.LogWarning("[MusicManager] musicEvent не назначен — фоновая музыка не будет играть.");
                 return;

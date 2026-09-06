@@ -161,6 +161,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 72ece51f2901e7445ab60da3685d6b5f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Cinemachine::Unity.Cinemachine.CinemachineBrain
+--- !u!225 &602018948 stripped
+CanvasGroup:
+  m_CorrespondingSourceObject: {fileID: 2334693029107444221, guid: e227562570c26f7428a3c01b27c2bdb4,
+    type: 3}
+  m_PrefabInstance: {fileID: 2073325895}
+  m_PrefabAsset: {fileID: 0}
 --- !u!114 &801579158 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 2169588370702564104, guid: e227562570c26f7428a3c01b27c2bdb4,
@@ -906,6 +912,11 @@ PrefabInstance:
       propertyPath: _vignetteImage
       value: 
       objectReference: {fileID: 2052197021}
+    - target: {fileID: 6973405641497471373, guid: c9addad12bab62f499835aa0cad73c8a,
+        type: 3}
+      propertyPath: _vignetteCanvasGroup
+      value: 
+      objectReference: {fileID: 602018948}
     - target: {fileID: 7241103739546642108, guid: c9addad12bab62f499835aa0cad73c8a,
         type: 3}
       propertyPath: m_Name
