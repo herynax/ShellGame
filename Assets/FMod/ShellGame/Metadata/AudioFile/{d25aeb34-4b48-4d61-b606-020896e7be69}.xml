@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<objects serializationModel="Studio.02.03.00">
+	<object class="AudioFile" id="{d25aeb34-4b48-4d61-b606-020896e7be69}">
+		<property name="assetPath">
+			<value>spectacles_glasses_down_on_table_002_16933.mp3</value>
+		</property>
+		<property name="frequencyInKHz">
+			<value>48</value>
+		</property>
+		<property name="channelCount">
+			<value>2</value>
+		</property>
+		<property name="length">
+			<value>0.57599999999999996</value>
+		</property>
+		<relationship name="masterAssetFolder">
+			<destination>{9bad64b9-b6e3-449e-a1f6-a88b33318a62}</destination>
+		</relationship>
+	</object>
+</objects>

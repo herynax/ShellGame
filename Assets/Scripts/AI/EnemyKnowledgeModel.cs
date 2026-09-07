@@ -60,37 +60,42 @@ namespace ShellGame.AI
 
         /// <summary>
         /// Состояние TrackShuffle — реакция на одно событие OnCupSwap(CupA, CupB).
-        /// Для каждой отслеживаемой метки: если она не участвует в обмене —
-        /// не трогаем; если участвует — с вероятностью Plose(D) теряем
-        /// отслеживание, иначе переносим позицию по факту обмена.
+        /// trackingLossMultiplier — множитель на Plose(D) (0..1), которым
+        /// предмет "Наркотики" в руках противника временно снижает шанс потерять
+        /// метку на этом перемешивании (по умолчанию 1 — без изменений).
         /// </summary>
-        public void OnCupSwap(int slotA, int slotB, float difficultyIndex, EnemyAIConfig config)
+        public void OnCupSwap(int slotA, int slotB, float difficultyIndex, EnemyAIConfig config, float trackingLossMultiplier = 1f)
         {
             foreach (var entry in _entries)
             {
                 if (!entry.IsTracked)
-                    continue; // потерянные метки не обновляются без новой информации
+                    continue;
 
-                // Шаг 1: метка участвует в обмене?
                 if (entry.CurrentSlotIndex != slotA && entry.CurrentSlotIndex != slotB)
                     continue;
 
-                // Шаг 2: Plose(D) = max(Pmin, Pbase - k*D)
-                float pLose = config.EvaluateTrackingLossProbability(difficultyIndex);
+                float pLose = config.EvaluateTrackingLossProbability(difficultyIndex) * Mathf.Clamp01(trackingLossMultiplier);
                 bool lost = Random.value < pLose;
 
                 if (!lost)
                 {
-                    // Шаг 3: отслеживание продолжается, позиция обновляется согласно обмену.
                     entry.CurrentSlotIndex = entry.CurrentSlotIndex == slotA ? slotB : slotA;
                 }
                 else
                 {
-                    // Шаг 4: метка потеряна до получения новой информации.
                     entry.LastKnownSlotIndex = entry.CurrentSlotIndex;
                     entry.IsTracked = false;
                 }
             }
+        }
+
+        /// <summary>Доля отслеживаемых меток от общего числа — 1, если ничего не отслеживалось (например, меток не было или ObserveMarkers ещё не было). Используется предметами, чтобы оценить, насколько врагу сейчас "нужна" информация (Монокль/подстраховка на шаффле).</summary>
+        public float GetTrackedFraction()
+        {
+            if (_entries.Count == 0)
+                return 1f;
+
+            return (float)GetTrackedEntries().Count / _entries.Count;
         }
 
         public List<MarkerKnowledgeEntry> GetTrackedEntries()

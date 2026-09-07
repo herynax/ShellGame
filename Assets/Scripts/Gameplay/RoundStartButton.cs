@@ -1,4 +1,5 @@
 using DG.Tweening;
+using FMODUnity;
 using ShellGame.Core;
 using UnityEngine;
 
@@ -14,6 +15,7 @@ namespace ShellGame.Gameplay
         [SerializeField] private float _clickScale = 0.1f;
         [SerializeField] private float _clickTweenDuration = 0.25f;
         [SerializeField] private Ease _clickEase = Ease.InBack;
+        [SerializeField] private EventReference _clickSound;
 
         private Vector3 _baseScale;
         private Tween _hoverTween;
@@ -97,6 +99,7 @@ namespace ShellGame.Gameplay
                 return;
 
             var safeBaseScale = GetSafeBaseScale();
+            RuntimeManager.PlayOneShot(_clickSound, transform.position);
             _baseScale = safeBaseScale;
             _clickCollider.enabled = false;
             _hoverTween?.Kill();

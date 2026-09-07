@@ -1358,6 +1358,16 @@ PrefabInstance:
       propertyPath: cameraController
       value: 
       objectReference: {fileID: 2027071955}
+    - target: {fileID: 1799605746946624359, guid: e227562570c26f7428a3c01b27c2bdb4,
+        type: 3}
+      propertyPath: _itemsAvailable
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1799605746946624359, guid: e227562570c26f7428a3c01b27c2bdb4,
+        type: 3}
+      propertyPath: _playerUseMessage
+      value: 
+      objectReference: {fileID: 4559351252908071676}
     - target: {fileID: 1810576775033457872, guid: e227562570c26f7428a3c01b27c2bdb4,
         type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
@@ -1406,6 +1416,30 @@ GameObject:
     type: 3}
   m_PrefabInstance: {fileID: 4559351252908071671}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &4559351252908071675 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1799605746946624359, guid: e227562570c26f7428a3c01b27c2bdb4,
+    type: 3}
+  m_PrefabInstance: {fileID: 4559351252908071671}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a621b81fb782a4145a860f1bb0733c0b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ShellGame.Items.ItemSpawner
+--- !u!114 &4559351252908071676 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 2644233385483051286, guid: e227562570c26f7428a3c01b27c2bdb4,
+    type: 3}
+  m_PrefabInstance: {fileID: 4559351252908071671}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 487e0ece3c452fa4386c77ac4071f050, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ShellGame.Items.ItemUseMessageView
 --- !u!1001 &8930185986724580663
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1429,6 +1463,11 @@ PrefabInstance:
       propertyPath: _inputSystem
       value: 
       objectReference: {fileID: 330585549}
+    - target: {fileID: 1291078403557956507, guid: 1af5593e793d8884998e80f4b7b52259,
+        type: 3}
+      propertyPath: _itemSpawner
+      value: 
+      objectReference: {fileID: 4559351252908071675}
     - target: {fileID: 1291078403557956507, guid: 1af5593e793d8884998e80f4b7b52259,
         type: 3}
       propertyPath: _turnIndicator

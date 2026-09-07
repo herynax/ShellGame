@@ -1,3 +1,4 @@
+using ShellGame.Core;
 using UnityEngine;
 
 namespace ShellGame.Shells
@@ -12,7 +13,6 @@ namespace ShellGame.Shells
     {
         [SerializeField] private int _index;
         [SerializeField] private Vector3 _gizmoSize = new Vector3(0.22f, 0.06f, 0.22f);
-        [SerializeField] private LayerMask _surfaceMask = -1;
         public int Index => _index;
 
         /// <summary>Занимающий слот наперсток, если есть. Управляется контроллером стола.</summary>
@@ -25,22 +25,7 @@ namespace ShellGame.Shells
         {
             get
             {
-                var origin = transform.position + Vector3.up * 0.5f;
-                if (Physics.Raycast(origin, Vector3.down, out var hit, 5f, _surfaceMask))
-                    return hit.point;
-
-                var collider = GetComponent<Collider>();
-                if (collider != null)
-                {
-                    var bounds = collider.bounds;
-                    return new Vector3(transform.position.x, bounds.min.y, transform.position.z);
-                }
-
-                var size = _gizmoSize;
-                if (transform.lossyScale != Vector3.one)
-                    size = new Vector3(size.x * transform.lossyScale.x, size.y * transform.lossyScale.y, size.z * transform.lossyScale.z);
-
-                return transform.position + Vector3.down * (size.y * 0.5f);
+                return TableSurfacePlacement.GetSpawnPoint(transform.position);
             }
         }
 

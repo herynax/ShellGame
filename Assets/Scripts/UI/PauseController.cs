@@ -76,6 +76,8 @@ public class PauseController : MonoBehaviour
     private bool isExiting = false;
     private Sequence activeSequence;
 
+    private float _timeScaleBeforePause = 1f;
+
     // Камера, которая была активна ДО постановки на паузу, и её приоритет —
     // чтобы на Resume() вернуть управление именно ей, а не всегда mainCamera.
     private CinemachineVirtualCameraBase _pausedFromCamera;
@@ -225,8 +227,8 @@ public class PauseController : MonoBehaviour
     {
         IsPaused = true;
 
+        _timeScaleBeforePause = Time.timeScale;
         Time.timeScale = 0f;
-
         // Выключаем ВСЕ CinemachineStationaryLook на сцене — их несколько,
         // по одному на каждой vcam. Иначе неактивные сейчас камеры
         // продолжат тикать в Update() и каждый кадр сами перезахватывать
@@ -312,8 +314,10 @@ public class PauseController : MonoBehaviour
         if (_brain != null)
             _brain.IgnoreTimeScale = previousIgnoreTimeScale;
 
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
         // Игра продолжается только после того, как старая камера стала активной.
-        Time.timeScale = 1f;
+        Time.timeScale = _timeScaleBeforePause;
 
         // Снова включаем ВСЕ CinemachineStationaryLook на сцене.
         foreach (var look in _allLookControllers)
@@ -323,8 +327,6 @@ public class PauseController : MonoBehaviour
         }
 
         // СИСТЕМНЫЙ курсор мыши — прячем и лочим обратно в центр экрана.
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
 
         IsPaused = false;
 

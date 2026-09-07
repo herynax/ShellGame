@@ -54,6 +54,16 @@ public class SceneLoader : MonoBehaviour
 
     private void Awake()
     {
+        // Объект, сохранённый между сценами, может получить повторный Awake
+        // при нестандартной загрузке сцены. Повторный вызов DontDestroyOnLoad
+        // для него вызывает assertion внутри Unity.
+        if (gameObject.scene.name == "DontDestroyOnLoad")
+        {
+            if (Instance == null)
+                Instance = this;
+            return;
+        }
+
         if (Instance == null)
         {
             Instance = this;

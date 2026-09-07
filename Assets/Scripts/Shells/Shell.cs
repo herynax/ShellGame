@@ -115,6 +115,7 @@ namespace ShellGame.Shells
         public void PlaceAtSurface(Vector3 surfacePoint)
         {
             transform.position = surfacePoint;
+            ShellGame.Core.TableSurfacePlacement.PlaceObjectOnSurface(transform, surfacePoint);
         }
 
         public void AttachMarker(Marker marker)
@@ -203,6 +204,16 @@ namespace ShellGame.Shells
         {
             if (State != ShellState.Idle) return;
 
+            // Монокль игрока: если сейчас ожидается "подглядывание" —
+            // этот клик не финальный выбор, а просто RevealMarker на этот
+            // конкретный наперсток. Шлюз сам себя гасит после первого клика.
+            if (ShellPeekGate.TryConsume(this, out var peekHoldDuration, out var onPeeked))
+            {
+                RevealMarker(peekHoldDuration);
+                onPeeked?.Invoke(this);
+                return;
+            }
+
             State = ShellState.Selected;
             SetInteractable(false);
             _audio?.PlayOneShot(_config.AudioEvents.Select, transform.position);
@@ -225,16 +236,6 @@ namespace ShellGame.Shells
                 {
                     HideMarkerVisual();
                     PlayRevealEndSound();
-
-                    // ФИКС: раньше здесь State не сбрасывался обратно в Idle
-                    // (в отличие от RevealMarker() и RevealResult(), у которых
-                    // это есть). Из-за этого Shell застревал в State.Selected
-                    // навсегда после Select(), и если GameManager.RevealResult()
-                    // вызывался до того, как игрок/AI успевали заново поднять
-                    // этот же наперсток, guard `if (State != Selected) return;`
-                    // там ложно пропускал повторный вызов _animator.PlayReveal
-                    // поверх ещё не отыгравшего первого — что могло ронять
-                    // исключение и молча останавливать корутину GameManager.
                     State = ShellState.Idle;
                     SetInteractable(true);
                 });
@@ -258,7 +259,7 @@ namespace ShellGame.Shells
             targetSlot.OccupyingShell = this;
             SlotIndex = targetSlot.Index;
             _audio?.PlayOneShot(_config.AudioEvents.ShuffleMove, transform.position);
-            _animator.PlayMoveTo(targetSlot.Position, () =>
+            _animator.PlayMoveTo(targetSlot.SpawnPosition, () =>
             {
                 State = ShellState.Idle;
                 SetInteractable(true);

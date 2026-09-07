@@ -7,8 +7,8 @@ using DG.Tweening;
 using FMODUnity;
 
 /// <summary>
-/// Стартовая сцена: тревожный театральный фейд-ин панели яркости,
-/// после "Принять" — спокойный кроссфейд в панель звука, сохранение,
+/// Стартовая сцена: сначала настройка звука, затем тревожный театральный
+/// фейд-ин панели яркости, после подтверждения — сохранение,
 /// переход в следующую сцену.
 /// </summary>
 public class IntroSettingsManager : MonoBehaviour
@@ -98,20 +98,7 @@ public class IntroSettingsManager : MonoBehaviour
         sfxSlider.SetValueWithoutNotify(1f);
         ApplyVolumes(1f, 1f, 1f);
 
-        brightnessSlider.onValueChanged.AddListener(brightnessController.ApplyInstant);
-
-        // 1. Тревожный театральный фейд-ин панели яркости
-        yield return TheatricalFadeIn(brightnessPanel, brightnessPanelRect).WaitForCompletion();
-
-        bool brightnessConfirmed = false;
-        void OnAccept() => brightnessConfirmed = true;
-        acceptBrightnessButton.onClick.AddListener(OnAccept);
-
-        yield return new WaitUntil(() => brightnessConfirmed);
-        acceptBrightnessButton.onClick.RemoveListener(OnAccept);
-        brightnessSlider.onValueChanged.RemoveListener(brightnessController.ApplyInstant);
-
-        // 2. Спокойный кроссфейд: яркость -> звук
+        // 1. Сначала показываем панель звука.
         masterSlider.onValueChanged.AddListener(v => ApplyVolumes(v, musicSlider.value, sfxSlider.value));
         musicSlider.onValueChanged.AddListener(v => ApplyVolumes(masterSlider.value, v, sfxSlider.value));
         sfxSlider.onValueChanged.AddListener(v => ApplyVolumes(masterSlider.value, musicSlider.value, v));
@@ -124,7 +111,7 @@ public class IntroSettingsManager : MonoBehaviour
         pointerUpEntry.callback.AddListener((data) => PlaySFXPreview());
         trigger.triggers.Add(pointerUpEntry);
 
-        yield return CalmCrossfade(brightnessPanel, soundPanel);
+        yield return FadeInPanel(soundPanel);
 
         bool soundConfirmed = false;
         void OnSoundConfirm() => soundConfirmed = true;
@@ -139,6 +126,18 @@ public class IntroSettingsManager : MonoBehaviour
         yield return soundPanel.DOFade(0f, calmFadeDuration).SetEase(Ease.InOutSine).SetUpdate(true).WaitForCompletion();
         soundPanel.interactable = false;
         soundPanel.blocksRaycasts = false;
+
+        // 2. После звука показываем панель яркости.
+        brightnessSlider.onValueChanged.AddListener(brightnessController.ApplyInstant);
+        yield return TheatricalFadeIn(brightnessPanel, brightnessPanelRect).WaitForCompletion();
+
+        bool brightnessConfirmed = false;
+        void OnAccept() => brightnessConfirmed = true;
+        acceptBrightnessButton.onClick.AddListener(OnAccept);
+
+        yield return new WaitUntil(() => brightnessConfirmed);
+        acceptBrightnessButton.onClick.RemoveListener(OnAccept);
+        brightnessSlider.onValueChanged.RemoveListener(brightnessController.ApplyInstant);
 
         // 3. Сохранение
         brightnessController.Save(brightnessSlider.value);
@@ -212,6 +211,22 @@ public class IntroSettingsManager : MonoBehaviour
         yield return to.DOFade(1f, calmFadeDuration).SetEase(Ease.InOutSine).SetUpdate(true).WaitForCompletion();
         to.interactable = true;
         to.blocksRaycasts = true;
+    }
+
+    private IEnumerator FadeInPanel(CanvasGroup panel)
+    {
+        panel.gameObject.SetActive(true);
+        panel.alpha = 0f;
+        panel.interactable = false;
+        panel.blocksRaycasts = false;
+
+        yield return panel.DOFade(1f, calmFadeDuration)
+            .SetEase(Ease.InOutSine)
+            .SetUpdate(true)
+            .WaitForCompletion();
+
+        panel.interactable = true;
+        panel.blocksRaycasts = true;
     }
 
     private void ApplyVolumes(float master, float music, float sfx)

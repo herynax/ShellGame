@@ -19,6 +19,7 @@ namespace ShellGame.Gameplay
         private int _currentLevelIndex;
         private int _currentRoundIndex;
         private float _currentDifficultyIndex;
+        private float _moveDurationMultiplier = 1f;
         private System.Action _onComplete;
 
         // === ПЕРЕМЕННЫЕ ДЛЯ ОБУЧЕНИЯ ===
@@ -127,7 +128,17 @@ namespace ShellGame.Gameplay
             float roundReduction = _shellConfig.ShuffleRoundReduction * Mathf.Max(0, _currentRoundIndex);
             float levelReduction = _shellConfig.ShuffleLevelReduction * Mathf.Max(0, _currentLevelIndex);
             float reducedDuration = baseDuration - roundReduction - levelReduction;
-            return Mathf.Max(_shellConfig.ShuffleMoveDurationMin, reducedDuration);
+            return Mathf.Max(_shellConfig.ShuffleMoveDurationMin, reducedDuration * _moveDurationMultiplier);
+        }
+
+        public void SetMoveDurationMultiplier(float multiplier)
+        {
+            _moveDurationMultiplier = Mathf.Max(1f, multiplier);
+        }
+
+        public void ResetMoveDurationMultiplier()
+        {
+            _moveDurationMultiplier = 1f;
         }
 
         private void Finish()

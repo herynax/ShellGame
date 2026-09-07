@@ -28,6 +28,8 @@ namespace ShellGame.AI
         private readonly EnemyKnowledgeModel _knowledge = new EnemyKnowledgeModel();
         private float _currentDifficultyIndex;
         private float _currentHealthFraction = 1f;
+
+        private float _trackingLossReductionMultiplier = 1f;
         private bool _isTrackingSwaps;
 
         // --- Форсированный исход (для обучения/скриптованных сцен) ---
@@ -113,13 +115,25 @@ namespace ShellGame.AI
 
             _isTrackingSwaps = false;
             GameEvents.CupSwapPerformed -= OnCupSwap;
+            _trackingLossReductionMultiplier = 1f; // одноразовый эффект — сгорает после этого перемешивания, использовалось оно или нет
         }
 
         private void OnCupSwap(int slotA, int slotB)
         {
-            _knowledge.OnCupSwap(slotA, slotB, _currentDifficultyIndex, _config);
+            _knowledge.OnCupSwap(slotA, slotB, _currentDifficultyIndex, _config, _trackingLossReductionMultiplier);
         }
 
+        /// <summary>Предмет "Наркотики" в руках противника: снижает шанс потерять отслеживание метки на СЛЕДУЮЩЕМ перемешивании (multiplier — во сколько раз, 0.3 = "-70% шанса потерять"). Сгорает после одного перемешивания независимо от того, потребовалось оно или нет.</summary>
+        public void ReduceTrackingLossNextShuffle(float multiplier)
+        {
+            _trackingLossReductionMultiplier = Mathf.Clamp01(multiplier);
+        }
+
+        public float GetTrackedKnowledgeFraction() => _knowledge.GetTrackedFraction();
+
+
+        public float GetItemUseDesireThreshold(float difficultyIndex) =>
+            _config != null ? _config.EvaluateItemUseDesireThreshold(difficultyIndex) : 0.5f;
         /// <summary>
         /// Эффект предмета "Монокль" в руках противника — полностью
         /// пересобирает Knowledge из истинного состояния поля (упрощённая,

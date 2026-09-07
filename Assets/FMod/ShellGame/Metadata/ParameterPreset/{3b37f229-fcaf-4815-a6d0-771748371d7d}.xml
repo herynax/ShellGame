@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<objects serializationModel="Studio.02.03.00">
+	<object class="ParameterPreset" id="{3b37f229-fcaf-4815-a6d0-771748371d7d}">
+		<property name="name">
+			<value>TimeScale</value>
+		</property>
+		<relationship name="folder">
+			<destination>{cdd39a24-9bb1-4d73-9f40-137f0c5d12f1}</destination>
+		</relationship>
+		<relationship name="parameter">
+			<destination>{e9cbf6d9-e457-44fc-823a-b632bfbca1be}</destination>
+		</relationship>
+	</object>
+	<object class="GameParameter" id="{e9cbf6d9-e457-44fc-823a-b632bfbca1be}">
+		<property name="minimum">
+			<value>0.5</value>
+		</property>
+		<property name="isGlobal">
+			<value>true</value>
+		</property>
+		<property name="initialValue">
+			<value>1</value>
+		</property>
+		<property name="isExposedRecursively">
+			<value>false</value>
+		</property>
+	</object>
+</objects>

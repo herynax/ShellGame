@@ -14,18 +14,21 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ShellGame.Health.HealthProgressionConfig
   _entries:
   - LevelIndex: 0
-    PlayerMaxHealth: 3
-    EnemyMaxHealth: 3
+    PlayerMaxHealth: 4
+    EnemyMaxHealth: 4
   - LevelIndex: 1
-    PlayerMaxHealth: 3
-    EnemyMaxHealth: 3
+    PlayerMaxHealth: 4
+    EnemyMaxHealth: 4
   - LevelIndex: 2
-    PlayerMaxHealth: 4
-    EnemyMaxHealth: 4
-  - LevelIndex: 3
-    PlayerMaxHealth: 4
-    EnemyMaxHealth: 4
-  - LevelIndex: 4
     PlayerMaxHealth: 5
     EnemyMaxHealth: 5
+  - LevelIndex: 3
+    PlayerMaxHealth: 5
+    EnemyMaxHealth: 5
+  - LevelIndex: 4
+    PlayerMaxHealth: 6
+    EnemyMaxHealth: 6
+  - LevelIndex: 5
+    PlayerMaxHealth: 6
+    EnemyMaxHealth: 6
   DamagePerHit: 1

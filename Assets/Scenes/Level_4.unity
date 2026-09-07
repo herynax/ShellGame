@@ -355,6 +355,30 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1943687309 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 21367680386982286, guid: e227562570c26f7428a3c01b27c2bdb4,
+    type: 3}
+  m_PrefabInstance: {fileID: 2073325895}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 36c44d90838e22a40829c2db40db2d8f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ShellGame.Gameplay.RoundStartButton
+--- !u!114 &1943687310 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1799605746946624359, guid: e227562570c26f7428a3c01b27c2bdb4,
+    type: 3}
+  m_PrefabInstance: {fileID: 2073325895}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a621b81fb782a4145a860f1bb0733c0b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ShellGame.Items.ItemSpawner
 --- !u!114 &2052197021 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 1307234554664861657, guid: e227562570c26f7428a3c01b27c2bdb4,
@@ -425,6 +449,21 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 385955227594480064, guid: e227562570c26f7428a3c01b27c2bdb4,
+        type: 3}
+      propertyPath: _gameManager
+      value: 
+      objectReference: {fileID: 3977709543831794873}
+    - target: {fileID: 385955227594480064, guid: e227562570c26f7428a3c01b27c2bdb4,
+        type: 3}
+      propertyPath: _inputSystem
+      value: 
+      objectReference: {fileID: 330585549}
+    - target: {fileID: 385955227594480064, guid: e227562570c26f7428a3c01b27c2bdb4,
+        type: 3}
+      propertyPath: _interactionCamera
+      value: 
+      objectReference: {fileID: 330585545}
     - target: {fileID: 1205248672526062228, guid: e227562570c26f7428a3c01b27c2bdb4,
         type: 3}
       propertyPath: mainCamera
@@ -440,6 +479,11 @@ PrefabInstance:
       propertyPath: cameraController
       value: 
       objectReference: {fileID: 6014247643981574054}
+    - target: {fileID: 1799605746946624359, guid: e227562570c26f7428a3c01b27c2bdb4,
+        type: 3}
+      propertyPath: _itemsAvailable
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 1810576775033457872, guid: e227562570c26f7428a3c01b27c2bdb4,
         type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
@@ -611,6 +655,11 @@ PrefabInstance:
       objectReference: {fileID: 330585549}
     - target: {fileID: 1291078403557956507, guid: 1af5593e793d8884998e80f4b7b52259,
         type: 3}
+      propertyPath: _itemSpawner
+      value: 
+      objectReference: {fileID: 1943687310}
+    - target: {fileID: 1291078403557956507, guid: 1af5593e793d8884998e80f4b7b52259,
+        type: 3}
       propertyPath: _turnIndicator
       value: 
       objectReference: {fileID: 136257258}
@@ -619,6 +668,11 @@ PrefabInstance:
       propertyPath: _roundGenerator
       value: 
       objectReference: {fileID: 801579158}
+    - target: {fileID: 1291078403557956507, guid: 1af5593e793d8884998e80f4b7b52259,
+        type: 3}
+      propertyPath: _roundStartButton
+      value: 
+      objectReference: {fileID: 1943687309}
     - target: {fileID: 2090439264675354120, guid: 1af5593e793d8884998e80f4b7b52259,
         type: 3}
       propertyPath: enemyTransform
@@ -824,6 +878,18 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 1af5593e793d8884998e80f4b7b52259, type: 3}
+--- !u!114 &3977709543831794873 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1291078403557956507, guid: 1af5593e793d8884998e80f4b7b52259,
+    type: 3}
+  m_PrefabInstance: {fileID: 3977709543831794872}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0da06d6766b6e934d85e144fcd2a2b12, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ShellGame.Gameplay.GameManager
 --- !u!1001 &6014247643981574052
 PrefabInstance:
   m_ObjectHideFlags: 0

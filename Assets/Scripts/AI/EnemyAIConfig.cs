@@ -35,6 +35,20 @@ namespace ShellGame.AI
         [Tooltip("Нижняя граница итогового шанса верного выбора — не даём точности упасть до нуля даже при HP=0 и максимальном штрафе.")]
         public float MinCorrectChanceFloor = 0.05f;
 
+        [Header("Использование предметов ИИ (по необходимости, без случайности)")]
+        [Tooltip("Порог 'желательности' предмета (см. ItemDefinition.EvaluateEnemyDesire) на МИНИМАЛЬНОЙ сложности — выше него враг решает использовать предмет. Чем выше значение, тем терпеливее враг.")]
+        public float ItemUseDesireThresholdEasy = 0.5f;
+        [Tooltip("Порог на МАКСИМАЛЬНОЙ сложности — ниже, чем на лёгкой: опытный враг реагирует на возможность/угрозу раньше.")]
+        public float ItemUseDesireThresholdHard = 0.2f;
+        [Tooltip("При каком индексе сложности порог достигает 'сложного' значения.")]
+        public float ItemUseDesireThresholdForHardAtDifficulty = 8f;
+
+        public float EvaluateItemUseDesireThreshold(float difficultyIndex)
+        {
+            float normalized = Mathf.Clamp01(difficultyIndex / Mathf.Max(0.0001f, ItemUseDesireThresholdForHardAtDifficulty));
+            return Mathf.Lerp(ItemUseDesireThresholdEasy, ItemUseDesireThresholdHard, normalized);
+        }
+
         /// <summary>
         /// Штраф (0..HealthPenaltyMaxReduction), который нужно вычесть из
         /// шанса верного выбора при заданной доле HP врага. До порога

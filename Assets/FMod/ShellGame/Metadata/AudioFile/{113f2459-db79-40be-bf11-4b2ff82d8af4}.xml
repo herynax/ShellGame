@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<objects serializationModel="Studio.02.03.00">
+	<object class="AudioFile" id="{113f2459-db79-40be-bf11-4b2ff82d8af4}">
+		<property name="assetPath">
+			<value>set_down_on_surface_004_46117.mp3</value>
+		</property>
+		<property name="frequencyInKHz">
+			<value>32</value>
+		</property>
+		<property name="channelCount">
+			<value>2</value>
+		</property>
+		<property name="length">
+			<value>0.432</value>
+		</property>
+		<relationship name="masterAssetFolder">
+			<destination>{9bad64b9-b6e3-449e-a1f6-a88b33318a62}</destination>
+		</relationship>
+	</object>
+</objects>

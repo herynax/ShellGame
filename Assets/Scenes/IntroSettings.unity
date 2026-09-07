@@ -2923,7 +2923,7 @@ MonoBehaviour:
   sfxBusPath: bus:/SFX
   darknessPause: 0.5
   theatricalFadeDuration: 1.8
-  anxietyStingEvent: 
+  anxietyStingEvent: event:/SFX/UI/b_StartGame
   calmFadeDuration: 0.5
   nextSceneName: Tutorial
 --- !u!114 &691023875

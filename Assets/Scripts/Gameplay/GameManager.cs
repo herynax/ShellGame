@@ -6,6 +6,7 @@ using ShellGame.Feedback;
 using ShellGame.Health;
 using ShellGame.Items;
 using ShellGame.Shells;
+using FMODUnity;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -23,6 +24,7 @@ namespace ShellGame.Gameplay
         [SerializeField] private RoundStartButton _roundStartButton;
         [SerializeField] private HealthProgressionConfig _healthProgressionConfig;
         [SerializeField] private TurnIndicatorController _turnIndicator;
+        [SerializeField] private ItemSpawner _itemSpawner;
         [SerializeField] private TurnSide _startingSide = TurnSide.Player;
 
         [SerializeField] private int _levelIndex = 0;
@@ -47,10 +49,32 @@ namespace ShellGame.Gameplay
         private bool _firstRoundReadyWaited;
         private bool _tutorialRevealPaused;
         private bool _tutorialPlayerChoiceLocked;
+        private bool _skipEnemyTurn;
+
+        private readonly Dictionary<TurnSide, bool> _extraTurnRequested = new Dictionary<TurnSide, bool>
+        {
+            { TurnSide.Player, false },
+            { TurnSide.Enemy, false },
+        };
+
+        private readonly Dictionary<TurnSide, int> _extraTurnCooldown = new Dictionary<TurnSide, int>
+        {
+            { TurnSide.Player, 0 },
+            { TurnSide.Enemy, 0 },
+        };
 
         private bool _tutorialBeforeDamagePaused;
         private bool _tutorialAfterDamagePaused;
         private bool _initiativeAnimationPending;
+
+        private float _activeGameSpeedMultiplier = 1f;
+        private bool _gameSpeedEffectActive;
+        private TurnSide _gameSpeedEffectOwner;
+        private bool _gameSpeedOwnerHasChosen;
+        private Coroutine _gameSpeedTransition;
+
+        private const float MinGameSpeed = 0.5f;
+        private const float GameSpeedTransitionDuration = 1f;
 
         private GameSessionProgression _sessionProgression;
 
@@ -58,6 +82,12 @@ namespace ShellGame.Gameplay
         {
             { TurnSide.Player, 1 },
             { TurnSide.Enemy, 1 },
+        };
+
+        private readonly Dictionary<TurnSide, float> _nextShuffleDurationMultiplier = new Dictionary<TurnSide, float>
+        {
+            { TurnSide.Player, 1f },
+            { TurnSide.Enemy, 1f },
         };
 
         public RoundState State => _state;
@@ -107,6 +137,7 @@ namespace ShellGame.Gameplay
             if (_healthController == null) _healthController = GetComponentInChildren<HealthController>();
             if (_enemyAI == null) _enemyAI = GetComponentInChildren<EnemyAIController>();
             if (_turnIndicator == null) _turnIndicator = GetComponentInChildren<TurnIndicatorController>();
+            if (_itemSpawner == null) _itemSpawner = FindFirstObjectByType<ItemSpawner>();
 
             _sessionProgression = FindFirstObjectByType<GameSessionProgression>();
             if (_sessionProgression == null)
@@ -165,7 +196,125 @@ namespace ShellGame.Gameplay
                 ActiveShells = _roundGenerator != null ? _roundGenerator.ActiveShells : null,
                 EnemyAI = _enemyAI,
                 SetNextHitDamageMultiplier = SetNextHitDamageMultiplier,
+                SlowGamePaceUntilNextChoice = SetGameSpeedMultiplier,
+                CanSlowGamePace = () => Mathf.Approximately(_activeGameSpeedMultiplier, 1f),
+                ReduceEnemyTrackingLossNextShuffle = multiplier => _enemyAI?.ReduceTrackingLossNextShuffle(multiplier),
+                BeginShellPeek = (holdDuration, onPeeked) => ShellPeekGate.Begin(holdDuration, onPeeked),
+                ResolveShellRevealDuration = holdDuration => _roundGenerator != null ? _roundGenerator.GetRevealDuration(holdDuration) : holdDuration,
+                SkipCurrentTurn = () => _skipEnemyTurn = true,
+                RequestExtraTurn = () => RequestExtraTurn(userSide),
+                CanRequestExtraTurn = () => CanRequestExtraTurn(userSide),
             };
+        }
+
+        private void SetGameSpeedMultiplier(TurnSide side, float slowdownFactor)
+        {
+            if (_gameSpeedEffectActive)
+                return;
+
+            _gameSpeedEffectActive = true;
+            _gameSpeedEffectOwner = side;
+            _gameSpeedOwnerHasChosen = false;
+            float targetSpeed = Mathf.Clamp(1f / Mathf.Max(1f, slowdownFactor), MinGameSpeed, 1f);
+            StartGameSpeedTransition(targetSpeed);
+        }
+
+        private void ResetGameSpeedMultiplier()
+        {
+            if (!_gameSpeedEffectActive && Mathf.Approximately(_activeGameSpeedMultiplier, 1f))
+                return;
+
+            _gameSpeedEffectActive = false;
+            _gameSpeedOwnerHasChosen = false;
+            StartGameSpeedTransition(1f);
+        }
+
+        private void HandleGameSpeedOwnerChoice(TurnSide side)
+        {
+            if (!_gameSpeedEffectActive || side != _gameSpeedEffectOwner)
+                return;
+
+            if (!_gameSpeedOwnerHasChosen)
+            {
+                _gameSpeedOwnerHasChosen = true;
+                return;
+            }
+
+            ResetGameSpeedMultiplier();
+        }
+
+        private bool CanSlowGamePace()
+        {
+            return !_gameSpeedEffectActive;
+        }
+
+        private void StartGameSpeedTransition(float targetSpeed)
+        {
+            if (_gameSpeedTransition != null)
+                StopCoroutine(_gameSpeedTransition);
+
+            _gameSpeedTransition = StartCoroutine(GameSpeedTransition(targetSpeed));
+        }
+
+        private IEnumerator GameSpeedTransition(float targetSpeed)
+        {
+            float startSpeed = _activeGameSpeedMultiplier;
+            float elapsed = 0f;
+
+            while (elapsed < GameSpeedTransitionDuration)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                float progress = Mathf.Clamp01(elapsed / GameSpeedTransitionDuration);
+                _activeGameSpeedMultiplier = Mathf.Lerp(startSpeed, targetSpeed, progress);
+                ApplyGameSpeed();
+                yield return null;
+            }
+
+            _activeGameSpeedMultiplier = targetSpeed;
+            ApplyGameSpeed();
+            _gameSpeedTransition = null;
+        }
+
+        private void ApplyGameSpeed()
+        {
+            // На паузе Time.timeScale держит PauseController (0f) и сам восстановит
+            // корректное значение при снятии паузы (см. PauseController._timeScaleBeforePause).
+            if (PauseController.Instance != null && PauseController.Instance.IsPaused)
+                return;
+
+            Time.timeScale = _activeGameSpeedMultiplier;
+            RuntimeManager.StudioSystem.setParameterByName("TimeScale", _activeGameSpeedMultiplier);
+        }
+
+        private void RequestExtraTurn(TurnSide side)
+        {
+            if (_activeSide != side || _state != RoundState.PlayerTurn)
+                return;
+
+            _extraTurnRequested[side] = true;
+            _extraTurnCooldown[side] = 3;
+        }
+
+        private bool CanRequestExtraTurn(TurnSide side)
+        {
+            return _activeSide == side
+                && _state == RoundState.PlayerTurn
+                && !_extraTurnRequested[side]
+                && _extraTurnCooldown[side] <= 0;
+        }
+
+        private void SetNextShuffleDurationMultiplier(TurnSide side, float multiplier)
+        {
+            _nextShuffleDurationMultiplier[side] = Mathf.Max(1f, multiplier);
+        }
+
+        private float ConsumeNextShuffleDurationMultiplier(TurnSide side)
+        {
+            if (!_nextShuffleDurationMultiplier.TryGetValue(side, out var multiplier))
+                return 1f;
+
+            _nextShuffleDurationMultiplier[side] = 1f;
+            return Mathf.Max(1f, multiplier);
         }
 
         public void SetNextHitDamageMultiplier(TurnSide side, int multiplier)
@@ -250,6 +399,8 @@ namespace ShellGame.Gameplay
                         while (_state == RoundState.WaitForStart) yield return null;
                         if (_roundStartButton != null) _roundStartButton.Hide();
                         if (_inputSystem != null) _inputSystem.SetEnabled(false);
+                        if (_itemSpawner != null)
+                            yield return _itemSpawner.SpawnItems();
                         break;
 
                     case RoundState.Reveal:
@@ -268,12 +419,25 @@ namespace ShellGame.Gameplay
                         _inputSystem.SetEnabled(false);
                         yield return new WaitForSeconds(_shuffleDelay);
                         if (_activeSide == TurnSide.Enemy && _enemyAI != null) _enemyAI.EnterTrackShuffle();
-                        _shuffleSystem.StartShuffling(_roundGenerator.GetShellsInPlayOrder(), () => { _state = RoundState.PlayerTurn; }, _levelIndex, _roundIndex, _currentParameters.DifficultyIndex);
+                        _shuffleSystem.SetMoveDurationMultiplier(ConsumeNextShuffleDurationMultiplier(_activeSide));
+                        _shuffleSystem.StartShuffling(
+                            _roundGenerator.GetShellsInPlayOrder(),
+                            () =>
+                            {
+                                _shuffleSystem.ResetMoveDurationMultiplier();
+                                _state = RoundState.PlayerTurn;
+                            },
+                            _levelIndex,
+                            _roundIndex,
+                            _currentParameters.DifficultyIndex);
                         while (_state == RoundState.Shuffle) yield return null;
                         break;
 
                     case RoundState.PlayerTurn:
                         if (_inputSystem == null) yield break;
+
+                        if (_extraTurnCooldown[_activeSide] > 0)
+                            _extraTurnCooldown[_activeSide]--;
 
                         // Блокируем только выбор игрока, но не мешаем ходу врага
                         if (_activeSide == TurnSide.Player && IsTutorialScene()
@@ -290,6 +454,36 @@ namespace ShellGame.Gameplay
                         else
                         {
                             _inputSystem.SetEnabled(false);
+
+                        if (_extraTurnRequested[TurnSide.Player])
+                        {
+                            _extraTurnRequested[TurnSide.Player] = false;
+                            _activeSide = TurnSide.Player;
+                            GameEvents.RaiseActiveSideChanged(_activeSide);
+                            _initiativeAnimationPending = true;
+                            _state = RoundState.InitiativeAnimation;
+                            break;
+                        }
+
+                            _skipEnemyTurn = false;
+                            float itemExtraDelay = 0f;
+                            if (_itemSpawner != null)
+                                _itemSpawner.TryUseEnemyItem(this, _currentParameters.DifficultyIndex, out _skipEnemyTurn, out itemExtraDelay);
+
+                            if (_skipEnemyTurn)
+                            {
+                                _activeSide = Opposite(_activeSide);
+                                GameEvents.RaiseActiveSideChanged(_activeSide);
+                                _turnsCompletedInCurrentRound++;
+                                _initiativeAnimationPending = true;
+                                _state = _turnsCompletedInCurrentRound < 2
+                                    ? RoundState.InitiativeAnimation
+                                    : RoundState.Cleanup;
+                                break;
+                            }
+
+                            if (itemExtraDelay > 0f)
+                                yield return new WaitForSeconds(itemExtraDelay);
 
                             // ВАЖНО: выбор врага всегда идёт через
                             // EnemyAIController.MakeDecisionAndAttack, даже в
@@ -390,6 +584,16 @@ namespace ShellGame.Gameplay
                             while (_tutorialAfterDamagePaused) yield return null;
                         }
 
+                        if (_extraTurnRequested[_activeSide])
+                        {
+                            _extraTurnRequested[_activeSide] = false;
+                            _turnsCompletedInCurrentRound = 0;
+                            _roundLayoutGenerated = false;
+                            _initiativeAnimationPending = true;
+                            _state = RoundState.InitiativeAnimation;
+                            break;
+                        }
+
                         _activeSide = Opposite(_activeSide);
                         GameEvents.RaiseActiveSideChanged(_activeSide);
                         _turnsCompletedInCurrentRound++;
@@ -473,12 +677,9 @@ namespace ShellGame.Gameplay
         {
             if (_state != RoundState.PlayerTurn) return;
 
-            // Блокируем выбор только для игрока — на ход врага этот замок не распространяется.
             if (_activeSide == TurnSide.Player && IsTutorialScene()
                 && _completedRoundsInSession == 0 && _tutorialPlayerChoiceLocked) return;
 
-            // Статистику забега не считаем на форсированном обучающем раунде —
-            // он не отражает реальный навык игрока.
             bool isTutorialForcedRound = IsTutorialScene() && _completedRoundsInSession == 0;
             if (!isTutorialForcedRound)
                 RunStatsTracker.Instance?.RegisterMove(_activeSide, shell.HasMarker);
@@ -486,6 +687,8 @@ namespace ShellGame.Gameplay
             _selectedShell = shell;
             _inputSystem.SetEnabled(false);
             _state = RoundState.RevealResult;
+
+            HandleGameSpeedOwnerChoice(_activeSide);
         }
 
         private void OnShellRevealed(Shell shell, bool hasMarker)
