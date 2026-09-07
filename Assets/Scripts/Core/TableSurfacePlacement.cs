@@ -42,6 +42,18 @@ namespace ShellGame.Core
             objectTransform.position += Vector3.up * (surfacePoint.y - bounds.min.y);
         }
 
+        public static Vector3 GetObjectPositionOnSurface(Transform objectTransform, Vector3 surfacePoint)
+        {
+            if (objectTransform == null || !TryGetWorldBounds(objectTransform, out Bounds bounds))
+                return surfacePoint;
+
+            float verticalCorrection = surfacePoint.y - bounds.min.y;
+            return new Vector3(
+                surfacePoint.x,
+                objectTransform.position.y + verticalCorrection,
+                surfacePoint.z);
+        }
+
         private static bool TryGetWorldBounds(Transform root, out Bounds bounds)
         {
             Renderer[] renderers = root.GetComponentsInChildren<Renderer>(true);

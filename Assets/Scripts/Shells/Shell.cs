@@ -259,8 +259,12 @@ namespace ShellGame.Shells
             targetSlot.OccupyingShell = this;
             SlotIndex = targetSlot.Index;
             _audio?.PlayOneShot(_config.AudioEvents.ShuffleMove, transform.position);
-            _animator.PlayMoveTo(targetSlot.SpawnPosition, () =>
+            Vector3 targetPosition = ShellGame.Core.TableSurfacePlacement.GetObjectPositionOnSurface(
+                transform,
+                targetSlot.SpawnPosition);
+            _animator.PlayMoveTo(targetPosition, () =>
             {
+                ShellGame.Core.TableSurfacePlacement.PlaceObjectOnSurface(transform, targetSlot.SpawnPosition);
                 State = ShellState.Idle;
                 SetInteractable(true);
                 onComplete?.Invoke();
