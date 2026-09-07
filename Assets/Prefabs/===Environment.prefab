@@ -117,7 +117,7 @@ Transform:
   m_GameObject: {fileID: 298045288733228974}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 1.274, y: 0.4, z: -1.288}
+  m_LocalPosition: {x: 1.274, y: 0.5, z: -1.288}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -137,10 +137,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ShellGame.Items.ItemSpawnPoint
   _owner: 0
   _index: 2
-  _gizmoSize: {x: 0.22, y: 0.06, z: 0.22}
-  _surfaceMask:
-    serializedVersion: 2
-    m_Bits: 8
+  _gizmoSize: {x: 0.22, y: 0.81, z: 0.22}
 --- !u!65 &2496392955124803138
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -160,7 +157,7 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.22, y: 0.06, z: 0.22}
+  m_Size: {x: 0.22, y: 0.81, z: 0.22}
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &878805619023393025
 GameObject:
@@ -1433,7 +1430,7 @@ Transform:
   m_GameObject: {fileID: 1725973235274476214}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.843, y: 0.4, z: 0.909}
+  m_LocalPosition: {x: -0.843, y: 0.5, z: 0.909}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1453,10 +1450,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ShellGame.Items.ItemSpawnPoint
   _owner: 1
   _index: 0
-  _gizmoSize: {x: 0.22, y: 0.06, z: 0.22}
-  _surfaceMask:
-    serializedVersion: 2
-    m_Bits: 8
+  _gizmoSize: {x: 0.22, y: 0.81, z: 0.22}
 --- !u!65 &5703307224763216511
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -1476,7 +1470,7 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.22, y: 0.06, z: 0.22}
+  m_Size: {x: 0.22, y: 0.81, z: 0.22}
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &1831239378738867233
 GameObject:
@@ -1651,10 +1645,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ShellGame.Shells.ShellSlot
   _index: 1
-  _gizmoSize: {x: 0.22, y: 0.06, z: 0.22}
-  _surfaceMask:
-    serializedVersion: 2
-    m_Bits: 8
+  _gizmoSize: {x: 0.22, y: 1.03, z: 0.22}
 --- !u!65 &3289759486044945485
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -1674,7 +1665,7 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.22, y: 0.06, z: 0.22}
+  m_Size: {x: 0.22, y: 1.03, z: 0.22}
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &2016098703073009173
 GameObject:
@@ -2720,7 +2711,7 @@ Transform:
   m_GameObject: {fileID: 3005214274245973757}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.574, y: 0.4, z: 0.909}
+  m_LocalPosition: {x: 0.574, y: 0.5, z: 0.909}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -2740,10 +2731,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ShellGame.Items.ItemSpawnPoint
   _owner: 1
   _index: 2
-  _gizmoSize: {x: 0.22, y: 0.06, z: 0.22}
-  _surfaceMask:
-    serializedVersion: 2
-    m_Bits: 8
+  _gizmoSize: {x: 0.22, y: 0.81, z: 0.22}
 --- !u!65 &1283009813049234611
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -2763,7 +2751,7 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.22, y: 0.06, z: 0.22}
+  m_Size: {x: 0.22, y: 0.81, z: 0.22}
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &3079547981028759545
 GameObject:
@@ -7759,10 +7747,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ShellGame.Shells.ShellSlot
   _index: 7
-  _gizmoSize: {x: 0.22, y: 0.06, z: 0.22}
-  _surfaceMask:
-    serializedVersion: 2
-    m_Bits: 8
+  _gizmoSize: {x: 0.22, y: 1.03, z: 0.22}
 --- !u!65 &2795954237874562745
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -7782,7 +7767,7 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.22, y: 0.06, z: 0.22}
+  m_Size: {x: 0.22, y: 1.03, z: 0.22}
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &3279123567184416209
 GameObject:
@@ -9392,7 +9377,7 @@ Transform:
   m_GameObject: {fileID: 4765244069604074628}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 1.274, y: 0.4, z: 0.909}
+  m_LocalPosition: {x: 1.274, y: 0.5, z: 0.909}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -9412,10 +9397,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ShellGame.Items.ItemSpawnPoint
   _owner: 1
   _index: 3
-  _gizmoSize: {x: 0.22, y: 0.06, z: 0.22}
-  _surfaceMask:
-    serializedVersion: 2
-    m_Bits: 8
+  _gizmoSize: {x: 0.22, y: 0.81, z: 0.22}
 --- !u!65 &9195353218917694134
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -9435,7 +9417,7 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.22, y: 0.06, z: 0.22}
+  m_Size: {x: 0.22, y: 0.81, z: 0.22}
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &4792941153371768877
 GameObject:
@@ -9643,10 +9625,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ShellGame.Shells.ShellSlot
   _index: 5
-  _gizmoSize: {x: 0.22, y: 0.06, z: 0.22}
-  _surfaceMask:
-    serializedVersion: 2
-    m_Bits: 8
+  _gizmoSize: {x: 0.22, y: 1.03, z: 0.22}
 --- !u!65 &1579464514966478263
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -9666,7 +9645,7 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.22, y: 0.06, z: 0.22}
+  m_Size: {x: 0.22, y: 1.03, z: 0.22}
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &4890857694225393724
 GameObject:
@@ -10847,7 +10826,7 @@ Transform:
   m_GameObject: {fileID: 6291668724972660566}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 1.554, y: 0.4, z: -1.739}
+  m_LocalPosition: {x: 1.554, y: 0.5, z: -1.739}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -10867,10 +10846,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ShellGame.Items.ItemSpawnPoint
   _owner: 0
   _index: 3
-  _gizmoSize: {x: 0.22, y: 0.06, z: 0.22}
-  _surfaceMask:
-    serializedVersion: 2
-    m_Bits: 8
+  _gizmoSize: {x: 0.22, y: 0.81, z: 0.22}
 --- !u!65 &2448990051302356459
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -10890,7 +10866,7 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.22, y: 0.06, z: 0.22}
+  m_Size: {x: 0.22, y: 0.81, z: 0.22}
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &6401805557626293677
 GameObject:
@@ -11007,7 +10983,7 @@ Transform:
   m_GameObject: {fileID: 6516312528002542912}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.843, y: 0.4, z: -1.288}
+  m_LocalPosition: {x: -0.843, y: 0.5, z: -1.288}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -11027,10 +11003,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ShellGame.Items.ItemSpawnPoint
   _owner: 0
   _index: 0
-  _gizmoSize: {x: 0.22, y: 0.06, z: 0.22}
-  _surfaceMask:
-    serializedVersion: 2
-    m_Bits: 8
+  _gizmoSize: {x: 0.22, y: 0.81, z: 0.22}
 --- !u!65 &2762237793922351524
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -11050,7 +11023,7 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.22, y: 0.06, z: 0.22}
+  m_Size: {x: 0.22, y: 0.81, z: 0.22}
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &6580664448056945052
 GameObject:
@@ -11346,7 +11319,7 @@ Transform:
   m_GameObject: {fileID: 7247750556503484563}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -1.263, y: 0.4, z: -1.77}
+  m_LocalPosition: {x: -1.263, y: 0.5, z: -1.77}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -11366,10 +11339,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ShellGame.Items.ItemSpawnPoint
   _owner: 0
   _index: 1
-  _gizmoSize: {x: 0.22, y: 0.06, z: 0.22}
-  _surfaceMask:
-    serializedVersion: 2
-    m_Bits: 8
+  _gizmoSize: {x: 0.22, y: 0.81, z: 0.22}
 --- !u!65 &8265556400440697755
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -11389,7 +11359,7 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.22, y: 0.06, z: 0.22}
+  m_Size: {x: 0.22, y: 0.81, z: 0.22}
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &7253046540163731201
 GameObject:
@@ -11630,10 +11600,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ShellGame.Shells.ShellSlot
   _index: 3
-  _gizmoSize: {x: 0.22, y: 0.06, z: 0.22}
-  _surfaceMask:
-    serializedVersion: 2
-    m_Bits: 8
+  _gizmoSize: {x: 0.22, y: 1.03, z: 0.22}
 --- !u!65 &8217544265927303593
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -11653,7 +11620,7 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.22, y: 0.06, z: 0.22}
+  m_Size: {x: 0.22, y: 1.03, z: 0.22}
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &7689657167441406365
 GameObject:
@@ -11952,10 +11919,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ShellGame.Shells.ShellSlot
   _index: 4
-  _gizmoSize: {x: 0.22, y: 0.06, z: 0.22}
-  _surfaceMask:
-    serializedVersion: 2
-    m_Bits: 8
+  _gizmoSize: {x: 0.22, y: 1.03, z: 0.22}
 --- !u!65 &5812515852334917808
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -11975,7 +11939,7 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.22, y: 0.06, z: 0.22}
+  m_Size: {x: 0.22, y: 1.03, z: 0.22}
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &7866769306717222154
 GameObject:
@@ -12640,10 +12604,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ShellGame.Shells.ShellSlot
   _index: 6
-  _gizmoSize: {x: 0.22, y: 0.06, z: 0.22}
-  _surfaceMask:
-    serializedVersion: 2
-    m_Bits: 8
+  _gizmoSize: {x: 0.22, y: 1.03, z: 0.22}
 --- !u!65 &3801627867242342156
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -12663,7 +12624,7 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.22, y: 0.06, z: 0.22}
+  m_Size: {x: 0.22, y: 1.03, z: 0.22}
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &8446695901971680001
 GameObject:
@@ -13702,10 +13663,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ShellGame.Shells.ShellSlot
   _index: 0
-  _gizmoSize: {x: 0.22, y: 0.06, z: 0.22}
-  _surfaceMask:
-    serializedVersion: 2
-    m_Bits: 8
+  _gizmoSize: {x: 0.22, y: 1.03, z: 0.22}
 --- !u!65 &532334847690176278
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -13725,7 +13683,7 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.22, y: 0.06, z: 0.22}
+  m_Size: {x: 0.22, y: 1.03, z: 0.22}
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &9059284996468923055
 GameObject:
@@ -13806,10 +13764,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ShellGame.Shells.ShellSlot
   _index: 2
-  _gizmoSize: {x: 0.22, y: 0.06, z: 0.22}
-  _surfaceMask:
-    serializedVersion: 2
-    m_Bits: 8
+  _gizmoSize: {x: 0.22, y: 1.03, z: 0.22}
 --- !u!65 &7845458120795098018
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -13829,7 +13784,7 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.22, y: 0.06, z: 0.22}
+  m_Size: {x: 0.22, y: 1.03, z: 0.22}
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &9157613999693993387
 GameObject:
@@ -13858,7 +13813,7 @@ Transform:
   m_GameObject: {fileID: 9157613999693993387}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.06, y: 0.4, z: 0.909}
+  m_LocalPosition: {x: -0.06, y: 0.5, z: 0.909}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -13878,10 +13833,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ShellGame.Items.ItemSpawnPoint
   _owner: 1
   _index: 1
-  _gizmoSize: {x: 0.22, y: 0.06, z: 0.22}
-  _surfaceMask:
-    serializedVersion: 2
-    m_Bits: 8
+  _gizmoSize: {x: 0.22, y: 0.81, z: 0.22}
 --- !u!65 &7815044042800672864
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -13901,7 +13853,7 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.22, y: 0.06, z: 0.22}
+  m_Size: {x: 0.22, y: 0.81, z: 0.22}
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &9205203850203088403
 GameObject:
@@ -16454,8 +16406,39 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: e3537f4c544cbfb46bcda5ce84ae6174,
+        type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2645240451908864231}
   m_SourcePrefab: {fileID: 100100000, guid: e3537f4c544cbfb46bcda5ce84ae6174, type: 3}
+--- !u!1 &7127286968399874003 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: e3537f4c544cbfb46bcda5ce84ae6174,
+    type: 3}
+  m_PrefabInstance: {fileID: 7937695969677933186}
+  m_PrefabAsset: {fileID: 0}
+--- !u!65 &2645240451908864231
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7127286968399874003}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.036, y: 0.03599999, z: 0.000999999}
+  m_Center: {x: -0.010045269, y: -0.00023289766, z: 0.010270935}
 --- !u!4 &7611898180330757481 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: e3537f4c544cbfb46bcda5ce84ae6174,
