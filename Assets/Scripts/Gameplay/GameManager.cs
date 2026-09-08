@@ -158,6 +158,10 @@ namespace ShellGame.Gameplay
 
             if (IsTutorialScene())
             {
+                bool isTutorialRestartScene = SceneManager.GetActiveScene().buildIndex == 1;
+                if (isTutorialRestartScene)
+                    _sessionProgression.Reset();
+
                 _completedRoundsInSession = 0;
                 _levelIndex = 0;
                 _roundIndex = 0;

@@ -302,8 +302,8 @@ MonoBehaviour:
   _shellLayerMask:
     serializedVersion: 2
     m_Bits: 64
-  _shellAimAssistRadius: 0.15
-  _aimSmoothingTime: 0.22
+  _shellAimAssistRadius: 0.7
+  _aimSmoothingTime: 0.15
 --- !u!114 &6015278446830344563
 MonoBehaviour:
   m_ObjectHideFlags: 0

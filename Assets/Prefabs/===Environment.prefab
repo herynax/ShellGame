@@ -753,12 +753,13 @@ MonoBehaviour:
       Data3: 1352753539
       Data4: -1065162649
     Path: event:/SFX/Items/I_MetalItemsHower
+  _maxDuplicatesPerSide: 2
   _spawnAnimationDuration: 0.3
   _spawnDelay: 0.75
   _spawnEase: 27
   _playerUseMessage: {fileID: 2644233385483051286}
   _enemyUseMessage: {fileID: 2644233385483051286}
-  _enemyLookController: {fileID: 0}
+  _enemyLookController: {fileID: 8922421390057380140}
 --- !u!1 &1275113804685110481
 GameObject:
   m_ObjectHideFlags: 0
