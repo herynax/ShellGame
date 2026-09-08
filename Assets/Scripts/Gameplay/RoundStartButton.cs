@@ -104,11 +104,11 @@ namespace ShellGame.Gameplay
             _clickCollider.enabled = false;
             _hoverTween?.Kill();
             _clickTween?.Kill();
+            GameEvents.RaiseRoundStartConfirmed();
             _clickTween = transform.DOScale(safeBaseScale * _clickScale, _clickTweenDuration).SetEase(_clickEase)
                 .OnComplete(() =>
                 {
                     transform.localScale = safeBaseScale;
-                    GameEvents.RaiseRoundStartConfirmed();
                 });
         }
 

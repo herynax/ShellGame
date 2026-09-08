@@ -38,7 +38,7 @@ MonoBehaviour:
       Data3: 67345803
       Data4: -965703424
     Path: event:/SFX/Items/Adrenalin/I_AdrenalinDown
-  TooltipHoverDelay: 1.2
+  TooltipHoverDelay: 0.5
   UseSound:
     Guid:
       Data1: 0

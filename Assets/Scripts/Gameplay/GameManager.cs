@@ -51,6 +51,7 @@ namespace ShellGame.Gameplay
         private bool _tutorialRevealPaused;
         private bool _tutorialPlayerChoiceLocked;
         private bool _skipEnemyTurn;
+        private int _enemySlowItemChoicesRemaining;
 
         private readonly Dictionary<TurnSide, bool> _extraTurnRequested = new Dictionary<TurnSide, bool>
         {
@@ -214,6 +215,9 @@ namespace ShellGame.Gameplay
                 SlowGamePaceUntilNextChoice = SetGameSpeedMultiplier,
                 CanSlowGamePace = () => Mathf.Approximately(_activeGameSpeedMultiplier, 1f),
                 ReduceEnemyTrackingLossNextShuffle = multiplier => _enemyAI?.ReduceTrackingLossNextShuffle(multiplier),
+                CanReduceEnemyTrackingLossNextShuffle = () => _enemyAI?.CanReduceTrackingLossNextShuffle() ?? false,
+                CanUseEnemySlowItem = () => _enemySlowItemChoicesRemaining <= 0,
+                StartEnemySlowItemCooldown = () => _enemySlowItemChoicesRemaining = 2,
                 BeginShellPeek = (holdDuration, onPeeked) => ShellPeekGate.Begin(holdDuration, onPeeked),
                 ResolveShellRevealDuration = holdDuration => _roundGenerator != null ? _roundGenerator.GetRevealDuration(holdDuration) : holdDuration,
                 SkipCurrentTurn = () => _skipEnemyTurn = true,
@@ -401,6 +405,7 @@ namespace ShellGame.Gameplay
 
                         bool tutorialGate = IsTutorialScene()
                             && _completedRoundsInSession == 0
+                            && !IsTutorialCompleted()
                             && !_tutorialRevealPaused;
 
                         if (tutorialGate)
@@ -720,6 +725,9 @@ namespace ShellGame.Gameplay
             _selectedShell = shell;
             _inputSystem.SetEnabled(false);
             _state = RoundState.RevealResult;
+
+            if (_activeSide == TurnSide.Enemy && _enemySlowItemChoicesRemaining > 0)
+                _enemySlowItemChoicesRemaining--;
 
             HandleGameSpeedOwnerChoice(_activeSide);
         }

@@ -41,7 +41,7 @@ MonoBehaviour:
       Data3: 862597031
       Data4: 1483865294
     Path: event:/SFX/Items/Pills/I_PillsHower
-  TooltipHoverDelay: 1.2
+  TooltipHoverDelay: 0.5
   UseSound:
     Guid:
       Data1: -440862445
@@ -52,3 +52,4 @@ MonoBehaviour:
   PlayerUseAnimationTrigger: UseItem
   EnemyUseAnimationTrigger: EnemyUseItem
   GameSpeedSlowdownMultiplier: 2
+  EnemyTrackingLossMultiplier: 0.3

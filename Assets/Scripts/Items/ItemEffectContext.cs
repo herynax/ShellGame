@@ -41,6 +41,15 @@ namespace ShellGame.Items
         /// <summary>Снижает шанс потери отслеживания метки на СЛЕДУЮЩЕМ перемешивании этой стороны — имеет смысл только для противника (см. SlowShuffleItemDefinition, EnemyAIController.ReduceTrackingLossNextShuffle). Аргумент — множитель на Plose (0..1).</summary>
         public Action<float> ReduceEnemyTrackingLossNextShuffle;
 
+        /// <summary>Проверяет, не действует ли уже эффект защиты отслеживания следующего перемешивания врага.</summary>
+        public Func<bool> CanReduceEnemyTrackingLossNextShuffle;
+
+        /// <summary>Проверяет cooldown таблеток врага, считающийся по его выборам наперстка.</summary>
+        public Func<bool> CanUseEnemySlowItem;
+
+        /// <summary>Запускает cooldown таблеток врага после успешного использования.</summary>
+        public Action StartEnemySlowItemCooldown;
+
         /// <summary>
         /// Монокль (сторона игрока): переводит наперстки в режим "подглядеть" —
         /// следующий клик по наперстку не считается финальным выбором раунда,

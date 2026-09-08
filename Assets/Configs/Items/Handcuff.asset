@@ -38,7 +38,7 @@ MonoBehaviour:
       Data3: 1411563426
       Data4: 1173162205
     Path: event:/SFX/Items/Handcuffs/I_HandcuffsDown
-  TooltipHoverDelay: 1.2
+  TooltipHoverDelay: 0.5
   UseSound:
     Guid:
       Data1: 949431468

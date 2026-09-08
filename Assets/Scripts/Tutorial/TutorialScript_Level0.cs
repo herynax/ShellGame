@@ -224,11 +224,11 @@ namespace ShellGame.Tutorial
             {
                 if (_shuffleSystem == null)
                 {
-                    if (_shuffleSystem != null)
-                        _shuffleSystem.TutorialStepMode = true;
-                    else
-                        Debug.LogError("[TutorialScript_Level0] ShuffleSystem всё ещё не найден перед сценой 3.");
+                    Debug.LogError("[TutorialScript_Level0] ShuffleSystem всё ещё не найден перед сценой 3.");
+                    return;
                 }
+
+                _shuffleSystem.TutorialStepMode = true;
             });
 
             builder.Say(_scene2_Remember);

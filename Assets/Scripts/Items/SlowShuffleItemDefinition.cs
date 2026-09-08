@@ -26,7 +26,11 @@ namespace ShellGame.Items
             if (context == null) return false;
 
             if (context.UserSide == TurnSide.Enemy)
-                return context.ReduceEnemyTrackingLossNextShuffle != null;
+            {
+                return context.ReduceEnemyTrackingLossNextShuffle != null
+                    && (context.CanReduceEnemyTrackingLossNextShuffle?.Invoke() ?? false)
+                    && (context.CanUseEnemySlowItem?.Invoke() ?? false);
+            }
 
             return context.CanSlowGamePace?.Invoke() ?? false;
         }
@@ -38,6 +42,7 @@ namespace ShellGame.Items
             if (context.UserSide == TurnSide.Enemy)
             {
                 context.ReduceEnemyTrackingLossNextShuffle.Invoke(EnemyTrackingLossMultiplier);
+                context.StartEnemySlowItemCooldown?.Invoke();
                 return true;
             }
 

@@ -38,7 +38,7 @@ MonoBehaviour:
       Data3: 1633672580
       Data4: -804069553
     Path: event:/SFX/Items/Monocle/I_MonocleDown
-  TooltipHoverDelay: 1.2
+  TooltipHoverDelay: 0.5
   UseSound:
     Guid:
       Data1: 0

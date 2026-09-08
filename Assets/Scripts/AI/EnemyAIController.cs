@@ -129,6 +129,8 @@ namespace ShellGame.AI
             _trackingLossReductionMultiplier = Mathf.Clamp01(multiplier);
         }
 
+        public bool CanReduceTrackingLossNextShuffle() => Mathf.Approximately(_trackingLossReductionMultiplier, 1f);
+
         public float GetTrackedKnowledgeFraction() => _knowledge.GetTrackedFraction();
 
 

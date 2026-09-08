@@ -46,16 +46,10 @@ namespace ShellGame.Gameplay
             
             GameEvents.RaiseRoundShuffleStarted();
 
-            // Если режим обучения включен — встаем на паузу, ничего не перемешивая
+            // Первый обмен запускаем сразу даже в режиме обучения. В режиме
+            // обучения пауза нужна между шагами, а не перед началом шафла.
             IsWaitingForStep = false;
-            if (TutorialStepMode)
-            {
-                IsWaitingForStep = true;
-            }
-            else
-            {
-                PerformNextSwap();
-            }
+            PerformNextSwap();
         }
 
         private void PerformNextSwap()
