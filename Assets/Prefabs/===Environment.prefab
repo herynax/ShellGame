@@ -408,9 +408,9 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 6680243788065647386}
-        m_TargetAssemblyTypeName: SpankyBoy.JuiceUI.Free.PanelAnimator_Free, Assembly-CSharp
-        m_MethodName: AnimateOut
+      - m_Target: {fileID: 33476950058274648}
+        m_TargetAssemblyTypeName: PauseController, Assembly-CSharp
+        m_MethodName: CloseTopMenu
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -419,18 +419,6 @@ MonoBehaviour:
           m_FloatArgument: 0
           m_StringArgument: 
           m_BoolArgument: 0
-        m_CallState: 2
-      - m_Target: {fileID: 1665323184387891497}
-        m_TargetAssemblyTypeName: UnityEngine.GameObject, UnityEngine
-        m_MethodName: SetActive
-        m_Mode: 6
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 1
         m_CallState: 2
 --- !u!114 &8839350734018889364
 MonoBehaviour:
@@ -8998,9 +8986,9 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 2177712960103098852}
-        m_TargetAssemblyTypeName: SpankyBoy.JuiceUI.Free.PanelAnimator_Free, Assembly-CSharp
-        m_MethodName: AnimateOut
+      - m_Target: {fileID: 33476950058274648}
+        m_TargetAssemblyTypeName: PauseController, Assembly-CSharp
+        m_MethodName: CloseTopMenu
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -9009,18 +8997,6 @@ MonoBehaviour:
           m_FloatArgument: 0
           m_StringArgument: 
           m_BoolArgument: 0
-        m_CallState: 2
-      - m_Target: {fileID: 1665323184387891497}
-        m_TargetAssemblyTypeName: UnityEngine.GameObject, UnityEngine
-        m_MethodName: SetActive
-        m_Mode: 6
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 1
         m_CallState: 2
 --- !u!114 &2941984650379533162
 MonoBehaviour:
@@ -10493,29 +10469,17 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 7549640214011571271}
-        m_TargetAssemblyTypeName: SpankyBoy.JuiceUI.Free.PanelAnimator_Free, Assembly-CSharp
-        m_MethodName: AnimateOut
-        m_Mode: 1
+      - m_Target: {fileID: 33476950058274648}
+        m_TargetAssemblyTypeName: PauseController, Assembly-CSharp
+        m_MethodName: OpenSubmenu
+        m_Mode: 2
         m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_ObjectArgument: {fileID: 16595529618149666}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.CanvasGroup, UnityEngine
           m_IntArgument: 0
           m_FloatArgument: 0
           m_StringArgument: 
           m_BoolArgument: 0
-        m_CallState: 2
-      - m_Target: {fileID: 7450417982362134088}
-        m_TargetAssemblyTypeName: UnityEngine.GameObject, UnityEngine
-        m_MethodName: SetActive
-        m_Mode: 6
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 1
         m_CallState: 2
 --- !u!114 &1375860256797244965
 MonoBehaviour:
@@ -12255,29 +12219,17 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 7549640214011571271}
-        m_TargetAssemblyTypeName: SpankyBoy.JuiceUI.Free.PanelAnimator_Free, Assembly-CSharp
-        m_MethodName: AnimateOut
-        m_Mode: 1
+      - m_Target: {fileID: 33476950058274648}
+        m_TargetAssemblyTypeName: PauseController, Assembly-CSharp
+        m_MethodName: OpenSubmenu
+        m_Mode: 2
         m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_ObjectArgument: {fileID: 2649394316262521100}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.CanvasGroup, UnityEngine
           m_IntArgument: 0
           m_FloatArgument: 0
           m_StringArgument: 
           m_BoolArgument: 0
-        m_CallState: 2
-      - m_Target: {fileID: 2197850367584985458}
-        m_TargetAssemblyTypeName: UnityEngine.GameObject, UnityEngine
-        m_MethodName: SetActive
-        m_Mode: 6
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 1
         m_CallState: 2
 --- !u!114 &2720485617474788203
 MonoBehaviour:

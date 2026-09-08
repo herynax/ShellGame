@@ -1,3 +1,4 @@
+// START OF FILE DialogueView.cs
 using System.Collections;
 using ShellGame.Audio;
 using ShellGame.Core;
@@ -45,19 +46,25 @@ namespace ShellGame.Tutorial
 
                 bool inputTriggered = false;
 
-                #if ENABLE_INPUT_SYSTEM
-                if (Mouse.current != null && (Mouse.current.leftButton.wasPressedThisFrame || Mouse.current.rightButton.wasPressedThisFrame))
+#if ENABLE_INPUT_SYSTEM
+                // Оставили только левую кнопку мыши (ЛКМ)
+                if (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
                     inputTriggered = true;
-                if (Keyboard.current != null && (Keyboard.current.spaceKey.wasPressedThisFrame || Keyboard.current.enterKey.wasPressedThisFrame || Keyboard.current.anyKey.wasPressedThisFrame))
+
+                // Оставили только Пробел и Enter
+                if (Keyboard.current != null && (Keyboard.current.spaceKey.wasPressedThisFrame || Keyboard.current.enterKey.wasPressedThisFrame))
                     inputTriggered = true;
+
+                // Тап по экрану (приравнивается к ЛКМ для мобилок/планшетов)
                 if (Touchscreen.current != null && Touchscreen.current.primaryTouch.press.wasPressedThisFrame)
                     inputTriggered = true;
-                #endif
+#endif
 
-                #if ENABLE_LEGACY_INPUT_MANAGER
-                if (Input.GetMouseButtonDown(0) || Input.GetMouseButtonDown(1) || Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Return) || Input.anyKeyDown)
+#if ENABLE_LEGACY_INPUT_MANAGER
+                // Старая система ввода: только ЛКМ(0), Пробел и Enter/Return
+                if (Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Return))
                     inputTriggered = true;
-                #endif
+#endif
 
                 if (inputTriggered)
                     clicked = true;
@@ -114,3 +121,4 @@ namespace ShellGame.Tutorial
         }
     }
 }
+// END OF FILE
