@@ -111,7 +111,7 @@ namespace ShellGame.Audio
             int index = PickRandomIndex();
             var entry = _ambienceSounds[index];
 
-            if (string.IsNullOrEmpty(entry.SoundEvent.Path))
+            if (entry.SoundEvent.IsNull)
             {
                 Debug.LogWarning($"[AmbienceManager] У записи '{entry.DisplayName}' не назначен SoundEvent.");
                 return;

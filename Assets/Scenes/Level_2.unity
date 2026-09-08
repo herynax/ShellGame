@@ -217,6 +217,12 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 96ac7d0b169680e4ea19543a45591f2a, type: 3}
+--- !u!20 &784652886 stripped
+Camera:
+  m_CorrespondingSourceObject: {fileID: 8300073622346548154, guid: c9addad12bab62f499835aa0cad73c8a,
+    type: 3}
+  m_PrefabInstance: {fileID: 1024483298}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &859377569
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -670,6 +676,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f9dfa5b682dcd46bda6128250e975f58, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Cinemachine::Unity.Cinemachine.CinemachineCamera
+--- !u!4 &1042785197 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 5574809436895080519, guid: e227562570c26f7428a3c01b27c2bdb4,
+    type: 3}
+  m_PrefabInstance: {fileID: 2073325895}
+  m_PrefabAsset: {fileID: 0}
 --- !u!114 &1175832407 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 1291078403557956507, guid: 1af5593e793d8884998e80f4b7b52259,
@@ -914,6 +926,21 @@ PrefabInstance:
       propertyPath: _interactionCamera
       value: 
       objectReference: {fileID: 330585545}
+    - target: {fileID: 1186385762087609170, guid: e227562570c26f7428a3c01b27c2bdb4,
+        type: 3}
+      propertyPath: _enemyTarget
+      value: 
+      objectReference: {fileID: 1042785197}
+    - target: {fileID: 1186385762087609170, guid: e227562570c26f7428a3c01b27c2bdb4,
+        type: 3}
+      propertyPath: _playerTarget
+      value: 
+      objectReference: {fileID: 963371779}
+    - target: {fileID: 1186385762087609170, guid: e227562570c26f7428a3c01b27c2bdb4,
+        type: 3}
+      propertyPath: _rotationOffset.y
+      value: 25
+      objectReference: {fileID: 0}
     - target: {fileID: 1205248672526062228, guid: e227562570c26f7428a3c01b27c2bdb4,
         type: 3}
       propertyPath: mainCamera
@@ -949,21 +976,16 @@ PrefabInstance:
       propertyPath: masterSlider
       value: 
       objectReference: {fileID: 0}
-    - target: {fileID: 1962418085156549183, guid: e227562570c26f7428a3c01b27c2bdb4,
+    - target: {fileID: 1810576775033457872, guid: e227562570c26f7428a3c01b27c2bdb4,
         type: 3}
-      propertyPath: m_Layer
-      value: 15
-      objectReference: {fileID: 0}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 84b6dd99b50e0da47a60c7b784fc5fc1, type: 2}
     - target: {fileID: 1984938839250446428, guid: e227562570c26f7428a3c01b27c2bdb4,
         type: 3}
       propertyPath: m_Camera
       value: 
-      objectReference: {fileID: 330585545}
-    - target: {fileID: 4786014095384751943, guid: e227562570c26f7428a3c01b27c2bdb4,
-        type: 3}
-      propertyPath: m_Layer
-      value: 15
-      objectReference: {fileID: 0}
+      objectReference: {fileID: 784652886}
     - target: {fileID: 7166478861396673457, guid: e227562570c26f7428a3c01b27c2bdb4,
         type: 3}
       propertyPath: _playerTarget

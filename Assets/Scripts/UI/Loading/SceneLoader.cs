@@ -8,6 +8,7 @@ using ShellGame.Core;
 using ShellGame.Gameplay;
 using ShellGame.Health;
 using ShellGame.UI;
+using Zenject;
 
 public class SceneLoader : MonoBehaviour
 {
@@ -51,6 +52,12 @@ public class SceneLoader : MonoBehaviour
 
     private Canvas fadeCanvas;
     private bool isLoading = false;
+
+    [InjectOptional]
+    private HealthController _healthController;
+
+    [Inject]
+    private GameSessionProgression _sessionProgression;
 
     private void Awake()
     {
@@ -143,10 +150,9 @@ public class SceneLoader : MonoBehaviour
         // --- ШАГ 1: ВИЗУАЛЬНОЕ ЗАТЕМНЕНИЕ ---
         Light roomLight = FindRoomLight();
         float screenFadeDuration = fadeDuration;
-        var healthController = FindFirstObjectByType<HealthController>();
-        if (healthController != null && healthController.DeathSoundDuration > 0f)
+        if (_healthController != null && _healthController.DeathSoundDuration > 0f)
         {
-            screenFadeDuration = healthController.DeathSoundDuration;
+            screenFadeDuration = _healthController.DeathSoundDuration;
         }
 
         Debug.Log($"[SceneLoader] Начинаем затемнение экрана (Смерть: {deadSide}, длительность: {screenFadeDuration:0.###}с)...");
@@ -351,12 +357,12 @@ public class SceneLoader : MonoBehaviour
 
     private GameSessionProgression EnsureSessionProgression()
     {
-        var progression = FindAnyObjectByType<GameSessionProgression>();
-        if (progression != null) return progression;
+        if (_sessionProgression != null)
+            return _sessionProgression;
 
         var progressionObject = new GameObject("GameSessionProgression");
-        progression = progressionObject.AddComponent<GameSessionProgression>();
-        return progression;
+        _sessionProgression = progressionObject.AddComponent<GameSessionProgression>();
+        return _sessionProgression;
     }
 
     public void SetFadeAlpha(float alpha) { if (fadeCanvasGroup != null) fadeCanvasGroup.alpha = Mathf.Clamp01(alpha); }

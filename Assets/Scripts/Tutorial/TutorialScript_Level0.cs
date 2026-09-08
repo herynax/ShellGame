@@ -4,6 +4,7 @@ using ShellGame.AI;
 using ShellGame.Core;
 using ShellGame.Gameplay;
 using UnityEngine;
+using Zenject;
 
 namespace ShellGame.Tutorial
 {
@@ -64,6 +65,15 @@ namespace ShellGame.Tutorial
 
         [SerializeField] private TutorialSequencer _sequencer;
         private ShuffleSystem _shuffleSystem;
+        private RoundStartButton _roundStartButton;
+
+        [Inject]
+        private void InjectDependencies(GameManager gameManager, ShuffleSystem shuffleSystem, RoundStartButton roundStartButton)
+        {
+            _gameManager = gameManager;
+            _shuffleSystem = shuffleSystem;
+            _roundStartButton = roundStartButton;
+        }
 
         private void Awake()
         {
@@ -138,7 +148,7 @@ namespace ShellGame.Tutorial
             p++;
             builder.Do(() =>
             {
-                var btn = FindFirstObjectByType<RoundStartButton>(FindObjectsInactive.Include);
+                var btn = _roundStartButton;
                 if (btn != null) btn.SetInteractable(false);
             });
 
@@ -155,7 +165,7 @@ namespace ShellGame.Tutorial
 
             builder.Do(() =>
             {
-                var btn = FindFirstObjectByType<RoundStartButton>(FindObjectsInactive.Include);
+                var btn = _roundStartButton;
                 if (btn != null) btn.SetInteractable(true);
             });
 
@@ -181,7 +191,6 @@ namespace ShellGame.Tutorial
                 // дойдёт до RoundState.Shuffle только через Reveal (пауза
                 // спавна + показ + удержание меток), так что времени на
                 // поиск ShuffleSystem более чем достаточно в любой сборке.
-                _shuffleSystem = FindFirstObjectByType<ShuffleSystem>();
                 if (_shuffleSystem != null)
                     _shuffleSystem.TutorialStepMode = true;
                 else
@@ -200,7 +209,6 @@ namespace ShellGame.Tutorial
             {
                 if (_shuffleSystem == null)
                 {
-                    _shuffleSystem = FindFirstObjectByType<ShuffleSystem>();
                     if (_shuffleSystem != null)
                         _shuffleSystem.TutorialStepMode = true;
                     else

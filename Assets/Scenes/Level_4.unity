@@ -479,11 +479,6 @@ PrefabInstance:
       propertyPath: cameraController
       value: 
       objectReference: {fileID: 6014247643981574054}
-    - target: {fileID: 1799605746946624359, guid: e227562570c26f7428a3c01b27c2bdb4,
-        type: 3}
-      propertyPath: _itemsAvailable
-      value: 0
-      objectReference: {fileID: 0}
     - target: {fileID: 1810576775033457872, guid: e227562570c26f7428a3c01b27c2bdb4,
         type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
@@ -493,6 +488,26 @@ PrefabInstance:
         type: 3}
       propertyPath: m_AnchorMax.y
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1984938839250446428, guid: e227562570c26f7428a3c01b27c2bdb4,
+        type: 3}
+      propertyPath: m_Camera
+      value: 
+      objectReference: {fileID: 6014247643981574056}
+    - target: {fileID: 2753471122418019958, guid: e227562570c26f7428a3c01b27c2bdb4,
+        type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2753471122418019958, guid: e227562570c26f7428a3c01b27c2bdb4,
+        type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2753471122418019958, guid: e227562570c26f7428a3c01b27c2bdb4,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 180
       objectReference: {fileID: 0}
     - target: {fileID: 4255571625743621548, guid: e227562570c26f7428a3c01b27c2bdb4,
         type: 3}
@@ -1023,6 +1038,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f9dfa5b682dcd46bda6128250e975f58, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Cinemachine::Unity.Cinemachine.CinemachineCamera
+--- !u!20 &6014247643981574056 stripped
+Camera:
+  m_CorrespondingSourceObject: {fileID: 8300073622346548154, guid: c9addad12bab62f499835aa0cad73c8a,
+    type: 3}
+  m_PrefabInstance: {fileID: 6014247643981574052}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

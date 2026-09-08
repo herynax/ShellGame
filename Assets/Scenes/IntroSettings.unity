@@ -583,7 +583,6 @@ GameObject:
   - component: {fileID: 104488933}
   - component: {fileID: 104488932}
   - component: {fileID: 104488931}
-  - component: {fileID: 104488934}
   m_Layer: 0
   m_Name: ===MusicManager
   m_TagString: Untagged
@@ -646,48 +645,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &104488934
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 104488930}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c02305c2abf428e4db847bf189ac615b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ShellGame.Audio.AmbienceManager
-  _ambienceSounds:
-  - DisplayName: Night
-    SoundEvent:
-      Guid:
-        Data1: -1145750518
-        Data2: 1106002298
-        Data3: 1194940857
-        Data4: -1827034519
-      Path: event:/SFX/SoundScapes/SC_Night
-    Weight: 1
-  - DisplayName: Rain
-    SoundEvent:
-      Guid:
-        Data1: 2052167521
-        Data2: 1283429540
-        Data3: 147372427
-        Data4: -47124609
-      Path: event:/SFX/SoundScapes/SC_Rain
-    Weight: 1
-  - DisplayName: Wind
-    SoundEvent:
-      Guid:
-        Data1: -1591005983
-        Data2: 1242381578
-        Data3: 21869733
-        Data4: 1084925412
-      Path: event:/SFX/SoundScapes/SC_Wind
-    Weight: 1
-  baseVolume: 1
-  resetOnlyOnPlayerDeath: 1
 --- !u!1 &119154763
 GameObject:
   m_ObjectHideFlags: 0
@@ -2921,8 +2878,7 @@ MonoBehaviour:
   masterBusPath: bus:/
   musicBusPath: bus:/Music
   sfxBusPath: bus:/SFX
-  darknessPause: 0.5
-  theatricalFadeDuration: 1.8
+  panelFadeDuration: 5
   anxietyStingEvent: event:/SFX/UI/b_StartGame
   calmFadeDuration: 0.5
   nextSceneName: Tutorial
@@ -3595,7 +3551,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &799632679
 RectTransform:
   m_ObjectHideFlags: 0
@@ -4429,7 +4385,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &1296391272
 RectTransform:
   m_ObjectHideFlags: 0

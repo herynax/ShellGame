@@ -3,6 +3,7 @@ using ShellGame.Core;
 using ShellGame.Health;
 using TMPro;
 using UnityEngine;
+using Zenject;
 
 namespace ShellGame.UI
 {
@@ -29,6 +30,14 @@ namespace ShellGame.UI
         [Header("Куда выводить")]
         public TMP_Text hpText;
 
+        private HealthController _healthController;
+
+        [Inject]
+        private void InjectHealthController(HealthController healthController)
+        {
+            _healthController = healthController;
+        }
+
         private void OnEnable()
         {
             GameEvents.HealthChanged += HandleHealthChanged;
@@ -50,11 +59,10 @@ namespace ShellGame.UI
         {
             yield return null;
 
-            var healthController = FindObjectOfType<HealthController>();
-            if (healthController == null)
+            if (_healthController == null)
                 yield break;
 
-            Refresh(side, healthController.GetHealth(side), healthController.GetMaxHealth(side));
+            Refresh(side, _healthController.GetHealth(side), _healthController.GetMaxHealth(side));
         }
 
         private void HandleHealthChanged(TurnSide changedSide, int currentDose, int max)

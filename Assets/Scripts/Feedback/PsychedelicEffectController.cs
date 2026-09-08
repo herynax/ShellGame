@@ -2,6 +2,7 @@ using ShellGame.Core;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
+using Zenject;
 
 namespace ShellGame.Feedback
 {
@@ -76,13 +77,17 @@ namespace ShellGame.Feedback
         private float _velocity;
         private bool _isDead;
 
+        [Inject]
+        private void InjectVolume(Volume volume)
+        {
+            if (_volume == null)
+                _volume = volume;
+        }
+
         private void Awake()
         {
 
             Debug.Log($"PsychedelicEffectController: Awake called on GameObject '{gameObject.name}', active={gameObject.activeInHierarchy}");
-
-            if (_volume == null)
-                _volume = FindObjectOfType<Volume>();
 
             if (_volume != null && _volume.profile != null)
             {

@@ -217,6 +217,30 @@ Transform:
     type: 3}
   m_PrefabInstance: {fileID: 2126395177}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &1150364825 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6015278446830344563, guid: c9addad12bab62f499835aa0cad73c8a,
+    type: 3}
+  m_PrefabInstance: {fileID: 2126395177}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 72ece51f2901e7445ab60da3685d6b5f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.Cinemachine::Unity.Cinemachine.CinemachineBrain
+--- !u!114 &1160276670 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 21367680386982286, guid: e227562570c26f7428a3c01b27c2bdb4,
+    type: 3}
+  m_PrefabInstance: {fileID: 2073325895}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 36c44d90838e22a40829c2db40db2d8f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ShellGame.Gameplay.RoundStartButton
 --- !u!1 &1252084477
 GameObject:
   m_ObjectHideFlags: 0
@@ -352,6 +376,11 @@ PrefabInstance:
       propertyPath: _roundGenerator
       value: 
       objectReference: {fileID: 2030092150}
+    - target: {fileID: 1291078403557956507, guid: 1af5593e793d8884998e80f4b7b52259,
+        type: 3}
+      propertyPath: _roundStartButton
+      value: 
+      objectReference: {fileID: 1160276670}
     - target: {fileID: 2090439264675354120, guid: 1af5593e793d8884998e80f4b7b52259,
         type: 3}
       propertyPath: enemyTransform
@@ -544,6 +573,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0da06d6766b6e934d85e144fcd2a2b12, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ShellGame.Gameplay.GameManager
+--- !u!225 &1832830945 stripped
+CanvasGroup:
+  m_CorrespondingSourceObject: {fileID: 2417778202677995397, guid: e227562570c26f7428a3c01b27c2bdb4,
+    type: 3}
+  m_PrefabInstance: {fileID: 2073325895}
+  m_PrefabAsset: {fileID: 0}
 --- !u!114 &2030092150 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 2169588370702564104, guid: e227562570c26f7428a3c01b27c2bdb4,
@@ -564,6 +599,31 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 33476950058274648, guid: e227562570c26f7428a3c01b27c2bdb4,
+        type: 3}
+      propertyPath: _brain
+      value: 
+      objectReference: {fileID: 1150364825}
+    - target: {fileID: 33476950058274648, guid: e227562570c26f7428a3c01b27c2bdb4,
+        type: 3}
+      propertyPath: mainCamera
+      value: 
+      objectReference: {fileID: 2126395180}
+    - target: {fileID: 33476950058274648, guid: e227562570c26f7428a3c01b27c2bdb4,
+        type: 3}
+      propertyPath: pauseCamera
+      value: 
+      objectReference: {fileID: 2126395179}
+    - target: {fileID: 33476950058274648, guid: e227562570c26f7428a3c01b27c2bdb4,
+        type: 3}
+      propertyPath: cameraController
+      value: 
+      objectReference: {fileID: 2126395178}
+    - target: {fileID: 33476950058274648, guid: e227562570c26f7428a3c01b27c2bdb4,
+        type: 3}
+      propertyPath: crosshairCanvasGroup
+      value: 
+      objectReference: {fileID: 1832830945}
     - target: {fileID: 164489159260477016, guid: e227562570c26f7428a3c01b27c2bdb4,
         type: 3}
       propertyPath: m_LocalPosition.x
@@ -644,11 +704,6 @@ PrefabInstance:
       propertyPath: cameraController
       value: 
       objectReference: {fileID: 2126395178}
-    - target: {fileID: 1799605746946624359, guid: e227562570c26f7428a3c01b27c2bdb4,
-        type: 3}
-      propertyPath: _itemsAvailable
-      value: 0
-      objectReference: {fileID: 0}
     - target: {fileID: 1810576775033457872, guid: e227562570c26f7428a3c01b27c2bdb4,
         type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
@@ -659,6 +714,11 @@ PrefabInstance:
       propertyPath: m_AnchorMax.y
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 1984938839250446428, guid: e227562570c26f7428a3c01b27c2bdb4,
+        type: 3}
+      propertyPath: m_Camera
+      value: 
+      objectReference: {fileID: 2126395181}
     - target: {fileID: 4255571625743621548, guid: e227562570c26f7428a3c01b27c2bdb4,
         type: 3}
       propertyPath: m_AnchorMax.y
@@ -947,6 +1007,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f9dfa5b682dcd46bda6128250e975f58, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Cinemachine::Unity.Cinemachine.CinemachineCamera
+--- !u!20 &2126395181 stripped
+Camera:
+  m_CorrespondingSourceObject: {fileID: 8300073622346548154, guid: c9addad12bab62f499835aa0cad73c8a,
+    type: 3}
+  m_PrefabInstance: {fileID: 2126395177}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

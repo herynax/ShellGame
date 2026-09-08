@@ -24,41 +24,22 @@ namespace ShellGame.Gameplay
         [SerializeField] private TurnSide _startingSide = TurnSide.Player;
 
         [Header("Указатель хода (настраивается вручную — модель стрелки + цели)")]
-        [SerializeField] private TurnIndicatorController _turnIndicator;
+        [HideInInspector] private TurnIndicatorController _turnIndicator;
 
-        [SerializeField] private RoundGenerator _roundGenerator;
-        [SerializeField] private RoundInputSystem _inputSystem;
-        [SerializeField] private RoundStartButton _roundStartButton;
-        [SerializeField] private ShuffleSystem _shuffleSystem;
-        [SerializeField] private GameManager _gameManager;
-        [SerializeField] private HealthController _healthController;
-        [SerializeField] private EnemyAIController _enemyAI;
+        [HideInInspector] private RoundGenerator _roundGenerator;
+        [HideInInspector] private RoundInputSystem _inputSystem;
+        [HideInInspector] private RoundStartButton _roundStartButton;
+        [HideInInspector] private ShuffleSystem _shuffleSystem;
+        [HideInInspector] private GameManager _gameManager;
+        [HideInInspector] private HealthController _healthController;
+        [HideInInspector] private EnemyAIController _enemyAI;
 
         private void Awake()
         {
-            if (_roundGenerator == null)
-                _roundGenerator = GetComponentInChildren<RoundGenerator>(true);
-            if (_inputSystem == null)
-                _inputSystem = GetComponentInChildren<RoundInputSystem>(true);
-            if (_roundStartButton == null)
-                _roundStartButton = GetComponentInChildren<RoundStartButton>(true);
-            if (_shuffleSystem == null)
-                _shuffleSystem = GetComponentInChildren<ShuffleSystem>(true);
-            if (_gameManager == null)
-                _gameManager = GetComponent<GameManager>();
-            if (_healthController == null)
-                _healthController = GetComponentInChildren<HealthController>();
-            if (_enemyAI == null)
-                _enemyAI = GetComponentInChildren<EnemyAIController>();
-            if (_turnIndicator == null)
-                _turnIndicator = GetComponentInChildren<TurnIndicatorController>();
+            ResolveReferences();
 
-            if (_gameManager == null)
-                _gameManager = gameObject.AddComponent<GameManager>();
             if (_roundGenerator == null)
                 _roundGenerator = gameObject.AddComponent<RoundGenerator>();
-            if (_inputSystem == null)
-                _inputSystem = gameObject.AddComponent<RoundInputSystem>();
             if (_roundStartButton == null)
                 _roundStartButton = gameObject.AddComponent<RoundStartButton>();
             if (_shuffleSystem == null)
@@ -75,19 +56,42 @@ namespace ShellGame.Gameplay
 
             _roundGenerator.Initialize(_shellPrefab, _shellConfig, _markerPrefab, _progressionConfig, _maxPrewarmCount);
             _shuffleSystem.Initialize(_shellConfig);
-            _inputSystem.Initialize(_interactionCamera, _shellLayerMask, _roundStartButton);
+            _inputSystem?.Initialize(_interactionCamera, _shellLayerMask, _roundStartButton);
             _enemyAI.Initialize(_enemyAIConfig);
             _roundStartButton?.Hide();
-            _gameManager.Initialize(
-                _roundGenerator,
-                _inputSystem,
-                _shuffleSystem,
-                _healthController,
-                _enemyAI,
-                _roundStartButton,
-                _healthProgressionConfig,
-                _startingSide,
-                _turnIndicator);
+            if (_gameManager != null)
+            {
+                _gameManager.Initialize(
+                    _roundGenerator,
+                    _inputSystem,
+                    _shuffleSystem,
+                    _healthController,
+                    _enemyAI,
+                    _roundStartButton,
+                    _healthProgressionConfig,
+                    _startingSide,
+                    _turnIndicator);
+            }
+        }
+
+        private void ResolveReferences()
+        {
+            if (_roundGenerator == null)
+                _roundGenerator = GetComponentInChildren<RoundGenerator>(true);
+            if (_inputSystem == null)
+                _inputSystem = GetComponentInChildren<RoundInputSystem>(true);
+            if (_roundStartButton == null)
+                _roundStartButton = GetComponentInChildren<RoundStartButton>(true);
+            if (_shuffleSystem == null)
+                _shuffleSystem = GetComponentInChildren<ShuffleSystem>(true);
+            if (_gameManager == null)
+                _gameManager = GetComponent<GameManager>();
+            if (_healthController == null)
+                _healthController = GetComponentInChildren<HealthController>(true);
+            if (_enemyAI == null)
+                _enemyAI = GetComponentInChildren<EnemyAIController>(true);
+            if (_turnIndicator == null)
+                _turnIndicator = GetComponentInChildren<TurnIndicatorController>(true);
         }
 
         public void SetupRound(int shellCount, int markerCount)

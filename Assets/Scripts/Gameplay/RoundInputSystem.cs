@@ -1,6 +1,7 @@
 using ShellGame.Shells;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using Zenject;
 
 namespace ShellGame.Gameplay
 {
@@ -12,6 +13,15 @@ namespace ShellGame.Gameplay
         private bool _isEnabled;
         private IRoundInputTarget _hoveredTarget;
         private RoundStartButton _roundStartButton;
+
+        [Inject]
+        private void InjectDependencies(Camera interactionCamera, RoundStartButton roundStartButton)
+        {
+            if (_interactionCamera == null)
+                _interactionCamera = interactionCamera;
+            if (_roundStartButton == null)
+                _roundStartButton = roundStartButton;
+        }
 
         public void Initialize(Camera interactionCamera, LayerMask shellLayerMask, RoundStartButton roundStartButton)
         {
@@ -63,19 +73,25 @@ namespace ShellGame.Gameplay
             bool buttonHit = false;
             if (_roundStartButton != null && _roundStartButton.gameObject.activeInHierarchy)
             {
-                var buttonLayerMask = 1 << _roundStartButton.gameObject.layer;
-                if (Physics.Raycast(ray, out var buttonHitInfo, 100f, buttonLayerMask))
+                var buttonHits = Physics.RaycastAll(
+                    ray,
+                    100f,
+                    Physics.AllLayers,
+                    QueryTriggerInteraction.Collide);
+                System.Array.Sort(buttonHits, (left, right) => left.distance.CompareTo(right.distance));
+                foreach (var buttonHitInfo in buttonHits)
                 {
                     var button = buttonHitInfo.collider.GetComponentInParent<RoundStartButton>();
                     if (button != null)
                     {
                         targetUnderCursor = button;
                         buttonHit = true;
+                        break;
                     }
                 }
             }
 
-            if (!buttonHit && Physics.Raycast(ray, out var hit, 100f, _shellLayerMask))
+            if (!buttonHit && Physics.Raycast(ray, out var hit, 100f, _shellLayerMask, QueryTriggerInteraction.Collide))
             {
                 targetUnderCursor = hit.collider.GetComponentInParent<Shell>();
             }
@@ -106,8 +122,6 @@ namespace ShellGame.Gameplay
                 return _interactionCamera;
 
             _interactionCamera = Camera.main;
-            if (_interactionCamera == null)
-                _interactionCamera = FindObjectOfType<Camera>();
 
             return _interactionCamera;
         }

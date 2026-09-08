@@ -9,6 +9,7 @@ using ShellGame.Shells;
 using FMODUnity;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using Zenject;
 
 namespace ShellGame.Gameplay
 {
@@ -16,15 +17,15 @@ namespace ShellGame.Gameplay
     {
         public const string TutorialCompletedPrefKey = "ShellGame.TutorialCompleted";
 
-        [SerializeField] private RoundGenerator _roundGenerator;
-        [SerializeField] private RoundInputSystem _inputSystem;
-        [SerializeField] private ShuffleSystem _shuffleSystem;
-        [SerializeField] private HealthController _healthController;
-        [SerializeField] private EnemyAIController _enemyAI;
-        [SerializeField] private RoundStartButton _roundStartButton;
+        [HideInInspector] private RoundGenerator _roundGenerator;
+        [HideInInspector] private RoundInputSystem _inputSystem;
+        [HideInInspector] private ShuffleSystem _shuffleSystem;
+        [HideInInspector] private HealthController _healthController;
+        [HideInInspector] private EnemyAIController _enemyAI;
+        [HideInInspector] private RoundStartButton _roundStartButton;
         [SerializeField] private HealthProgressionConfig _healthProgressionConfig;
-        [SerializeField] private TurnIndicatorController _turnIndicator;
-        [SerializeField] private ItemSpawner _itemSpawner;
+        [HideInInspector] private TurnIndicatorController _turnIndicator;
+        [HideInInspector] private ItemSpawner _itemSpawner;
         [SerializeField] private TurnSide _startingSide = TurnSide.Player;
 
         [SerializeField] private int _levelIndex = 0;
@@ -77,6 +78,24 @@ namespace ShellGame.Gameplay
         private const float GameSpeedTransitionDuration = 1f;
 
         private GameSessionProgression _sessionProgression;
+
+        [Inject]
+        private void InjectDependencies(
+            RoundGenerator roundGenerator,
+            RoundInputSystem inputSystem,
+            ShuffleSystem shuffleSystem,
+            HealthController healthController,
+            EnemyAIController enemyAI,
+            RoundStartButton roundStartButton,
+            TurnIndicatorController turnIndicator,
+            ItemSpawner itemSpawner,
+            GameSessionProgression sessionProgression)
+        {
+            Initialize(roundGenerator, inputSystem, shuffleSystem, healthController, enemyAI,
+                roundStartButton, _healthProgressionConfig, _startingSide, turnIndicator);
+            _itemSpawner = itemSpawner;
+            _sessionProgression = sessionProgression;
+        }
 
         private readonly Dictionary<TurnSide, int> _nextHitMultiplier = new Dictionary<TurnSide, int>
         {
@@ -131,15 +150,6 @@ namespace ShellGame.Gameplay
 
         private void Start()
         {
-            if (_roundGenerator == null) _roundGenerator = GetComponentInChildren<RoundGenerator>();
-            if (_inputSystem == null) _inputSystem = GetComponentInChildren<RoundInputSystem>();
-            if (_shuffleSystem == null) _shuffleSystem = GetComponentInChildren<ShuffleSystem>();
-            if (_healthController == null) _healthController = GetComponentInChildren<HealthController>();
-            if (_enemyAI == null) _enemyAI = GetComponentInChildren<EnemyAIController>();
-            if (_turnIndicator == null) _turnIndicator = GetComponentInChildren<TurnIndicatorController>();
-            if (_itemSpawner == null) _itemSpawner = FindFirstObjectByType<ItemSpawner>();
-
-            _sessionProgression = FindFirstObjectByType<GameSessionProgression>();
             if (_sessionProgression == null)
             {
                 var progressionObject = new GameObject("GameSessionProgression");
@@ -340,7 +350,7 @@ namespace ShellGame.Gameplay
 
                         EnsureHealthInitializedForLevel();
 
-                        if (!_firstRoundReadyWaited && _completedRoundsInSession == 0)
+                        if (!_firstRoundReadyWaited)
                         {
                             _state = RoundState.WaitForStart;
                             break;
@@ -394,13 +404,14 @@ namespace ShellGame.Gameplay
                         break;
 
                     case RoundState.WaitForStart:
+                        if (_itemSpawner != null)
+                            yield return _itemSpawner.SpawnItems();
+
                         if (_roundStartButton != null) _roundStartButton.Show();
                         if (_inputSystem != null) _inputSystem.SetEnabled(true);
                         while (_state == RoundState.WaitForStart) yield return null;
                         if (_roundStartButton != null) _roundStartButton.Hide();
                         if (_inputSystem != null) _inputSystem.SetEnabled(false);
-                        if (_itemSpawner != null)
-                            yield return _itemSpawner.SpawnItems();
                         break;
 
                     case RoundState.Reveal:
@@ -465,10 +476,15 @@ namespace ShellGame.Gameplay
                             break;
                         }
 
-                            _skipEnemyTurn = false;
-                            float itemExtraDelay = 0f;
-                            if (_itemSpawner != null)
-                                _itemSpawner.TryUseEnemyItem(this, _currentParameters.DifficultyIndex, out _skipEnemyTurn, out itemExtraDelay);
+                        _skipEnemyTurn = false;
+                        float itemExtraDelay = 0f;
+                        if (_itemSpawner != null)
+                        {
+                            var itemUseResult = new EnemyItemUseResult();
+                            yield return _itemSpawner.TryUseEnemyItemsRoutine(this, _currentParameters.DifficultyIndex, itemUseResult);
+                            _skipEnemyTurn = itemUseResult.SkippedTurn;
+                            itemExtraDelay = itemUseResult.ExtraDelaySeconds;
+                        }
 
                             if (_skipEnemyTurn)
                             {
@@ -536,6 +552,9 @@ namespace ShellGame.Gameplay
                                 // поэтому для доли HP её нужно инвертировать.
                                 if (_healthController != null)
                                     _enemyAI.SetHealthFraction(1f - _healthController.GetDoseFraction(TurnSide.Enemy));
+
+                                if (_itemSpawner != null)
+                                    yield return _itemSpawner.PlayEnemyLookAtShells(_roundGenerator.ActiveShells);
 
                                 _enemyAI.MakeDecisionAndAttack(_roundGenerator.ActiveShells, chosen => chosen.Select());
                             }

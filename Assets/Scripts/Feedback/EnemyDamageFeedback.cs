@@ -26,14 +26,15 @@ namespace ShellGame.Feedback
         [SerializeField] private int _scalePunchVibrato = 8;
 
         [Header("Цветовая вспышка (плейсхолдер)")]
-        [SerializeField] private Renderer _enemyRenderer;
         [SerializeField] private Color _flashColor = Color.red;
         [SerializeField] private float _flashDuration = 0.2f;
         [SerializeField] private string _colorPropertyName = "_Color";
 
         private Vector3 _modelBasePosition;
         private Vector3 _modelBaseScale;
-        private Color _rendererBaseColor;
+        private Renderer[] _enemyRenderers;
+        private Color[] _rendererBaseColors;
+        private bool[] _rendererHasColorProperty;
         private MaterialPropertyBlock _propertyBlock;
 
         private Tween _shakeTween;
@@ -52,12 +53,21 @@ namespace ShellGame.Feedback
                 _modelBaseScale = _enemyModelTransform.localScale;
             }
 
-            if (_enemyRenderer != null)
+            if (_enemyModelTransform != null)
             {
                 _propertyBlock = new MaterialPropertyBlock();
-                _rendererBaseColor = _enemyRenderer.sharedMaterial != null && _enemyRenderer.sharedMaterial.HasProperty(_colorPropertyName)
-                    ? _enemyRenderer.sharedMaterial.GetColor(_colorPropertyName)
-                    : Color.white;
+                _enemyRenderers = _enemyModelTransform.GetComponentsInChildren<Renderer>(includeInactive: true);
+                _rendererBaseColors = new Color[_enemyRenderers.Length];
+                _rendererHasColorProperty = new bool[_enemyRenderers.Length];
+
+                for (int i = 0; i < _enemyRenderers.Length; i++)
+                {
+                    Material material = _enemyRenderers[i].sharedMaterial;
+                    _rendererHasColorProperty[i] = material != null && material.HasProperty(_colorPropertyName);
+                    _rendererBaseColors[i] = _rendererHasColorProperty[i]
+                        ? material.GetColor(_colorPropertyName)
+                        : Color.white;
+                }
             }
         }
 
@@ -97,20 +107,37 @@ namespace ShellGame.Feedback
 
         private void FlashColor()
         {
-            if (_enemyRenderer == null || _propertyBlock == null) return;
+            if (_enemyRenderers == null || _enemyRenderers.Length == 0 || _propertyBlock == null) return;
 
             _flashTween?.Kill();
             _flashTween = DOTween.Sequence()
-                .AppendCallback(() => SetRendererColor(_flashColor))
+                .AppendCallback(() => SetRenderersColor(_flashColor))
                 .AppendInterval(_flashDuration)
-                .AppendCallback(() => SetRendererColor(_rendererBaseColor));
+                .AppendCallback(RestoreRenderersColor);
         }
 
-        private void SetRendererColor(Color color)
+        private void SetRenderersColor(Color color)
         {
-            _enemyRenderer.GetPropertyBlock(_propertyBlock);
-            _propertyBlock.SetColor(_colorPropertyName, color);
-            _enemyRenderer.SetPropertyBlock(_propertyBlock);
+            for (int i = 0; i < _enemyRenderers.Length; i++)
+            {
+                if (!_rendererHasColorProperty[i]) continue;
+
+                _enemyRenderers[i].GetPropertyBlock(_propertyBlock);
+                _propertyBlock.SetColor(_colorPropertyName, color);
+                _enemyRenderers[i].SetPropertyBlock(_propertyBlock);
+            }
+        }
+
+        private void RestoreRenderersColor()
+        {
+            for (int i = 0; i < _enemyRenderers.Length; i++)
+            {
+                if (!_rendererHasColorProperty[i]) continue;
+
+                _enemyRenderers[i].GetPropertyBlock(_propertyBlock);
+                _propertyBlock.SetColor(_colorPropertyName, _rendererBaseColors[i]);
+                _enemyRenderers[i].SetPropertyBlock(_propertyBlock);
+            }
         }
 
         protected override void OnDisable()

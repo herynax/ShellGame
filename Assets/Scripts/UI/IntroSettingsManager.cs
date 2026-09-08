@@ -33,9 +33,8 @@ public class IntroSettingsManager : MonoBehaviour
     [SerializeField] private string musicBusPath = "bus:/Music";
     [SerializeField] private string sfxBusPath = "bus:/SFX";
 
-    [Header("Тревожный фейд-ин (яркость)")]
-    [SerializeField] private float darknessPause = 0.5f;
-    [SerializeField] private float theatricalFadeDuration = 1.8f;
+    [Header("Переходы панелей")]
+    [SerializeField] private float panelFadeDuration = 0.5f;
     [SerializeField, EventRef] private string anxietyStingEvent;
 
     [Header("Спокойные переходы")]
@@ -127,9 +126,9 @@ public class IntroSettingsManager : MonoBehaviour
         soundPanel.interactable = false;
         soundPanel.blocksRaycasts = false;
 
-        // 2. После звука показываем панель яркости.
+        // 2. После звука показываем последнее меню — панель яркости.
         brightnessSlider.onValueChanged.AddListener(brightnessController.ApplyInstant);
-        yield return TheatricalFadeIn(brightnessPanel, brightnessPanelRect).WaitForCompletion();
+        yield return FadeInPanel(brightnessPanel);
 
         bool brightnessConfirmed = false;
         void OnAccept() => brightnessConfirmed = true;
@@ -138,6 +137,10 @@ public class IntroSettingsManager : MonoBehaviour
         yield return new WaitUntil(() => brightnessConfirmed);
         acceptBrightnessButton.onClick.RemoveListener(OnAccept);
         brightnessSlider.onValueChanged.RemoveListener(brightnessController.ApplyInstant);
+
+        // Длинный финальный переход и стартовый звук должны быть после
+        // закрытия последнего меню, а не после подтверждения звука.
+        yield return TheatricalFadeOut(brightnessPanel);
 
         // 3. Сохранение
         brightnessController.Save(brightnessSlider.value);
@@ -159,41 +162,20 @@ public class IntroSettingsManager : MonoBehaviour
         }
     }
 
-    // --- Тревожный фейд-ин: темнота -> флики -> долгий тяжёлый фейд ---
-    private Sequence TheatricalFadeIn(CanvasGroup panel, RectTransform rect)
+    // --- Финальный переход после закрытия последнего меню ---
+    private IEnumerator TheatricalFadeOut(CanvasGroup panel)
     {
-        panel.gameObject.SetActive(true);
-        panel.alpha = 0f;
         panel.interactable = false;
         panel.blocksRaycasts = false;
 
-        Sequence seq = DOTween.Sequence();
-        seq.SetUpdate(true);
-
-        seq.AppendInterval(darknessPause);
-
         if (!string.IsNullOrEmpty(anxietyStingEvent))
-            seq.AppendCallback(() => RuntimeManager.PlayOneShot(anxietyStingEvent));
+            RuntimeManager.PlayOneShot(anxietyStingEvent);
 
-        seq.Append(panel.DOFade(0.15f, 0.06f));
-        seq.Append(panel.DOFade(0.03f, 0.05f));
-        seq.Append(panel.DOFade(0.4f, 0.07f));
-        seq.Append(panel.DOFade(0.08f, 0.05f));
-
-        if (rect != null)
-        {
-            seq.Join(rect.DOShakeAnchorPos(0.35f, strength: 6f, vibrato: 20, randomness: 90, fadeOut: true));
-        }
-
-        seq.Append(panel.DOFade(1f, theatricalFadeDuration).SetEase(Ease.InOutSine));
-
-        seq.OnComplete(() =>
-        {
-            panel.interactable = true;
-            panel.blocksRaycasts = true;
-        });
-
-        return seq;
+        yield return panel.DOFade(0f, panelFadeDuration)
+            .SetEase(Ease.InOutSine)
+            .SetUpdate(true)
+            .WaitForCompletion();
+        panel.gameObject.SetActive(false);
     }
 
     // --- Спокойный кроссфейд между панелями ---
@@ -220,7 +202,7 @@ public class IntroSettingsManager : MonoBehaviour
         panel.interactable = false;
         panel.blocksRaycasts = false;
 
-        yield return panel.DOFade(1f, calmFadeDuration)
+        yield return panel.DOFade(1f, panelFadeDuration)
             .SetEase(Ease.InOutSine)
             .SetUpdate(true)
             .WaitForCompletion();

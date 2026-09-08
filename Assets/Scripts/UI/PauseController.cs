@@ -5,6 +5,8 @@ using UnityEngine.InputSystem; // Новая система ввода
 using Unity.Cinemachine;
 using DG.Tweening;
 using ShellGame.Audio; // Для фейда музыки при выходе
+using System.Collections.Generic;
+using Zenject;
 
 /// <summary>
 /// Контроллер паузы.
@@ -48,23 +50,23 @@ public class PauseController : MonoBehaviour
 
     [Header("Камеры")]
     [Tooltip("Основная (игровая, FPS) камера Cinemachine — используется как запасной вариант, если активную камеру определить не удалось (например, на самом первом кадре сцены).")]
-    public CinemachineCamera mainCamera;
+    [HideInInspector] public CinemachineCamera mainCamera;
     [Tooltip("Камера, которая активируется во время паузы (например, статичный общий план)")]
-    public CinemachineCamera pauseCamera;
+    [HideInInspector] public CinemachineCamera pauseCamera;
 
     [Tooltip("Больше не используется напрямую — оставлено только для обратной совместимости со старыми ссылками в инспекторе, реально не читается. Все CinemachineStationaryLook на сцене находятся и выключаются автоматически через _allLookControllers.")]
-    public CinemachineStationaryLook cameraController;
+    [HideInInspector] public CinemachineStationaryLook cameraController;
 
     [Tooltip("Cinemachine Brain сцены — нужен, чтобы понять, какая камера активна ПРЯМО СЕЙЧАС. Если не назначить в инспекторе, будет найден автоматически в Awake.")]
-    [SerializeField] private CinemachineBrain _brain;
+    [HideInInspector] [SerializeField] private CinemachineBrain _brain;
 
     [Header("UI паузы")]
     [Tooltip("Канвас-группа с меню паузы (кнопки Resume/Exit и т.д.)")]
-    public CanvasGroup pauseMenuCanvasGroup;
+    [HideInInspector] public CanvasGroup pauseMenuCanvasGroup;
 
     [Header("Игровой прицел (Crosshair)")]
     [Tooltip("Канвас-группа с ИГРОВЫМ ПРИЦЕЛОМ (crosshair), а не с системным курсором мыши — системный курсор управляется отдельно через Cursor.visible/lockState. На паузе этот прицел гаснет (фейд в 0), при снятии паузы — снова появляется (фейд в 1).")]
-    public CanvasGroup crosshairCanvasGroup;
+    [HideInInspector] public CanvasGroup crosshairCanvasGroup;
 
     [Header("Настройки")]
     public float fadeDuration = 0.3f;
@@ -86,6 +88,24 @@ public class PauseController : MonoBehaviour
     // Кэш ВСЕХ CinemachineStationaryLook на сцене — этот компонент висит на
     // каждой vcam по отдельности, а не в одном экземпляре.
     private CinemachineStationaryLook[] _allLookControllers;
+    private List<CinemachineCamera> _sceneCameras = new List<CinemachineCamera>();
+    private List<CinemachineVirtualCameraBase> _sceneVirtualCameras = new List<CinemachineVirtualCameraBase>();
+    private List<CanvasGroup> _sceneCanvasGroups = new List<CanvasGroup>();
+
+    [Inject]
+    private void InjectSceneObjects(
+        CinemachineBrain brain,
+        List<CinemachineCamera> sceneCameras,
+        List<CinemachineVirtualCameraBase> sceneVirtualCameras,
+        List<CinemachineStationaryLook> lookControllers,
+        List<CanvasGroup> canvasGroups)
+    {
+        _brain = brain;
+        _sceneCameras = sceneCameras;
+        _sceneVirtualCameras = sceneVirtualCameras;
+        _allLookControllers = lookControllers.ToArray();
+        _sceneCanvasGroups = canvasGroups;
+    }
 
     private void Awake()
     {
@@ -99,14 +119,84 @@ public class PauseController : MonoBehaviour
             return;
         }
 
-        if (_brain == null)
-            _brain = FindFirstObjectByType<CinemachineBrain>();
+        _allLookControllers ??= new CinemachineStationaryLook[0];
+    }
 
-        _allLookControllers = FindObjectsByType<CinemachineStationaryLook>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+    private void ResolveReferences()
+    {
+        var cameras = (_sceneCameras ?? new List<CinemachineCamera>()).ToArray();
+        if (mainCamera == null)
+            mainCamera = FindNamedComponent(cameras, "MainCamera");
+        if (pauseCamera == null)
+            pauseCamera = FindNamedComponent(cameras, "PauseCamera");
+
+        if (mainCamera == null)
+        {
+            foreach (var camera in cameras)
+            {
+                if (camera != pauseCamera)
+                {
+                    mainCamera = camera;
+                    break;
+                }
+            }
+        }
+
+        if (pauseCamera == null)
+        {
+            foreach (var camera in cameras)
+            {
+                if (camera != mainCamera && camera.name.IndexOf("pause", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    pauseCamera = camera;
+                    break;
+                }
+            }
+        }
+
+        if (cameraController == null)
+            cameraController = _allLookControllers != null && _allLookControllers.Length > 0
+                ? _allLookControllers[0]
+                : null;
+        if (pauseMenuCanvasGroup == null)
+            pauseMenuCanvasGroup = FindCanvasGroup("PauseMenu");
+        if (crosshairCanvasGroup == null)
+            crosshairCanvasGroup = FindCanvasGroup("Pointer") ?? FindCanvasGroup("Crosshair");
+    }
+
+    private static CinemachineCamera FindNamedComponent(CinemachineCamera[] components, string name)
+    {
+        foreach (var component in components)
+        {
+            if (component != null && component.name.Equals(name, StringComparison.OrdinalIgnoreCase))
+                return component;
+        }
+
+        foreach (var component in components)
+        {
+            if (component != null && component.name.IndexOf(name, StringComparison.OrdinalIgnoreCase) >= 0)
+                return component;
+        }
+
+        return null;
+    }
+
+    private CanvasGroup FindCanvasGroup(string name)
+    {
+        var groups = _sceneCanvasGroups ?? new List<CanvasGroup>();
+        foreach (var group in groups)
+        {
+            if (group != null && group.name.IndexOf(name, StringComparison.OrdinalIgnoreCase) >= 0)
+                return group;
+        }
+
+        return null;
     }
 
     private void Start()
     {
+        ResolveReferences();
+
         // Стартовое состояние — не на паузе
         if (pauseMenuCanvasGroup != null)
         {
@@ -211,8 +301,7 @@ public class PauseController : MonoBehaviour
     private int FindMaxScenePriority()
     {
         int max = 0;
-        var allCameras = FindObjectsByType<CinemachineVirtualCameraBase>(FindObjectsInactive.Include, FindObjectsSortMode.None);
-        foreach (var cam in allCameras)
+        foreach (var cam in _sceneVirtualCameras)
         {
             if (cam == null || cam == pauseCamera)
                 continue;

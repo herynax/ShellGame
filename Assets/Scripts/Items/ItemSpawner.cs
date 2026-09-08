@@ -6,7 +6,9 @@ using FMODUnity;
 using ShellGame.Audio;
 using ShellGame.Core;
 using ShellGame.Gameplay;
+using ShellGame.Shells;
 using UnityEngine;
+using Zenject;
 
 namespace ShellGame.Items
 {
@@ -27,6 +29,7 @@ namespace ShellGame.Items
         [SerializeField] private Ease _spawnEase = Ease.OutBack;
         [SerializeField] private ItemUseMessageView _playerUseMessage;
         [SerializeField] private ItemUseMessageView _enemyUseMessage;
+        [SerializeField] private ShellGame.Feedback.EnemyLookController _enemyLookController;
 
         private readonly List<GameObject> _spawnedItems = new List<GameObject>();
         private ItemInventory _playerInventory;
@@ -35,15 +38,25 @@ namespace ShellGame.Items
         private IAudioService _audio;
         private bool _hasSpawned;
 
+        public bool HasFinishedSpawning { get; private set; }
+
+        [Inject]
+        private void InjectDependencies(GameManager gameManager)
+        {
+            _gameManager = gameManager;
+        }
+
         public ItemInventory PlayerInventory => _playerInventory;
         public ItemInventory EnemyInventory => _enemyInventory;
 
         private void Awake()
         {
-            _gameManager = FindFirstObjectByType<GameManager>();
             ResolveSpawnPoints();
             _playerInventory = new ItemInventory(TurnSide.Player);
             _enemyInventory = new ItemInventory(TurnSide.Enemy);
+
+            if (_enemyLookController == null)
+                    _enemyLookController = FindFirstObjectByType<ShellGame.Feedback.EnemyLookController>();
 
             if (!ServiceLocator.TryGet<IAudioService>(out _audio))
             {
@@ -55,11 +68,17 @@ namespace ShellGame.Items
         public IEnumerator SpawnItems()
         {
             if (_hasSpawned || !_itemsAvailable)
+            {
+                HasFinishedSpawning = true;
                 yield break;
+            }
 
             _hasSpawned = true;
             if (_availableItems.Count == 0)
+            {
+                HasFinishedSpawning = true;
                 yield break;
+            }
 
             var playerPoints = GetPointsForSide(TurnSide.Player, _playerItemCount);
             var enemyPoints = GetPointsForSide(TurnSide.Enemy, _enemyItemCount);
@@ -92,6 +111,11 @@ namespace ShellGame.Items
                 if (_spawnDelay > 0f)
                     yield return new WaitForSeconds(_spawnDelay);
             }
+
+            if (_spawnAnimationDuration > 0f)
+                yield return new WaitForSeconds(_spawnAnimationDuration);
+
+            HasFinishedSpawning = true;
         }
 
         private List<ItemSpawnPoint> GetPointsForSide(TurnSide side, int requestedCount)
@@ -205,16 +229,22 @@ namespace ShellGame.Items
         /// заново — например, после хилки её собственная нужность падает, но
         /// нужность наручников на грани смерти может остаться высокой).
         /// </summary>
-        public bool TryUseEnemyItem(GameManager gameManager, float difficultyIndex, out bool skippedTurn, out float extraDelaySeconds)
+/// <summary>
+/// Решение противника, какие предметы использовать в этот ход — по
+/// необходимости (ItemDefinition.EvaluateEnemyDesire), без случайности.
+/// Перед КАЖДЫМ применением проигрывает "раздумье" (EnemyLookController):
+/// взгляд на несколько своих предметов, затем на тот, что реально
+/// применяется — чтобы выбор не читался как мгновенный. Может применить
+/// несколько предметов подряд за один ход, если после каждого следующий
+/// всё ещё превышает порог нужности — перед КАЖДЫМ таким повторным
+/// применением "раздумье" разыгрывается заново.
+/// </summary>
+        public IEnumerator TryUseEnemyItemsRoutine(GameManager gameManager, float difficultyIndex, EnemyItemUseResult result)
         {
-            skippedTurn = false;
-            extraDelaySeconds = 0f;
-
             if (_enemyInventory == null || gameManager == null || _enemyInventory.Snapshot.Count == 0)
-                return false;
+                yield break;
 
-            bool usedAnything = false;
-            int safetyGuard = 8; // страховка от бага в CanUse/EvaluateEnemyDesire — само по себе ограничено размером инвентаря
+            int safetyGuard = 8;
 
             while (safetyGuard-- > 0 && _enemyInventory.Snapshot.Count > 0)
             {
@@ -224,25 +254,39 @@ namespace ShellGame.Items
 
                 ItemDefinition bestItem = null;
                 ItemEffectContext bestContext = null;
+                GameObject bestItemObject = null;
                 float bestDesire = desireThreshold;
+                var candidatePositions = new List<Vector3>();
 
-                foreach (var item in new List<ItemDefinition>(_enemyInventory.Snapshot.Keys))
+                foreach (var itemObject in _spawnedItems)
                 {
-                    var context = gameManager.CreateItemContext(TurnSide.Enemy);
-                    if (!item.CanUse(context))
+                    if (itemObject == null) continue;
+
+                    var pickup = itemObject.GetComponent<ItemPickupView>();
+                    if (pickup == null || pickup.Owner != TurnSide.Enemy || pickup.Item == null)
                         continue;
 
-                    float desire = item.EvaluateEnemyDesire(context);
+                    candidatePositions.Add(itemObject.transform.position);
+
+                    var context = gameManager.CreateItemContext(TurnSide.Enemy);
+                    if (!pickup.Item.CanUse(context))
+                        continue;
+
+                    float desire = pickup.Item.EvaluateEnemyDesire(context);
                     if (desire < bestDesire)
                         continue;
 
                     bestDesire = desire;
-                    bestItem = item;
+                    bestItem = pickup.Item;
                     bestContext = context;
+                    bestItemObject = itemObject;
                 }
 
                 if (bestItem == null)
                     break;
+
+                if (_enemyLookController != null && bestItemObject != null)
+                    yield return _enemyLookController.PlayConsidering(candidatePositions, bestItemObject.transform.position);
 
                 bool itemSkippedTurn = false;
                 bestContext.SkipCurrentTurn = () => itemSkippedTurn = true;
@@ -250,20 +294,35 @@ namespace ShellGame.Items
                 if (!_enemyInventory.TryUse(bestItem, bestContext))
                     break;
 
-                usedAnything = true;
+                result.UsedAnything = true;
                 var worldPosition = RemoveSpawnedEnemyItem(bestItem);
                 bestItem.PlayUseFeedback(bestContext, _audio, worldPosition);
                 _enemyUseMessage?.ShowMessage(bestItem.GetEnemyUseAnnouncement());
-                extraDelaySeconds += Mathf.Max(0f, bestContext.ConsumedExtraDelay);
+                result.ExtraDelaySeconds += Mathf.Max(0f, bestContext.ConsumedExtraDelay);
 
                 if (itemSkippedTurn)
                 {
-                    skippedTurn = true;
+                    result.SkippedTurn = true;
                     break;
                 }
             }
 
-            return usedAnything;
+            _enemyLookController?.ResetLook();
+        }
+
+        public IEnumerator PlayEnemyLookAtShells(IReadOnlyList<Shell> shells)
+        {
+            if (_enemyLookController == null || shells == null)
+                yield break;
+
+            var shellPositions = new List<Vector3>();
+            foreach (var shell in shells)
+            {
+                if (shell != null)
+                    shellPositions.Add(shell.transform.position);
+            }
+
+            yield return _enemyLookController.PlayAtTargets(shellPositions);
         }
 
         private Vector3 RemoveSpawnedEnemyItem(ItemDefinition item)

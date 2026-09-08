@@ -1,11 +1,13 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using DG.Tweening;
 using FMODUnity;
 using ShellGame.Gameplay;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using Zenject;
 
 namespace ShellGame.UI
 {
@@ -46,6 +48,14 @@ namespace ShellGame.UI
         private bool _continueRequested;
         private CursorLockMode _previousCursorLockState;
         private bool _previousCursorVisible;
+        private CinemachineStationaryLook[] _lookControllers;
+        private bool[] _lookControllerStates;
+
+        [Inject]
+        private void InjectLookControllers(List<CinemachineStationaryLook> lookControllers)
+        {
+            _lookControllers = lookControllers.ToArray();
+        }
 
         private void Awake()
         {
@@ -69,8 +79,7 @@ namespace ShellGame.UI
         {
             _previousCursorLockState = Cursor.lockState;
             _previousCursorVisible = Cursor.visible;
-            Cursor.lockState = CursorLockMode.None;
-            Cursor.visible = true;
+            DisableLookControllers();
 
             gameObject.SetActive(true);
             _continueRequested = false;
@@ -124,6 +133,10 @@ namespace ShellGame.UI
                 _continueButton.interactable = true;
             }
 
+            // Курсор нужен игроку только после завершения показа статистики.
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+
             while (!_continueRequested) yield return null;
 
             if (_panelGroup != null)
@@ -135,6 +148,21 @@ namespace ShellGame.UI
             gameObject.SetActive(false);
             Cursor.lockState = _previousCursorLockState;
             Cursor.visible = _previousCursorVisible;
+        }
+
+        private void DisableLookControllers()
+        {
+            _lookControllers ??= new CinemachineStationaryLook[0];
+            _lookControllerStates = new bool[_lookControllers.Length];
+
+            for (int i = 0; i < _lookControllers.Length; i++)
+            {
+                if (_lookControllers[i] == null)
+                    continue;
+
+                _lookControllerStates[i] = _lookControllers[i].enabled;
+                _lookControllers[i].enabled = false;
+            }
         }
 
         private enum RowFormat { Plain, Time, Percent }

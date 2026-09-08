@@ -41,6 +41,8 @@ namespace ShellGame.Feedback
         private Tween _idleTween;
         private Tween _sideTween;
 
+        public float RotateDuration => _rotateDuration;
+
         // ИСПРАВЛЕНИЕ 2: Добавляем переменную для инстанса (самого играющего звука)
         private FMOD.Studio.EventInstance _rotateSoundInstance;
         private MaterialPropertyBlock _sidePropertyBlock;

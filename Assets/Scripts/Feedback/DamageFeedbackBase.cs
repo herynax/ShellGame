@@ -1,6 +1,7 @@
 using ShellGame.Core;
 using ShellGame.Health;
 using UnityEngine;
+using Zenject;
 
 namespace ShellGame.Feedback
 {
@@ -16,18 +17,17 @@ namespace ShellGame.Feedback
     {
         [SerializeField] private HealthController _healthController;
 
+        [Inject]
+        private void InjectHealthController(HealthController healthController)
+        {
+            if (_healthController == null)
+                _healthController = healthController;
+        }
+
         protected abstract TurnSide WatchedSide { get; }
 
         protected virtual void Awake()
         {
-            if (_healthController == null)
-#if UNITY_2023_1_OR_NEWER
-                _healthController = FindAnyObjectByType<HealthController>();
-#pragma warning disable CS0618
-#else
-                _healthController = FindObjectOfType<HealthController>();
-#endif
-#pragma warning restore CS0618
         }
 
         protected virtual void OnEnable()
