@@ -39,6 +39,10 @@ namespace ShellGame.AI
         [Tooltip("Нижняя граница итогового шанса верного выбора — не даём точности упасть до нуля даже при HP=0 и максимальном штрафе.")]
         public float MinCorrectChanceFloor = 0.05f;
 
+        [Header("Дополнительное упрощение первого уровня")]
+        [Tooltip("Множитель шанса правильного выбора врага на первом уровне. 0.5 делает врага примерно вдвое менее точным.")]
+        [Range(0f, 1f)] public float FirstLevelCorrectChanceMultiplier = 0.5f;
+
         [Header("Использование предметов ИИ (по необходимости, без случайности)")]
         [Tooltip("Порог 'желательности' предмета (см. ItemDefinition.EvaluateEnemyDesire) на МИНИМАЛЬНОЙ сложности — выше него враг решает использовать предмет. Чем выше значение, тем терпеливее враг.")]
         public float ItemUseDesireThresholdEasy = 0.5f;
@@ -80,9 +84,12 @@ namespace ShellGame.AI
             return Mathf.Lerp(MinCorrectChance, MaxCorrectChance, normalized);
         }
 
-        public float EvaluateDecisionErrorProbability(float difficultyIndex, float enemyHealthFraction01 = 1f)
+        public float EvaluateDecisionErrorProbability(float difficultyIndex, float enemyHealthFraction01 = 1f, bool isFirstLevel = false)
         {
             float correctChance = EvaluateCorrectChoiceProbability(difficultyIndex);
+            if (isFirstLevel)
+                correctChance *= FirstLevelCorrectChanceMultiplier;
+
             correctChance -= EvaluateHealthAccuracyPenalty(enemyHealthFraction01);
             correctChance = Mathf.Clamp(correctChance, MinCorrectChanceFloor, 1f);
             return 1f - correctChance;

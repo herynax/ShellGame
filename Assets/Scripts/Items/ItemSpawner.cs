@@ -1,4 +1,4 @@
-// ItemSpawner.cs
+// START OF FILE ItemSpawner.cs
 using System.Collections;
 using System.Collections.Generic;
 using DG.Tweening;
@@ -142,14 +142,6 @@ namespace ShellGame.Items
             return points;
         }
 
-        /// <summary>
-        /// Выбирает случайный предмет для точки спавна, но только среди тех,
-        /// которых на ЭТОЙ стороне (sideCounts) ещё меньше _maxDuplicatesPerSide —
-        /// не даёт игроку/врагу получить 3+ одинаковых предмета за раздачу.
-        /// Если вдруг все доступные предметы уже упёрлись в лимит (список
-        /// _availableItems меньше, чем нужно точек с учётом лимита) — берёт
-        /// среди них наименее заспавненный, чтобы не завершиться без предмета.
-        /// </summary>
         private ItemDefinition PickDefinitionForSide(Dictionary<ItemDefinition, int> sideCounts)
         {
             var underCap = new List<ItemDefinition>();
@@ -242,6 +234,9 @@ namespace ShellGame.Items
 
             var item = pickup.Item;
             var context = _gameManager.CreateItemContext(TurnSide.Player);
+            
+            // Передаем позицию, чтобы нож знал, откуда ему "взлетать"
+            context.ItemWorldPosition = pickup.transform.position;
 
             var baseBeginShellPeek = context.BeginShellPeek;
             context.BeginShellPeek = (holdDuration, onPeeked) =>
@@ -250,6 +245,16 @@ namespace ShellGame.Items
                 {
                     _playerUseMessage?.ClearMessage();
                     onPeeked?.Invoke(peekedShell);
+                });
+            };
+
+            var baseBeginKnife = context.BeginKnifeAttack;
+            context.BeginKnifeAttack = (holdDuration, onTargeted) =>
+            {
+                baseBeginKnife?.Invoke(holdDuration, targetedShell =>
+                {
+                    _playerUseMessage?.ClearMessage();
+                    onTargeted?.Invoke(targetedShell);
                 });
             };
 
@@ -267,16 +272,6 @@ namespace ShellGame.Items
             Destroy(pickup.gameObject);
         }
 
-        /// <summary>
-        /// Решение противника, какие предметы использовать в этот ход — по
-        /// необходимости (ItemDefinition.EvaluateEnemyDesire), без случайности.
-        /// Перед КАЖДЫМ применением проигрывает "раздумье" (EnemyLookController):
-        /// взгляд на несколько своих предметов, затем на тот, что реально
-        /// применяется — чтобы выбор не читался как мгновенный. Может применить
-        /// несколько предметов подряд за один ход, если после каждого следующий
-        /// всё ещё превышает порог нужности — перед КАЖДЫМ таким повторным
-        /// применением "раздумье" разыгрывается заново.
-        /// </summary>
         public IEnumerator TryUseEnemyItemsRoutine(GameManager gameManager, float difficultyIndex, EnemyItemUseResult result)
         {
             if (_enemyInventory == null || gameManager == null || _enemyInventory.Snapshot.Count == 0)
@@ -307,6 +302,8 @@ namespace ShellGame.Items
                     candidatePositions.Add(itemObject.transform.position);
 
                     var context = gameManager.CreateItemContext(TurnSide.Enemy);
+                    context.ItemWorldPosition = itemObject.transform.position; // Передаем позицию предмета
+
                     if (!pickup.Item.CanUse(context))
                         continue;
 
@@ -411,3 +408,4 @@ namespace ShellGame.Items
         }
     }
 }
+// END OF FILE

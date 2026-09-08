@@ -33,7 +33,13 @@ namespace ShellGame.Items
 
         public override bool CanUse(ItemEffectContext context)
         {
-            return context?.ActiveShells != null && context.ActiveShells.Count > 0;
+            if (context?.ActiveShells == null || context.ActiveShells.Count == 0)
+                return false;
+
+            if (context.UserSide == TurnSide.Player)
+                return context.CanUsePlayerMonocle?.Invoke() ?? false;
+
+            return true;
         }
 
         public override bool Apply(ItemEffectContext context)

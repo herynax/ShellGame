@@ -13,6 +13,8 @@ namespace ShellGame.Health
         private readonly Dictionary<TurnSide, int> _max = new Dictionary<TurnSide, int>();
         private readonly HashSet<TurnSide> _dead = new HashSet<TurnSide>();
 
+        private readonly HashSet<TurnSide> _shielded = new HashSet<TurnSide>();
+
         // Инстанс звука смерти, чтобы отслеживать, когда он закончится
         private FMOD.Studio.EventInstance _deathSoundInstance;
         public float DeathSoundDuration { get; private set; }
@@ -24,12 +26,16 @@ namespace ShellGame.Health
             _current[TurnSide.Player] = 0;
             _current[TurnSide.Enemy] = 0;
             _dead.Clear();
+            _shielded.Clear(); // Очищаем щиты при рестарте
 
             GameEvents.RaiseHealthChanged(TurnSide.Player, 0, playerMaxHealth);
             GameEvents.RaiseHealthChanged(TurnSide.Enemy, 0, enemyMaxHealth);
 
             UpdateDoseCounterParameter(TurnSide.Player);
         }
+
+        public bool HasShield(TurnSide side) => _shielded.Contains(side);
+        public void AddShield(TurnSide side) => _shielded.Add(side);
 
         public int GetHealth(TurnSide side) => _current.TryGetValue(side, out var v) ? v : 0;
         public int GetMaxHealth(TurnSide side) => _max.TryGetValue(side, out var v) ? v : 0;
@@ -53,6 +59,15 @@ namespace ShellGame.Health
         {
             if (_dead.Contains(side) || amount <= 0)
                 return false;
+
+            // ---  ЛОГИКА ЩИТА ---
+            if (_shielded.Contains(side))
+            {
+                _shielded.Remove(side);
+                GameEvents.RaiseShieldBroken(side);
+                return false; // Урон заблокирован, дальше ничего не происходит
+            }
+            // -------------------------
 
             int max = GetMaxHealth(side);
             int rawDose = GetHealth(side) + amount;

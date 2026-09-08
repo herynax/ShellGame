@@ -27,6 +27,7 @@ namespace ShellGame.AI
 
         private readonly EnemyKnowledgeModel _knowledge = new EnemyKnowledgeModel();
         private float _currentDifficultyIndex;
+        private bool _isFirstLevel;
         private float _currentHealthFraction = 1f;
 
         private float _trackingLossReductionMultiplier = 1f;
@@ -88,10 +89,11 @@ namespace ShellGame.AI
         }
 
         /// <summary>Состояние ObserveMarkers — фиксируем реальную начальную раскладку меток.</summary>
-        public void EnterObserveMarkers(IReadOnlyList<Shell> shells, float difficultyIndex)
+        public void EnterObserveMarkers(IReadOnlyList<Shell> shells, float difficultyIndex, bool isFirstLevel = false)
         {
             State = EnemyAIState.ObserveMarkers;
             _currentDifficultyIndex = difficultyIndex;
+            _isFirstLevel = isFirstLevel;
             _knowledge.Reset();
             _knowledge.Observe(shells);
         }
@@ -130,6 +132,17 @@ namespace ShellGame.AI
         }
 
         public bool CanReduceTrackingLossNextShuffle() => Mathf.Approximately(_trackingLossReductionMultiplier, 1f);
+
+        public void ResetDrugEffects()
+        {
+            if (_isTrackingSwaps)
+            {
+                _isTrackingSwaps = false;
+                GameEvents.CupSwapPerformed -= OnCupSwap;
+            }
+
+            _trackingLossReductionMultiplier = 1f;
+        }
 
         public float GetTrackedKnowledgeFraction() => _knowledge.GetTrackedFraction();
 
@@ -209,7 +222,8 @@ namespace ShellGame.AI
                     targetSlotIndex = shells[UnityEngine.Random.Range(0, shells.Count)].SlotIndex;
                 }
 
-                errorProbability = _config.EvaluateDecisionErrorProbability(_currentDifficultyIndex, _currentHealthFraction);
+                errorProbability = _config.EvaluateDecisionErrorProbability(
+                    _currentDifficultyIndex, _currentHealthFraction, _isFirstLevel);
                 errorRoll = UnityEngine.Random.value;
                 bool madeError = errorRoll < errorProbability;
                 if (madeError)

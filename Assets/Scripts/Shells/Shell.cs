@@ -204,13 +204,39 @@ namespace ShellGame.Shells
         {
             if (State != ShellState.Idle) return;
 
-            // Монокль игрока: если сейчас ожидается "подглядывание" —
-            // этот клик не финальный выбор, а просто RevealMarker на этот
-            // конкретный наперсток. Шлюз сам себя гасит после первого клика.
             if (ShellPeekGate.TryConsume(this, out var peekHoldDuration, out var onPeeked))
             {
                 RevealMarker(peekHoldDuration);
                 onPeeked?.Invoke(this);
+                return;
+            }
+
+            // Обработка клика при активном предмете "Нож"
+            if (ShellKnifeGate.TryConsume(this, out var knifeHoldDuration, out var onKnifeTarget))
+            {
+                State = ShellState.Revealing; 
+                ApplySpawnSurfacePosition();
+                ShowMarkerVisual();
+                PlayRevealStartSound();
+
+                _animator.PlayReveal(
+                    knifeHoldDuration,
+                    onPeakReached: () =>
+                    {
+                        StopRevealStartSound();
+                        var revealClip = HasMarker ? _config.AudioEvents.RevealMarked : _config.AudioEvents.RevealEmpty;
+                        _audio?.PlayOneShot(revealClip, transform.position);
+                        
+                        // Наносим урон в момент, когда наперсток поднят!
+                        onKnifeTarget?.Invoke(this); 
+                    },
+                    onComplete: () =>
+                    {
+                        HideMarkerVisual();
+                        State = ShellState.Idle;
+                        PlayRevealEndSound();
+                    }
+                );
                 return;
             }
 

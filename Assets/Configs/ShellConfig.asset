@@ -17,11 +17,11 @@ MonoBehaviour:
   LiftEase: 27
   HoldRevealedDuration: 0.6
   ShuffleMoveDurationBase: 0.5
-  ShuffleMoveDurationMin: 0.22
+  ShuffleMoveDurationMin: 0.35
   ShuffleRoundReduction: 0.07
   ShuffleLevelReduction: 0.05
   ShuffleEase: 4
-  HoverScale: 1.1
+  HoverScale: 1.5
   HoverTweenDuration: 0.12
   SpawnScaleDuration: 0.25
   SpawnEase: 27

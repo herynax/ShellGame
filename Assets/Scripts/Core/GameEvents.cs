@@ -25,6 +25,10 @@ namespace ShellGame.Core
         public static event Action RoundShuffleStarted;
         public static event Action RoundShuffleCompleted;
 
+        public static event Action<TurnSide> ShieldBroken;
+
+        public static void RaiseShieldBroken(TurnSide side) => ShieldBroken?.Invoke(side);
+
         /// <summary>
         /// Состояние TrackShuffle из ГДД: "игровое поле генерирует событие
         /// после каждого обмена двух наперстков — OnCupSwap(CupA, CupB)".

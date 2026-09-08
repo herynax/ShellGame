@@ -1,3 +1,4 @@
+// START OF FILE RoundInputSystem.cs
 using ShellGame.Shells;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -9,11 +10,16 @@ namespace ShellGame.Gameplay
     {
         [SerializeField] private Camera _interactionCamera;
         [SerializeField] private LayerMask _shellLayerMask;
+        
+        [Header("Aim Assist")]
+        [Tooltip("Радиус толстого луча. Чем больше, тем легче попасть, но тем сильнее магнитит.")]
         [SerializeField, Min(0f)] private float _shellAimAssistRadius = 0.22f;
+        [Tooltip("Вес дистанции до камеры при выборе цели. Если 0 - выбирается строго тот, к кому ближе прицел. Если больше 0 - ближние объекты имеют приоритет.")]
+        [SerializeField, Range(0f, 1f)] private float _depthWeight = 0.1f;
 
         [Header("Стабилизация прицела (от тряски камеры на дозе/наркотиках)")]
-        [Tooltip("Чем больше — тем медленнее и плавнее луч следует за реальным движением камеры/мыши, тем меньше его дёргает от джиттера. Работает по немасштабированному времени — не плывёт от Time.timeScale.")]
-        [SerializeField, Min(0.001f)] private float _aimSmoothingTime = 0.12f;
+        [Tooltip("Снижено с 0.12 до 0.03, чтобы убрать мелкую тряску, но не создавать инпут-лаг при резких переводах прицела.")]
+        [SerializeField, Min(0.001f)] private float _aimSmoothingTime = 0.03f;
 
         private bool _isEnabled;
         private IRoundInputTarget _hoveredTarget;
@@ -84,6 +90,7 @@ namespace ShellGame.Gameplay
 
             IRoundInputTarget targetUnderCursor = null;
             bool buttonHit = false;
+            
             if (_roundStartButton != null && _roundStartButton.gameObject.activeInHierarchy)
             {
                 var buttonHits = Physics.RaycastAll(
@@ -91,6 +98,7 @@ namespace ShellGame.Gameplay
                     100f,
                     Physics.AllLayers,
                     QueryTriggerInteraction.Collide);
+                    
                 System.Array.Sort(buttonHits, (left, right) => left.distance.CompareTo(right.distance));
                 foreach (var buttonHitInfo in buttonHits)
                 {
@@ -115,13 +123,6 @@ namespace ShellGame.Gameplay
             _hoveredTarget?.OnHoverEnter();
         }
 
-        /// <summary>
-        /// Демпфирует луч прицеливания по немасштабированному времени —
-        /// сглаживает высокочастотный джиттер камеры (психоделик-эффект от
-        /// дозы), не трогая при этом ни саму камеру, ни эффект. Первый
-        /// вызов после включения инпута/после долгой паузы просто берёт
-        /// сырой луч как есть — без "подтягивания" издалека.
-        /// </summary>
         private Ray SmoothAimRay(Ray rawRay)
         {
             if (!_hasSmoothedRay)
@@ -153,8 +154,7 @@ namespace ShellGame.Gameplay
                 QueryTriggerInteraction.Collide);
 
             Shell bestShell = null;
-            float bestAngle = float.MaxValue;
-            float bestDistance = float.MaxValue;
+            float bestScore = float.MaxValue;
 
             foreach (var hit in hits)
             {
@@ -162,14 +162,19 @@ namespace ShellGame.Gameplay
                 if (shell == null)
                     continue;
 
+                // Считаем перпендикулярное расстояние от наперстка до луча (Cross product).
+                // Это математически самый точный способ понять, насколько близко прицел наведен на объект.
                 Vector3 toShell = shell.transform.position - ray.origin;
-                float angle = Vector3.Angle(ray.direction, toShell);
-                if (angle < bestAngle ||
-                    (Mathf.Approximately(angle, bestAngle) && hit.distance < bestDistance))
+                float distanceFromRay = Vector3.Cross(ray.direction, toShell).magnitude;
+
+                // Добавляем небольшой вес от глубины (расстояния до камеры), 
+                // чтобы при перекрытии приоритет отдавался ближнему наперстку.
+                float score = distanceFromRay + (hit.distance * _depthWeight);
+
+                if (score < bestScore)
                 {
                     bestShell = shell;
-                    bestAngle = angle;
-                    bestDistance = hit.distance;
+                    bestScore = score;
                 }
             }
 

@@ -211,14 +211,27 @@ namespace ShellGame.Gameplay
                 Health = _healthController,
                 ActiveShells = _roundGenerator != null ? _roundGenerator.ActiveShells : null,
                 EnemyAI = _enemyAI,
-                SetNextHitDamageMultiplier = SetNextHitDamageMultiplier,
                 SlowGamePaceUntilNextChoice = SetGameSpeedMultiplier,
                 CanSlowGamePace = () => Mathf.Approximately(_activeGameSpeedMultiplier, 1f),
                 ReduceEnemyTrackingLossNextShuffle = multiplier => _enemyAI?.ReduceTrackingLossNextShuffle(multiplier),
                 CanReduceEnemyTrackingLossNextShuffle = () => _enemyAI?.CanReduceTrackingLossNextShuffle() ?? false,
+                
+                // Монокль нельзя использовать, если активен шлюз Ножа
+                CanUsePlayerMonocle = () => _activeSide == TurnSide.Player
+                    && _state == RoundState.PlayerTurn
+                    && !ShellPeekGate.IsPending
+                    && !ShellKnifeGate.IsPending,
+                BeginShellPeek = (holdDuration, onPeeked) => ShellPeekGate.Begin(holdDuration, onPeeked),
+
+                // Нож нельзя использовать, если активен шлюз Монокля
+                CanUsePlayerKnife = () => _activeSide == TurnSide.Player
+                    && _state == RoundState.PlayerTurn
+                    && !ShellPeekGate.IsPending
+                    && !ShellKnifeGate.IsPending,
+                BeginKnifeAttack = (holdDuration, onTargeted) => ShellKnifeGate.Begin(holdDuration, onTargeted),
+
                 CanUseEnemySlowItem = () => _enemySlowItemChoicesRemaining <= 0,
                 StartEnemySlowItemCooldown = () => _enemySlowItemChoicesRemaining = 2,
-                BeginShellPeek = (holdDuration, onPeeked) => ShellPeekGate.Begin(holdDuration, onPeeked),
                 ResolveShellRevealDuration = holdDuration => _roundGenerator != null ? _roundGenerator.GetRevealDuration(holdDuration) : holdDuration,
                 SkipCurrentTurn = () => _skipEnemyTurn = true,
                 RequestExtraTurn = () => RequestExtraTurn(userSide),
@@ -438,7 +451,10 @@ namespace ShellGame.Gameplay
                         yield return new WaitForSeconds(Mathf.Max(0f, _spawnPauseDuration));
                         _roundGenerator.RevealMarkers(_revealHoldDuration);
                         if (_activeSide == TurnSide.Enemy && _enemyAI != null)
-                            _enemyAI.EnterObserveMarkers(_roundGenerator.ActiveShells, _currentParameters.DifficultyIndex);
+                            _enemyAI.EnterObserveMarkers(
+                                _roundGenerator.ActiveShells,
+                                _currentParameters.DifficultyIndex,
+                                _levelIndex == 0);
                         yield return new WaitForSeconds(Mathf.Max(0f, _roundGenerator.GetRevealDuration(_revealHoldDuration)));
                         _roundGenerator.HideMarkers();
                         _state = RoundState.Shuffle;
@@ -701,6 +717,7 @@ namespace ShellGame.Gameplay
             GameEvents.RoundShuffleCompleted += OnShuffleCompleted;
             GameEvents.ShellRevealed += OnShellRevealed;
             GameEvents.RoundStartConfirmed += OnRoundStartConfirmed;
+            GameEvents.SideDied += OnSideDied;
         }
 
         private void OnDisable()
@@ -709,6 +726,14 @@ namespace ShellGame.Gameplay
             GameEvents.RoundShuffleCompleted -= OnShuffleCompleted;
             GameEvents.ShellRevealed -= OnShellRevealed;
             GameEvents.RoundStartConfirmed -= OnRoundStartConfirmed;
+            GameEvents.SideDied -= OnSideDied;
+        }
+
+        private void OnSideDied(TurnSide side)
+        {
+            ResetGameSpeedMultiplier();
+            _enemySlowItemChoicesRemaining = 0;
+            _enemyAI?.ResetDrugEffects();
         }
 
         private void OnShellSelected(Shell shell)
