@@ -75,13 +75,21 @@ namespace ShellGame.Gameplay
             }
         }
 
-        public RoundParameters GenerateRound(int levelIndex, int roundIndex, int completedRoundsBeforeCurrentRound = 0)
+        public RoundParameters GenerateRound(
+            int levelIndex,
+            int roundIndex,
+            int completedRoundsBeforeCurrentRound = 0,
+            float difficultyOverride = -1f)
         {
             ResolveSlots();
             GameEvents.RaiseRoundSetupStarted();
 
             var parameters = _progressionConfig != null
-                ? _progressionConfig.GetRoundParameters(levelIndex, roundIndex, completedRoundsBeforeCurrentRound)
+                ? _progressionConfig.GetRoundParameters(
+                    levelIndex,
+                    roundIndex,
+                    completedRoundsBeforeCurrentRound,
+                    difficultyOverride)
                 : new RoundParameters { LevelIndex = levelIndex, RoundIndex = roundIndex, CupCount = 3, MarkerCount = 1 };
 
             parameters.CupCount = Mathf.Clamp(parameters.CupCount, 1, _slots.Count);
@@ -99,7 +107,9 @@ namespace ShellGame.Gameplay
 
             var previousShells = new List<Shell>(_activeShells);
             var nextShells = new List<Shell>(_spawnedSlots.Count);
-            LayoutTransitionDuration = previousShells.Count > 0 ? ResolveLayoutMoveDuration(levelIndex, roundIndex) : 0f;
+            LayoutTransitionDuration = previousShells.Count > 0
+                ? ResolveLayoutMoveDuration(parameters.DifficultyIndex)
+                : 0f;
 
             var markerIndices = PickRandomMarkerIndices(parameters.CupCount, parameters.MarkerCount);
             for (int i = 0; i < _spawnedSlots.Count; i++)
@@ -164,14 +174,14 @@ namespace ShellGame.Gameplay
             return parameters;
         }
 
-        private float ResolveLayoutMoveDuration(int levelIndex, int roundIndex)
+        private float ResolveLayoutMoveDuration(float difficultyIndex)
         {
             if (_shellConfig == null)
                 return 0.22f;
 
             float reducedDuration = _shellConfig.ShuffleMoveDurationBase
-                - _shellConfig.ShuffleRoundReduction * Mathf.Max(0, roundIndex)
-                - _shellConfig.ShuffleLevelReduction * Mathf.Max(0, levelIndex);
+                - (_shellConfig.ShuffleRoundReduction + _shellConfig.ShuffleLevelReduction)
+                    * Mathf.Max(0f, difficultyIndex);
             return Mathf.Max(_shellConfig.ShuffleMoveDurationMin, reducedDuration);
         }
 

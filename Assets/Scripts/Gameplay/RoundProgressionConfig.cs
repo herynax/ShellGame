@@ -8,12 +8,18 @@ namespace ShellGame.Gameplay
     {
         [SerializeField] private List<RoundProgressionEntry> _entries = new List<RoundProgressionEntry>();
 
-        public RoundParameters GetRoundParameters(int levelIndex, int roundIndex, int completedRoundsBeforeCurrentRound = 0)
+        public RoundParameters GetRoundParameters(
+            int levelIndex,
+            int roundIndex,
+            int completedRoundsBeforeCurrentRound = 0,
+            float difficultyOverride = -1f)
         {
             int effectiveCompletedRounds = Mathf.Max(0, completedRoundsBeforeCurrentRound);
-            float difficultyIndex = ComputeDifficultyIndex(levelIndex, roundIndex, effectiveCompletedRounds);
+            float difficultyIndex = difficultyOverride >= 0f
+                ? difficultyOverride
+                : ComputeDifficultyIndex(levelIndex, roundIndex, effectiveCompletedRounds);
 
-            if (_entries != null)
+            if (difficultyOverride < 0f && _entries != null)
             {
                 foreach (var entry in _entries)
                 {

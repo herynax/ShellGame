@@ -25,6 +25,10 @@ namespace ShellGame.AI
         public float DecisionDelayMin = 0.3f;
         public float DecisionDelayK = 0.08f;
 
+        [Header("Раздумье перед использованием предмета")]
+        [Min(0f)]
+        public float ItemUseThinkingDuration = 1f;
+
         [Header("Штраф точности от собственного HP врага (симметрично 'поплывшему' экрану игрока от дозы)")]
         [Tooltip("Доля ПОТЕРЯННОГО HP (0..1), начиная с которой враг начинает терять точность. По умолчанию 0.5 — как порог, с которого у игрока включается шумовой джиттер.")]
         public float HealthPenaltyStartLostFraction = 0.5f;

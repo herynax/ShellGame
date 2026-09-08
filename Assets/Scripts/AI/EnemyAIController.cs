@@ -134,6 +134,10 @@ namespace ShellGame.AI
 
         public float GetItemUseDesireThreshold(float difficultyIndex) =>
             _config != null ? _config.EvaluateItemUseDesireThreshold(difficultyIndex) : 0.5f;
+
+        public float GetItemUseThinkingDuration() =>
+            _config != null ? Mathf.Max(0f, _config.ItemUseThinkingDuration) : 0f;
+
         /// <summary>
         /// Эффект предмета "Монокль" в руках противника — полностью
         /// пересобирает Knowledge из истинного состояния поля (упрощённая,

@@ -34,7 +34,13 @@ namespace ShellGame.Gameplay
 
         public void AdvanceToNextLevel()
         {
-            CurrentLevelIndex = Mathf.Max(1, CurrentLevelIndex + 1);
+            SetCurrentLevelIndex(Mathf.Max(1, CurrentLevelIndex + 1));
+            CurrentDifficultyIndex += 1f;
+        }
+
+        public void AdvanceDifficultyForRound()
+        {
+            CurrentDifficultyIndex += 0.45f;
         }
 
         public float GetDifficultyForRound(int levelIndex, int roundIndex, int completedRoundsBeforeCurrentRound)

@@ -23,6 +23,9 @@ namespace ShellGame.Items
         [SerializeField] private int _enemyItemCount = -1;
         [SerializeField] private EventReference _spawnSound;
 
+        [Tooltip("Максимум одинаковых предметов, которые может получить ОДНА сторона за раздачу (например, 2 = не больше двух одинаковых хилок игроку за раз).")]
+        [SerializeField, Min(1)] private int _maxDuplicatesPerSide = 2;
+
         [Header("Анимация появления")]
         [SerializeField] private float _spawnAnimationDuration = 0.3f;
         [SerializeField] private float _spawnDelay = 1.2f;
@@ -32,6 +35,8 @@ namespace ShellGame.Items
         [SerializeField] private ShellGame.Feedback.EnemyLookController _enemyLookController;
 
         private readonly List<GameObject> _spawnedItems = new List<GameObject>();
+        private readonly Dictionary<ItemDefinition, int> _playerSpawnCounts = new Dictionary<ItemDefinition, int>();
+        private readonly Dictionary<ItemDefinition, int> _enemySpawnCounts = new Dictionary<ItemDefinition, int>();
         private ItemInventory _playerInventory;
         private ItemInventory _enemyInventory;
         private GameManager _gameManager;
@@ -80,6 +85,9 @@ namespace ShellGame.Items
                 yield break;
             }
 
+            _playerSpawnCounts.Clear();
+            _enemySpawnCounts.Clear();
+
             var playerPoints = GetPointsForSide(TurnSide.Player, _playerItemCount);
             var enemyPoints = GetPointsForSide(TurnSide.Enemy, _enemyItemCount);
             int stepCount = Mathf.Max(playerPoints.Count, enemyPoints.Count);
@@ -89,13 +97,13 @@ namespace ShellGame.Items
                 int spawnedCount = 0;
                 Vector3 soundPosition = Vector3.zero;
 
-                if (i < playerPoints.Count && SpawnItem(playerPoints[i], TurnSide.Player, out var playerPosition))
+                if (i < playerPoints.Count && SpawnItem(playerPoints[i], TurnSide.Player, _playerSpawnCounts, out var playerPosition))
                 {
                     soundPosition += playerPosition;
                     spawnedCount++;
                 }
 
-                if (i < enemyPoints.Count && SpawnItem(enemyPoints[i], TurnSide.Enemy, out var enemyPosition))
+                if (i < enemyPoints.Count && SpawnItem(enemyPoints[i], TurnSide.Enemy, _enemySpawnCounts, out var enemyPosition))
                 {
                     soundPosition += enemyPosition;
                     spawnedCount++;
@@ -134,10 +142,48 @@ namespace ShellGame.Items
             return points;
         }
 
-        private bool SpawnItem(ItemSpawnPoint point, TurnSide owner, out Vector3 spawnPosition)
+        /// <summary>
+        /// Выбирает случайный предмет для точки спавна, но только среди тех,
+        /// которых на ЭТОЙ стороне (sideCounts) ещё меньше _maxDuplicatesPerSide —
+        /// не даёт игроку/врагу получить 3+ одинаковых предмета за раздачу.
+        /// Если вдруг все доступные предметы уже упёрлись в лимит (список
+        /// _availableItems меньше, чем нужно точек с учётом лимита) — берёт
+        /// среди них наименее заспавненный, чтобы не завершиться без предмета.
+        /// </summary>
+        private ItemDefinition PickDefinitionForSide(Dictionary<ItemDefinition, int> sideCounts)
+        {
+            var underCap = new List<ItemDefinition>();
+            foreach (var candidate in _availableItems)
+            {
+                if (candidate == null) continue;
+                sideCounts.TryGetValue(candidate, out var count);
+                if (count < _maxDuplicatesPerSide)
+                    underCap.Add(candidate);
+            }
+
+            if (underCap.Count > 0)
+                return underCap[Random.Range(0, underCap.Count)];
+
+            ItemDefinition leastUsed = null;
+            int leastUsedCount = int.MaxValue;
+            foreach (var candidate in _availableItems)
+            {
+                if (candidate == null) continue;
+                sideCounts.TryGetValue(candidate, out var count);
+                if (count < leastUsedCount)
+                {
+                    leastUsedCount = count;
+                    leastUsed = candidate;
+                }
+            }
+
+            return leastUsed;
+        }
+
+        private bool SpawnItem(ItemSpawnPoint point, TurnSide owner, Dictionary<ItemDefinition, int> sideCounts, out Vector3 spawnPosition)
         {
             spawnPosition = point.SpawnPosition;
-            var definition = _availableItems[Random.Range(0, _availableItems.Count)];
+            var definition = PickDefinitionForSide(sideCounts);
             if (definition == null || definition.WorldPrefab == null)
                 return false;
 
@@ -159,6 +205,10 @@ namespace ShellGame.Items
             pickup.SetOwner(owner);
             pickup.Used += HandleItemUsed;
             _spawnedItems.Add(itemObject);
+
+            sideCounts.TryGetValue(definition, out var currentCount);
+            sideCounts[definition] = currentCount + 1;
+
             if (owner == TurnSide.Enemy)
                 _enemyInventory.Add(definition);
 
@@ -193,10 +243,6 @@ namespace ShellGame.Items
             var item = pickup.Item;
             var context = _gameManager.CreateItemContext(TurnSide.Player);
 
-            // Оборачиваем BeginShellPeek, чтобы UI-сообщение ("выберите
-            // наперсток...") само гасилось в момент, когда peek реально
-            // состоялся — ItemSpawner единственный, кто знает про
-            // _playerUseMessage, GameManager про UI ничего не знает.
             var baseBeginShellPeek = context.BeginShellPeek;
             context.BeginShellPeek = (holdDuration, onPeeked) =>
             {
@@ -224,21 +270,13 @@ namespace ShellGame.Items
         /// <summary>
         /// Решение противника, какие предметы использовать в этот ход — по
         /// необходимости (ItemDefinition.EvaluateEnemyDesire), без случайности.
-        /// Может применить НЕСКОЛЬКО предметов подряд за один ход, если после
-        /// каждого следующий всё ещё превышает порог нужности (пересчитывается
-        /// заново — например, после хилки её собственная нужность падает, но
-        /// нужность наручников на грани смерти может остаться высокой).
+        /// Перед КАЖДЫМ применением проигрывает "раздумье" (EnemyLookController):
+        /// взгляд на несколько своих предметов, затем на тот, что реально
+        /// применяется — чтобы выбор не читался как мгновенный. Может применить
+        /// несколько предметов подряд за один ход, если после каждого следующий
+        /// всё ещё превышает порог нужности — перед КАЖДЫМ таким повторным
+        /// применением "раздумье" разыгрывается заново.
         /// </summary>
-/// <summary>
-/// Решение противника, какие предметы использовать в этот ход — по
-/// необходимости (ItemDefinition.EvaluateEnemyDesire), без случайности.
-/// Перед КАЖДЫМ применением проигрывает "раздумье" (EnemyLookController):
-/// взгляд на несколько своих предметов, затем на тот, что реально
-/// применяется — чтобы выбор не читался как мгновенный. Может применить
-/// несколько предметов подряд за один ход, если после каждого следующий
-/// всё ещё превышает порог нужности — перед КАЖДЫМ таким повторным
-/// применением "раздумье" разыгрывается заново.
-/// </summary>
         public IEnumerator TryUseEnemyItemsRoutine(GameManager gameManager, float difficultyIndex, EnemyItemUseResult result)
         {
             if (_enemyInventory == null || gameManager == null || _enemyInventory.Snapshot.Count == 0)
@@ -284,6 +322,12 @@ namespace ShellGame.Items
 
                 if (bestItem == null)
                     break;
+
+                float thinkingDuration = probeContext.EnemyAI != null
+                    ? probeContext.EnemyAI.GetItemUseThinkingDuration()
+                    : 0f;
+                if (thinkingDuration > 0f)
+                    yield return new WaitForSeconds(thinkingDuration);
 
                 if (_enemyLookController != null && bestItemObject != null)
                     yield return _enemyLookController.PlayConsidering(candidatePositions, bestItemObject.transform.position);

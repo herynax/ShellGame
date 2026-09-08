@@ -124,10 +124,9 @@ namespace ShellGame.Gameplay
         private float ResolveShuffleMoveDuration()
         {
             if (_shellConfig == null) return 0.22f;
-            float baseDuration = _shellConfig.ShuffleMoveDurationBase;
-            float roundReduction = _shellConfig.ShuffleRoundReduction * Mathf.Max(0, _currentRoundIndex);
-            float levelReduction = _shellConfig.ShuffleLevelReduction * Mathf.Max(0, _currentLevelIndex);
-            float reducedDuration = baseDuration - roundReduction - levelReduction;
+            float difficultyReduction = (_shellConfig.ShuffleRoundReduction + _shellConfig.ShuffleLevelReduction)
+                * Mathf.Max(0f, _currentDifficultyIndex);
+            float reducedDuration = _shellConfig.ShuffleMoveDurationBase - difficultyReduction;
             return Mathf.Max(_shellConfig.ShuffleMoveDurationMin, reducedDuration * _moveDurationMultiplier);
         }
 

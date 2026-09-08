@@ -115,12 +115,10 @@ namespace ShellGame.Gameplay
         private bool IsTutorialScene()
         {
             var currentSceneName = SceneManager.GetActiveScene().name;
-            bool isTutorialScene = currentSceneName.Equals("Tutorial", System.StringComparison.OrdinalIgnoreCase)
+            return currentSceneName.Equals("Tutorial", System.StringComparison.OrdinalIgnoreCase)
                 || currentSceneName.Contains("Tutorial", System.StringComparison.OrdinalIgnoreCase)
                 || currentSceneName.Contains("Level0", System.StringComparison.OrdinalIgnoreCase)
                 || currentSceneName.Contains("Level_0", System.StringComparison.OrdinalIgnoreCase);
-
-            return isTutorialScene && !IsTutorialCompleted();
         }
 
         public static bool IsTutorialCompleted() =>
@@ -160,13 +158,16 @@ namespace ShellGame.Gameplay
 
             if (IsTutorialScene())
             {
-                _sessionProgression.Reset();
                 _completedRoundsInSession = 0;
                 _levelIndex = 0;
                 _roundIndex = 0;
-                _firstRoundReadyWaited = false;
-                _tutorialPlayerChoiceLocked = true;
                 RunStatsTracker.Instance.StartRun();
+
+                if (!IsTutorialCompleted())
+                {
+                    _firstRoundReadyWaited = false;
+                    _tutorialPlayerChoiceLocked = true;
+                }
             }
             else
             {
@@ -358,12 +359,21 @@ namespace ShellGame.Gameplay
 
                         if (!_roundLayoutGenerated)
                         {
-                            _currentParameters = _roundGenerator.GenerateRound(_levelIndex, _roundIndex, _completedRoundsInSession);
+                            float difficultyIndex = _sessionProgression != null
+                                ? _sessionProgression.GetDifficultyForRound(
+                                    _levelIndex,
+                                    _roundIndex,
+                                    _completedRoundsInSession)
+                                : _levelIndex + 0.45f * (_completedRoundsInSession + _roundIndex);
+
+                            _currentParameters = _roundGenerator.GenerateRound(
+                                _levelIndex,
+                                _roundIndex,
+                                _completedRoundsInSession,
+                                difficultyIndex);
                             if (_sessionProgression != null)
                             {
-                                float persistedDifficulty = _sessionProgression.GetDifficultyForRound(_levelIndex, _roundIndex, _completedRoundsInSession);
-                                _currentParameters.DifficultyIndex = persistedDifficulty;
-                                _sessionProgression.SetDifficultyIndex(persistedDifficulty + 0.45f);
+                                _sessionProgression.AdvanceDifficultyForRound();
                             }
                             _roundLayoutGenerated = true;
                             if (_roundGenerator.LayoutTransitionDuration > 0f)

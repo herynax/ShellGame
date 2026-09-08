@@ -232,12 +232,36 @@ public class IntroSettingsManager : MonoBehaviour
 
         if (!string.IsNullOrEmpty(nextSceneName))
         {
-            SceneManager.LoadScene(nextSceneName);
+            LoadSceneThroughSceneLoader(nextSceneName);
         }
         else
         {
             int nextIndex = SceneManager.GetActiveScene().buildIndex + 1;
-            SceneManager.LoadScene(nextIndex);
+            LoadSceneThroughSceneLoader(nextIndex);
         }
+    }
+
+    private void LoadSceneThroughSceneLoader(string sceneName)
+    {
+        if (SceneLoader.Instance != null)
+        {
+            SceneLoader.Instance.LoadScene(sceneName);
+            return;
+        }
+
+        Debug.LogWarning("[IntroSettingsManager] SceneLoader не найден, используем прямую загрузку сцены.");
+        SceneManager.LoadScene(sceneName);
+    }
+
+    private void LoadSceneThroughSceneLoader(int sceneIndex)
+    {
+        if (SceneLoader.Instance != null)
+        {
+            SceneLoader.Instance.LoadScene(sceneIndex);
+            return;
+        }
+
+        Debug.LogWarning("[IntroSettingsManager] SceneLoader не найден, используем прямую загрузку сцены.");
+        SceneManager.LoadScene(sceneIndex);
     }
 }

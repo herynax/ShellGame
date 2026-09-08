@@ -113,13 +113,28 @@ namespace ShellGame.Tutorial
             }
 
             _sequencer.Completed += OnTutorialCompleted;
-            Play();
+
+            if (SceneLoader.Instance == null)
+            {
+                Play();
+                return;
+            }
+
+            SceneLoader.SceneRevealCompleted += StartAfterSceneReveal;
         }
 
         private void OnDestroy()
         {
             if (_sequencer != null)
                 _sequencer.Completed -= OnTutorialCompleted;
+
+            SceneLoader.SceneRevealCompleted -= StartAfterSceneReveal;
+        }
+
+        private void StartAfterSceneReveal()
+        {
+            SceneLoader.SceneRevealCompleted -= StartAfterSceneReveal;
+            Play();
         }
 
         private void OnTutorialCompleted()

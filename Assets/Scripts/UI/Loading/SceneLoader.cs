@@ -18,6 +18,7 @@ public class SceneLoader : MonoBehaviour
     public static event Action ScreenFullyBlack;
     public static event Action LoadingScreenShown;
     public static event Action<float> ScreenRevealing;
+    public static event Action SceneRevealCompleted;
     public static event Action<float> LoadProgressChanged; // 0..1, нормализовано
 
     [Header("Настройки фейда")]
@@ -120,7 +121,22 @@ public class SceneLoader : MonoBehaviour
     private void HandleSideDied(TurnSide side)
     {
         if (isLoading) return;
+
+        ReleaseCursorAfterDeath();
         StartCoroutine(UnifiedDeathRoutine(side));
+    }
+
+    private void ReleaseCursorAfterDeath()
+    {
+        var lookControllers = FindObjectsOfType<CinemachineStationaryLook>(true);
+        foreach (var lookController in lookControllers)
+        {
+            if (lookController != null)
+                lookController.enabled = false;
+        }
+
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
     }
 
     /// <summary>
@@ -173,6 +189,7 @@ public class SceneLoader : MonoBehaviour
         if (deadSide == TurnSide.Player)
         {
             RunStatsTracker.Instance?.StopClock();
+            EnsureSessionProgression().Reset();
             if (runStatsScreen != null)
             yield return runStatsScreen.ShowAndWaitForContinue(BuildStatsSnapshot());
         }
@@ -226,6 +243,7 @@ public class SceneLoader : MonoBehaviour
             .SetUpdate(true)
             .WaitForCompletion();
 
+        SceneRevealCompleted?.Invoke();
         fadeCanvasGroup.blocksRaycasts = false;
         isLoading = false;
         SetPauseBlocked(false);
@@ -289,6 +307,7 @@ public class SceneLoader : MonoBehaviour
             yield return fadeCanvasGroup.DOFade(0f, fadeDuration).SetUpdate(true).WaitForCompletion();
             fadeCanvasGroup.blocksRaycasts = false;
         }
+        SceneRevealCompleted?.Invoke();
         isLoading = false;
         SetPauseBlocked(false);
     }
