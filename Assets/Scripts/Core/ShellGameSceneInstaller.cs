@@ -4,6 +4,7 @@ using ShellGame.Feedback;
 using ShellGame.Gameplay;
 using ShellGame.Health;
 using ShellGame.Items;
+using ShellGame.Shells;
 using UnityEngine;
 using Unity.Cinemachine;
 using UnityEngine.Rendering;
@@ -14,13 +15,23 @@ namespace ShellGame.Core
 {
     public sealed class ShellGameSceneInstaller : MonoInstaller
     {
-
         [SerializeField] private ShellGame.Items.UnlocksConfig _unlocksConfig;
 
         public override void InstallBindings()
         {
+            // --- Мета и Сервисы ---
+            var unlocksConfig = _unlocksConfig != null ? _unlocksConfig : ResolveUnlocksConfigFallback();
+            Container.BindInstance(unlocksConfig).IfNotBound();
+            Container.BindInterfacesTo<ShellGame.Meta.GlobalProgressService>().AsSingle();
+            Container.BindInterfacesTo<ShellGame.Meta.UnlockManager>().AsSingle();
+
+            Container.Bind<GameSessionProgression>()
+                .FromInstance(GameSessionProgression.Instance)
+                .AsSingle()
+                .IfNotBound();
+
+            // --- Игровые компоненты (Scene Components) ---
             BindSceneComponent<GameManager>();
-            Container.Bind<GameSessionProgression>().FromInstance(GameSessionProgression.Instance).AsSingle();
             BindSceneComponent<RoundGenerator>();
             BindSceneComponent<RoundInputSystem>();
             BindSceneComponent<ShuffleSystem>();
@@ -31,16 +42,11 @@ namespace ShellGame.Core
             BindSceneComponent<ItemSpawner>();
             BindSceneComponent<TurnSpotlightController>();
 
-            Container.BindInstance(_unlocksConfig).IfNotBound();
-            Container.BindInterfacesTo<ShellGame.Meta.GlobalProgressService>().AsSingle();
-            Container.BindInterfacesTo<ShellGame.Meta.UnlockManager>().AsSingle();
-
+            // --- Инъекция статических инстансов ---
             if (SceneLoader.Instance != null)
                 Container.Inject(SceneLoader.Instance);
 
-            BindSceneComponent<GameManager>();
-            Container.Bind<GameSessionProgression>().FromInstance(GameSessionProgression.Instance).AsSingle();
-
+            // --- Cinemachine и Render Pipeline ---
             Container.Bind<CinemachineBrain>().FromComponentInHierarchy().AsSingle().IfNotBound();
             Container.Bind<CinemachineCamera>().FromComponentsInHierarchy().AsTransient().IfNotBound();
             Container.Bind<CinemachineVirtualCameraBase>().FromComponentsInHierarchy().AsTransient().IfNotBound();
@@ -52,7 +58,24 @@ namespace ShellGame.Core
 
         private void BindSceneComponent<T>() where T : Component
         {
+            // .IfNotBound() критически важен, чтобы избежать ошибки дублирования
             Container.Bind<T>().FromComponentInHierarchy().AsSingle().IfNotBound();
+        }
+
+        /// <summary>
+        /// _unlocksConfig как [SerializeField] всегда пуст в реальной игре:
+        /// ShellGameZenjectBootstrap создаёт этот инсталлер динамически через
+        /// AddComponent (не из префаба/объекта сцены), так что сериализованные
+        /// поля никогда не получают значение из инспектора. Поэтому конфиг
+        /// грузится напрямую из Resources — положи ассет по пути
+        /// Assets/Resources/Configs/UnlocksConfig.asset.
+        /// </summary>
+        private static ShellGame.Items.UnlocksConfig ResolveUnlocksConfigFallback()
+        {
+            var config = Resources.Load<ShellGame.Items.UnlocksConfig>("Configs/UnlocksConfig");
+            if (config == null)
+                Debug.LogError("[ShellGameSceneInstaller] UnlocksConfig не найден по пути Resources/Configs/UnlocksConfig — анлоки работать не будут.");
+            return config;
         }
     }
 
@@ -70,6 +93,7 @@ namespace ShellGame.Core
             {
                 var progressionObject = new GameObject("GameSessionProgression");
                 progressionObject.AddComponent<GameSessionProgression>();
+                Object.DontDestroyOnLoad(progressionObject); // Важно для DontDestroyOnLoad объектов
             }
 
             var contextObject = new GameObject("ShellGame SceneContext");

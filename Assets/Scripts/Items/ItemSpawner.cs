@@ -1,4 +1,4 @@
-// START OF FILE ItemSpawner.cs
+// ItemSpawner.cs
 using System.Collections;
 using System.Collections.Generic;
 using DG.Tweening;
@@ -6,8 +6,8 @@ using FMODUnity;
 using ShellGame.Audio;
 using ShellGame.Core;
 using ShellGame.Gameplay;
-using ShellGame.Shells;
 using ShellGame.Meta;
+using ShellGame.Shells;
 using UnityEngine;
 using Zenject;
 
@@ -18,13 +18,16 @@ namespace ShellGame.Items
         [Header("Предметы")]
         [Tooltip("Если выключено, предметы игрока и врага не будут появляться на сцене.")]
         [SerializeField] private bool _itemsAvailable = true;
-        [SerializeField] private List<ItemDefinition> _availableItems = new List<ItemDefinition>();
+
+        [Tooltip("Fallback-список — используется ТОЛЬКО если UnlocksConfig/IUnlockManager не заинжектированы (например, тестовая сцена без DI-контейнера анлоков). В обычной игре пул предметов берётся из UnlocksConfig через IUnlockManager — см. ResolveAvailableItems().")]
+        [SerializeField] private List<ItemDefinition> _fallbackAvailableItems = new List<ItemDefinition>();
+
         [SerializeField] private List<ItemSpawnPoint> _spawnPoints = new List<ItemSpawnPoint>();
         [SerializeField] private int _playerItemCount = -1;
         [SerializeField] private int _enemyItemCount = -1;
         [SerializeField] private EventReference _spawnSound;
 
-        [Tooltip("Максимум одинаковых предметов, которые может получить ОДНА сторона за раздачу (например, 2 = не больше двух одинаковых хилок игроку за раз).")]
+        [Tooltip("Максимум одинаковых предметов, которые может получить ОДНА сторона за раздачу.")]
         [SerializeField, Min(1)] private int _maxDuplicatesPerSide = 2;
 
         [Header("Анимация появления")]
@@ -42,16 +45,17 @@ namespace ShellGame.Items
         private ItemInventory _enemyInventory;
         private GameManager _gameManager;
         private IAudioService _audio;
-        private IUnlockManager _unlockManager;
         private bool _hasSpawned;
+
+        [InjectOptional] private IUnlockManager _unlockManager;
+        [InjectOptional] private UnlocksConfig _unlocksConfig;
 
         public bool HasFinishedSpawning { get; private set; }
 
         [Inject]
-        private void InjectDependencies(GameManager gameManager, IUnlockManager unlockManager)
+        private void InjectDependencies(GameManager gameManager)
         {
             _gameManager = gameManager;
-            _unlockManager = unlockManager;
         }
 
         public ItemInventory PlayerInventory => _playerInventory;
@@ -64,13 +68,41 @@ namespace ShellGame.Items
             _enemyInventory = new ItemInventory(TurnSide.Enemy);
 
             if (_enemyLookController == null)
-                    _enemyLookController = FindFirstObjectByType<ShellGame.Feedback.EnemyLookController>();
+                _enemyLookController = FindFirstObjectByType<ShellGame.Feedback.EnemyLookController>();
 
             if (!ServiceLocator.TryGet<IAudioService>(out _audio))
             {
                 _audio = new FMODAudioService();
                 ServiceLocator.Register(_audio);
             }
+        }
+
+        /// <summary>
+        /// Пул предметов, из которого сейчас можно спавнить. Если анлоки
+        /// подключены (UnlocksConfig + IUnlockManager заинжектированы) —
+        /// берёт только РАЗБЛОКИРОВАННЫЕ на данный момент предметы из
+        /// конфига (UnlocksConfig — единственный источник правды о том,
+        /// какие предметы вообще существуют в игре). Fallback-список нужен
+        /// только для сцен/тестов без DI-контейнера анлоков.
+        /// </summary>
+        private List<ItemDefinition> ResolveAvailableItems()
+        {
+            if (_unlockManager != null && _unlocksConfig != null)
+            {
+                var unlocked = new List<ItemDefinition>();
+                foreach (var entry in _unlocksConfig.Entries)
+                {
+                    if (entry.Item != null && _unlockManager.IsUnlocked(entry.Item))
+                        unlocked.Add(entry.Item);
+                }
+
+                if (unlocked.Count > 0)
+                    return unlocked;
+
+                Debug.LogWarning("[ItemSpawner] UnlocksConfig подключён, но ни один предмет не разблокирован — проверь UnlockedByDefault на стартовых предметах.", this);
+            }
+
+            return _fallbackAvailableItems;
         }
 
         public IEnumerator SpawnItems()
@@ -83,18 +115,8 @@ namespace ShellGame.Items
 
             _hasSpawned = true;
 
-            // ФИЛЬТРУЕМ ПУЛ ПРЕДМЕТОВ: Оставляем только разблокированные
-            var unlockedItems = new List<ItemDefinition>();
-            foreach (var item in _availableItems)
-            {
-                if (_unlockManager == null || _unlockManager.IsUnlocked(item))
-                {
-                    unlockedItems.Add(item);
-                }
-            }
-            _availableItems = unlockedItems; // Перезаписываем список для текущего раунда
-
-            if (_availableItems.Count == 0)
+            var availableItems = ResolveAvailableItems();
+            if (availableItems == null || availableItems.Count == 0)
             {
                 HasFinishedSpawning = true;
                 yield break;
@@ -112,13 +134,13 @@ namespace ShellGame.Items
                 int spawnedCount = 0;
                 Vector3 soundPosition = Vector3.zero;
 
-                if (i < playerPoints.Count && SpawnItem(playerPoints[i], TurnSide.Player, _playerSpawnCounts, out var playerPosition))
+                if (i < playerPoints.Count && SpawnItem(playerPoints[i], TurnSide.Player, availableItems, _playerSpawnCounts, out var playerPosition))
                 {
                     soundPosition += playerPosition;
                     spawnedCount++;
                 }
 
-                if (i < enemyPoints.Count && SpawnItem(enemyPoints[i], TurnSide.Enemy, _enemySpawnCounts, out var enemyPosition))
+                if (i < enemyPoints.Count && SpawnItem(enemyPoints[i], TurnSide.Enemy, availableItems, _enemySpawnCounts, out var enemyPosition))
                 {
                     soundPosition += enemyPosition;
                     spawnedCount++;
@@ -157,10 +179,17 @@ namespace ShellGame.Items
             return points;
         }
 
-        private ItemDefinition PickDefinitionForSide(Dictionary<ItemDefinition, int> sideCounts)
+        /// <summary>
+        /// Случайный предмет для точки спавна среди тех, которых на ЭТОЙ
+        /// стороне ещё меньше _maxDuplicatesPerSide. Если пул настолько
+        /// мал, что лимит физически не соблюсти (например, разблокировано
+        /// всего 1-2 предмета на много точек спавна) — берёт наименее
+        /// заспавненный, чтобы не оставить точку пустой.
+        /// </summary>
+        private ItemDefinition PickDefinitionForSide(List<ItemDefinition> availableItems, Dictionary<ItemDefinition, int> sideCounts)
         {
             var underCap = new List<ItemDefinition>();
-            foreach (var candidate in _availableItems)
+            foreach (var candidate in availableItems)
             {
                 if (candidate == null) continue;
                 sideCounts.TryGetValue(candidate, out var count);
@@ -173,7 +202,7 @@ namespace ShellGame.Items
 
             ItemDefinition leastUsed = null;
             int leastUsedCount = int.MaxValue;
-            foreach (var candidate in _availableItems)
+            foreach (var candidate in availableItems)
             {
                 if (candidate == null) continue;
                 sideCounts.TryGetValue(candidate, out var count);
@@ -187,10 +216,10 @@ namespace ShellGame.Items
             return leastUsed;
         }
 
-        private bool SpawnItem(ItemSpawnPoint point, TurnSide owner, Dictionary<ItemDefinition, int> sideCounts, out Vector3 spawnPosition)
+        private bool SpawnItem(ItemSpawnPoint point, TurnSide owner, List<ItemDefinition> availableItems, Dictionary<ItemDefinition, int> sideCounts, out Vector3 spawnPosition)
         {
             spawnPosition = point.SpawnPosition;
-            var definition = PickDefinitionForSide(sideCounts);
+            var definition = PickDefinitionForSide(availableItems, sideCounts);
             if (definition == null || definition.WorldPrefab == null)
                 return false;
 
@@ -222,9 +251,7 @@ namespace ShellGame.Items
             var baseScale = itemObject.transform.localScale;
             itemObject.transform.localScale = Vector3.zero;
             itemObject.transform.DOScale(baseScale, Mathf.Max(0f, _spawnAnimationDuration)).SetEase(_spawnEase);
-            
             return true;
-            
         }
 
         private static void RotateVisualRandomly(Transform itemTransform)
@@ -251,9 +278,6 @@ namespace ShellGame.Items
 
             var item = pickup.Item;
             var context = _gameManager.CreateItemContext(TurnSide.Player);
-            
-            // Передаем позицию, чтобы нож знал, откуда ему "взлетать"
-            context.ItemWorldPosition = pickup.transform.position;
 
             var baseBeginShellPeek = context.BeginShellPeek;
             context.BeginShellPeek = (holdDuration, onPeeked) =>
@@ -262,26 +286,6 @@ namespace ShellGame.Items
                 {
                     _playerUseMessage?.ClearMessage();
                     onPeeked?.Invoke(peekedShell);
-                });
-            };
-
-            var baseBeginHammer = context.BeginHammerAttack;
-            context.BeginHammerAttack = (holdDuration, onTargeted) =>
-            {
-                baseBeginHammer?.Invoke(holdDuration, targetedShell =>
-                {
-                    _playerUseMessage?.ClearMessage();
-                    onTargeted?.Invoke(targetedShell);
-                });
-            };
-
-            var baseBeginKnife = context.BeginKnifeAttack;
-            context.BeginKnifeAttack = (holdDuration, onTargeted) =>
-            {
-                baseBeginKnife?.Invoke(holdDuration, targetedShell =>
-                {
-                    _playerUseMessage?.ClearMessage();
-                    onTargeted?.Invoke(targetedShell);
                 });
             };
 
@@ -329,8 +333,6 @@ namespace ShellGame.Items
                     candidatePositions.Add(itemObject.transform.position);
 
                     var context = gameManager.CreateItemContext(TurnSide.Enemy);
-                    context.ItemWorldPosition = itemObject.transform.position; // Передаем позицию предмета
-
                     if (!pickup.Item.CanUse(context))
                         continue;
 
@@ -435,4 +437,3 @@ namespace ShellGame.Items
         }
     }
 }
-// END OF FILE

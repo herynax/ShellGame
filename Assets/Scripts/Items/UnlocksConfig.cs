@@ -15,9 +15,13 @@ namespace ShellGame.Items
     public class UnlockEntry
     {
         public ItemDefinition Item;
+
+        [Tooltip("Если включено — предмет доступен с самого начала, условие ниже игнорируется. Используй для стартового набора предметов вместо фиктивных условий вроде 'TotalDeaths >= 0'.")]
+        public bool UnlockedByDefault;
+
         public UnlockConditionType ConditionType;
         public int RequiredAmount;
-        
+
         [Tooltip("Текст, который пишется вместо описания, если предмет закрыт")]
         public string LockedHintText = "Умрите 5 раз, чтобы открыть";
     }

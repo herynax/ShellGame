@@ -64,6 +64,7 @@ public class SceneLoader : MonoBehaviour
 
     [InjectOptional] private HealthController _healthController;
     [InjectOptional] private IUnlockManager _unlockManager;
+    [InjectOptional] private ShellGame.Meta.IGlobalProgressService _globalProgress;
     [Inject] private GameSessionProgression _sessionProgression;
 
     private void Awake()
@@ -109,6 +110,15 @@ public class SceneLoader : MonoBehaviour
     private void HandleSideDied(TurnSide side)
     {
         if (isLoading) return;
+
+        // GlobalProgressService тоже слушает этот же ивент для TotalDeaths/TotalWins,
+        // но порядок вызова подписчиков не гарантирован (Zenject IInitializable vs
+        // обычный OnEnable) — если наш обработчик отработает раньше, проверка
+        // анлоков ниже увидит устаревший счётчик. Поэтому пересчитываем счётчик
+        // явно здесь же, синхронно, ДО запуска остальной логики.
+        if (side == TurnSide.Player && _globalProgress is ShellGame.Meta.GlobalProgressService concreteProgress)
+            concreteProgress.EnsureDeathCounted();
+
         ReleaseCursorAfterDeath();
         StartCoroutine(UnifiedDeathRoutine(side));
     }

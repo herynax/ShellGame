@@ -27,6 +27,9 @@ namespace ShellGame.Meta
         public int TotalDeaths { get; private set; }
         public int TotalWins { get; private set; }
 
+        private int _sideDeathEventGeneration;
+        private int _lastCountedDeathGeneration = -1;
+
         public void Initialize()
         {
             TotalDeaths = PlayerPrefs.GetInt("Meta_TotalDeaths", 0);
@@ -44,12 +47,27 @@ namespace ShellGame.Meta
 
         private void OnSideDied(TurnSide side)
         {
+            _sideDeathEventGeneration++;
             if (side == TurnSide.Player)
-            {
-                TotalDeaths++;
-                PlayerPrefs.SetInt("Meta_TotalDeaths", TotalDeaths);
-                PlayerPrefs.Save();
-            }
+                EnsureDeathCounted();
+        }
+
+        /// <summary>
+        /// Идемпотентно гарантирует, что текущая смерть игрока уже учтена в
+        /// TotalDeaths — можно вызвать заранее (например, из SceneLoader ДО
+        /// проверки анлоков), не боясь посчитать одну и ту же смерть дважды:
+        /// если OnSideDied уже отработал первым, повторный вызов ничего не
+        /// изменит (сравнение generation).
+        /// </summary>
+        public void EnsureDeathCounted()
+        {
+            if (_lastCountedDeathGeneration == _sideDeathEventGeneration)
+                return;
+
+            _lastCountedDeathGeneration = _sideDeathEventGeneration;
+            TotalDeaths++;
+            PlayerPrefs.SetInt("Meta_TotalDeaths", TotalDeaths);
+            PlayerPrefs.Save();
         }
 
         private void OnGameWon()
@@ -76,14 +94,14 @@ namespace ShellGame.Meta
             if (_config == null) return true;
             foreach (var entry in _config.Entries)
             {
-                if (entry.Item == item) return CheckCondition(entry);
+                if (entry.Item == item)
+                    return entry.UnlockedByDefault || CheckCondition(entry);
             }
             return true;
         }
 
         public IReadOnlyList<UnlockEntry> GetAllEntries() => _config != null ? _config.Entries : new List<UnlockEntry>();
 
-        // Возвращает предметы, которые были разблокированы, но еще не показаны игроку на экране победы/смерти
         public List<ItemDefinition> GetUnacknowledgedUnlocks()
         {
             var list = new List<ItemDefinition>();
@@ -91,6 +109,9 @@ namespace ShellGame.Meta
 
             foreach (var entry in _config.Entries)
             {
+                if (entry.UnlockedByDefault)
+                    continue; // стартовые предметы не "открываются" — нечего анонсировать
+
                 if (IsUnlocked(entry.Item))
                 {
                     if (PlayerPrefs.GetInt("AckUnlock_" + entry.Item.name, 0) == 0)
@@ -102,7 +123,6 @@ namespace ShellGame.Meta
             return list;
         }
 
-        // Отмечает предмет как "увиденный"
         public void AcknowledgeUnlock(ItemDefinition item)
         {
             PlayerPrefs.SetInt("AckUnlock_" + item.name, 1);
