@@ -29,6 +29,10 @@ namespace ShellGame.Core
 
         public static void RaiseShieldBroken(TurnSide side) => ShieldBroken?.Invoke(side);
 
+        /// <summary>Забег успешно пройден до конца.</summary>
+        public static event Action GameWon;
+        public static void RaiseGameWon() => GameWon?.Invoke();
+
         /// <summary>
         /// Состояние TrackShuffle из ГДД: "игровое поле генерирует событие
         /// после каждого обмена двух наперстков — OnCupSwap(CupA, CupB)".

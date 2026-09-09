@@ -60,3 +60,11 @@ MonoBehaviour:
     \u0442\u0435\u0431\u044F \u0441\u043F\u0430\u0441\u0451\u0442 \u0443\u0434\u0430\u0447\u043D\u044B\u0439
     \u0432\u044B\u0431\u043E\u0440?"
   - "\u041E\u0442\u0441\u044E\u0434\u0430 \u043D\u0435\u0442 \u0432\u044B\u0445\u043E\u0434\u0430."
+  images:
+  - {fileID: 21300000, guid: 2af0753f92b4a5443ab4172977739c1c, type: 3}
+  - {fileID: 21300000, guid: 444c9ad7add192b42a9a81b5f9cf15c8, type: 3}
+  - {fileID: 21300000, guid: c37535b9bad37ed43a247f4d14e7dd1a, type: 3}
+  - {fileID: 21300000, guid: 3bb7ffdd05257874bba8b38307ee79d5, type: 3}
+  - {fileID: 21300000, guid: 5d0f73ac9afc36b4d88d81ec9d4fba5c, type: 3}
+  - {fileID: 21300000, guid: 1e55d736776773a48859221d3d0e8a64, type: 3}
+  - {fileID: 21300000, guid: d7ab1dba1dbe26043a1d5fcced424480, type: 3}

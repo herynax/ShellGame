@@ -18,6 +18,7 @@ namespace ShellGame.Items
     {
         [Header("Общее")]
         public string DisplayName;
+        public Sprite Icon;
         [Header("Тексты")]
         [FormerlySerializedAs("Description")]
         [TextArea] public string TooltipDescription;

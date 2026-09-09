@@ -7,6 +7,7 @@ using ShellGame.Audio;
 using ShellGame.Core;
 using ShellGame.Gameplay;
 using ShellGame.Shells;
+using ShellGame.Meta;
 using UnityEngine;
 using Zenject;
 
@@ -41,14 +42,16 @@ namespace ShellGame.Items
         private ItemInventory _enemyInventory;
         private GameManager _gameManager;
         private IAudioService _audio;
+        private IUnlockManager _unlockManager;
         private bool _hasSpawned;
 
         public bool HasFinishedSpawning { get; private set; }
 
         [Inject]
-        private void InjectDependencies(GameManager gameManager)
+        private void InjectDependencies(GameManager gameManager, IUnlockManager unlockManager)
         {
             _gameManager = gameManager;
+            _unlockManager = unlockManager;
         }
 
         public ItemInventory PlayerInventory => _playerInventory;
@@ -79,6 +82,18 @@ namespace ShellGame.Items
             }
 
             _hasSpawned = true;
+
+            // ФИЛЬТРУЕМ ПУЛ ПРЕДМЕТОВ: Оставляем только разблокированные
+            var unlockedItems = new List<ItemDefinition>();
+            foreach (var item in _availableItems)
+            {
+                if (_unlockManager == null || _unlockManager.IsUnlocked(item))
+                {
+                    unlockedItems.Add(item);
+                }
+            }
+            _availableItems = unlockedItems; // Перезаписываем список для текущего раунда
+
             if (_availableItems.Count == 0)
             {
                 HasFinishedSpawning = true;
