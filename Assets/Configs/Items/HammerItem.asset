@@ -1,0 +1,75 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 243f9c6fa2389a442a2e2c1a3377e166, type: 3}
+  m_Name: HammerItem
+  m_EditorClassIdentifier: Assembly-CSharp::ShellGame.Items.HammerItemDefinition
+  DisplayName: "\u041C\u043E\u043B\u043E\u0442\u043E\u043A"
+  TooltipDescription: "\u0412\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u043F\u0443\u0441\u0442\u043E\u0439
+    \u043D\u0430\u043F\u0435\u0440\u0441\u0442\u043E\u043A \u0447\u0442\u043E\u0431\u044B
+    \u0435\u0433\u043E \u0440\u0430\u0437\u0440\u0443\u0448\u0438\u0442\u044C \u043D\u0430
+    \u0432\u0440\u0435\u043C\u044F \u043F\u0430\u0440\u0442\u0438\u0438. \u0415\u0441\u043B\u0438
+    \u043D\u0430\u043F\u0435\u0440\u0441\u0442\u043E\u043A \u0431\u044B\u043B \u043D\u0435
+    \u043F\u0443\u0441\u0442\u043E\u0439 - \u0432\u044B \u043F\u043E\u043B\u0443\u0447\u0430\u0435\u0442\u0435
+    \u0443\u0440\u043E\u043D."
+  UseDescription: "\u0432\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u043F\u0443\u0441\u0442\u043E\u0439
+    \u043D\u0430\u043F\u0435\u0440\u0441\u0442\u043E\u043A"
+  WorldPrefab: {fileID: 9066168092723033477, guid: 13043a3dd9239f84aa65c64076ebc049,
+    type: 3}
+  HoverLiftHeight: 0.08
+  HoverScaleMultiplier: 1.15
+  HoverTweenDuration: 0.15
+  HoverEnterSound:
+    Guid:
+      Data1: -1840157329
+      Data2: 1333936529
+      Data3: 1352753539
+      Data4: -1065162649
+    Path: event:/SFX/Items/I_MetalItemsHower
+  HoverExitSound:
+    Guid:
+      Data1: -1840157329
+      Data2: 1333936529
+      Data3: 1352753539
+      Data4: -1065162649
+    Path: event:/SFX/Items/I_MetalItemsHower
+  TooltipHoverDelay: 0.6
+  UseSound:
+    Guid:
+      Data1: -1418281896
+      Data2: 1256630260
+      Data3: -1410837061
+      Data4: -1616072449
+    Path: event:/SFX/Items/Hamer/I_HamerUse
+  PlayerUseAnimationTrigger: UseItem
+  EnemyUseAnimationTrigger: EnemyUseItem
+  RevealDuration: 0.8
+  DamageToPlayer: 1
+  HammerPrefab: {fileID: 5285820808602273440, guid: 97d28af6f3394d442af0d45c2cec8578,
+    type: 3}
+  SmashParticlesPrefab: {fileID: 454268148171744523, guid: 459c4d4eefb126b4f8bf8d5bd3981b38,
+    type: 3}
+  HitParticlesPrefab: {fileID: 2226710916107464663, guid: 2eb8b7b2e5c8cd346a365782dda23d4a,
+    type: 3}
+  SmashSound:
+    Guid:
+      Data1: -935513469
+      Data2: 1074218297
+      Data3: -969803842
+      Data4: -931382103
+    Path: event:/SFX/Items/Hamer/I_HamerSmash
+  HitFaceSound:
+    Guid:
+      Data1: 1086872509
+      Data2: 1299218605
+      Data3: 1022261438
+      Data4: -75938839
+    Path: event:/SFX/Items/Hamer/I_HamerHitFace

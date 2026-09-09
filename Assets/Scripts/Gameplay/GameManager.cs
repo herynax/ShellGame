@@ -223,6 +223,15 @@ namespace ShellGame.Gameplay
                     && !ShellKnifeGate.IsPending,
                 BeginShellPeek = (holdDuration, onPeeked) => ShellPeekGate.Begin(holdDuration, onPeeked),
 
+                CanUsePlayerHammer = () => _activeSide == TurnSide.Player
+                    && _state == RoundState.PlayerTurn
+                    && !ShellPeekGate.IsPending
+                    && !ShellKnifeGate.IsPending
+                    && !ShellHammerGate.IsPending,
+                BeginHammerAttack = (holdDuration, onTargeted) => ShellHammerGate.Begin(holdDuration, onTargeted),
+                ReduceMaxShells = () => _sessionProgression?.AddMaxShellsPenalty(1),
+                RemoveShellFromPlay = shell => _roundGenerator?.RemoveShell(shell),
+
                 // Нож нельзя использовать, если активен шлюз Монокля
                 CanUsePlayerKnife = () => _activeSide == TurnSide.Player
                     && _state == RoundState.PlayerTurn
@@ -391,7 +400,8 @@ namespace ShellGame.Gameplay
                                 _levelIndex,
                                 _roundIndex,
                                 _completedRoundsInSession,
-                                difficultyIndex);
+                                difficultyIndex,
+                                _sessionProgression != null ? _sessionProgression.MaxShellsPenalty : 0); // ПЕРЕДАЕМ ПЕНАЛЬТИ
                             if (_sessionProgression != null)
                             {
                                 _sessionProgression.AdvanceDifficultyForRound();

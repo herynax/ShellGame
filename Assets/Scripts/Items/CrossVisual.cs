@@ -14,12 +14,14 @@ namespace ShellGame.Items
     {
         private TurnSide _owner;
         private EventReference _breakSound;
+        private GameObject _breakParticlesPrefab;
         private bool _isBroken;
 
-        public void Initialize(TurnSide owner, EventReference breakSound)
+        public void Initialize(TurnSide owner, EventReference breakSound, GameObject breakParticlesPrefab)
         {
             _owner = owner;
             _breakSound = breakSound;
+            _breakParticlesPrefab = breakParticlesPrefab;
             
             // Анимация появления (пружинит из ниоткуда)
             transform.localScale = Vector3.zero;
@@ -53,6 +55,9 @@ namespace ShellGame.Items
             // Звук поломки
             if (!_breakSound.IsNull)
                 RuntimeManager.PlayOneShot(_breakSound, transform.position);
+
+            if (_breakParticlesPrefab != null)
+                Instantiate(_breakParticlesPrefab, transform.position, transform.rotation);
 
             // Анимация разрушения: жестко трясется, затем сжимается в ноль и удаляется
             Sequence breakSeq = DOTween.Sequence();

@@ -1,4 +1,5 @@
 // START OF FILE RoundInputSystem.cs
+using ShellGame.Items; // Добавлено для доступа к ItemPickupView
 using ShellGame.Shells;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -14,11 +15,10 @@ namespace ShellGame.Gameplay
         [Header("Aim Assist")]
         [Tooltip("Радиус толстого луча. Чем больше, тем легче попасть, но тем сильнее магнитит.")]
         [SerializeField, Min(0f)] private float _shellAimAssistRadius = 0.22f;
-        [Tooltip("Вес дистанции до камеры при выборе цели. Если 0 - выбирается строго тот, к кому ближе прицел. Если больше 0 - ближние объекты имеют приоритет.")]
+        [Tooltip("Вес дистанции до камеры при выборе цели. Если 0 - выбирается строго тот, к кому ближе прицел.")]
         [SerializeField, Range(0f, 1f)] private float _depthWeight = 0.1f;
 
-        [Header("Стабилизация прицела (от тряски камеры на дозе/наркотиках)")]
-        [Tooltip("Снижено с 0.12 до 0.03, чтобы убрать мелкую тряску, но не создавать инпут-лаг при резких переводах прицела.")]
+        [Header("Стабилизация прицела")]
         [SerializeField, Min(0.001f)] private float _aimSmoothingTime = 0.03f;
 
         private bool _isEnabled;
@@ -53,7 +53,7 @@ namespace ShellGame.Gameplay
             {
                 _hoveredTarget?.OnHoverExit();
                 _hoveredTarget = null;
-                _hasSmoothedRay = false; // при повторном включении не тянуть луч со старой позиции через всю комнату
+                _hasSmoothedRay = false;
             }
         }
 
@@ -91,14 +91,10 @@ namespace ShellGame.Gameplay
             IRoundInputTarget targetUnderCursor = null;
             bool buttonHit = false;
             
+            // 1. Проверяем кнопку старта
             if (_roundStartButton != null && _roundStartButton.gameObject.activeInHierarchy)
             {
-                var buttonHits = Physics.RaycastAll(
-                    ray,
-                    100f,
-                    Physics.AllLayers,
-                    QueryTriggerInteraction.Collide);
-                    
+                var buttonHits = Physics.RaycastAll(ray, 100f, Physics.AllLayers, QueryTriggerInteraction.Collide);
                 System.Array.Sort(buttonHits, (left, right) => left.distance.CompareTo(right.distance));
                 foreach (var buttonHitInfo in buttonHits)
                 {
@@ -112,8 +108,24 @@ namespace ShellGame.Gameplay
                 }
             }
 
+            // 2. БЛОКИРОВКА АИМ-АССИСТА: Проверяем, не смотрим ли мы прямо на предмет
+            bool itemHit = false;
             if (!buttonHit)
+            {
+                if (Physics.Raycast(ray, out RaycastHit directHit, 100f, Physics.AllLayers, QueryTriggerInteraction.Collide))
+                {
+                    if (directHit.collider.GetComponentInParent<ItemPickupView>() != null)
+                    {
+                        itemHit = true; // Мы смотрим прямо на предмет, магнит наперстков отключается!
+                    }
+                }
+            }
+
+            // 3. Ищем наперсток толстым лучом, только если не смотрим на кнопку или предмет
+            if (!buttonHit && !itemHit)
+            {
                 targetUnderCursor = FindShellUnderAim(ray);
+            }
 
             if (targetUnderCursor == _hoveredTarget)
                 return;
@@ -162,13 +174,8 @@ namespace ShellGame.Gameplay
                 if (shell == null)
                     continue;
 
-                // Считаем перпендикулярное расстояние от наперстка до луча (Cross product).
-                // Это математически самый точный способ понять, насколько близко прицел наведен на объект.
                 Vector3 toShell = shell.transform.position - ray.origin;
                 float distanceFromRay = Vector3.Cross(ray.direction, toShell).magnitude;
-
-                // Добавляем небольшой вес от глубины (расстояния до камеры), 
-                // чтобы при перекрытии приоритет отдавался ближнему наперстку.
                 float score = distanceFromRay + (hit.distance * _depthWeight);
 
                 if (score < bestScore)

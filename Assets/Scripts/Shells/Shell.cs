@@ -1,3 +1,5 @@
+// START OF FILE Shell.cs
+using System;
 using FMOD.Studio;
 using FMODUnity;
 using ShellGame.Audio;
@@ -13,21 +15,12 @@ using UnityEditor;
 
 namespace ShellGame.Shells
 {
-    /// <summary>
-    /// Наперсток как 3D-объект стола. Сам объект — меш (не спрайт), но может
-    /// нести дочерние спрайт-биллборды (например, декор/иконку метки при
-    /// показе) — отсюда 2.5D-подход, упомянутый в дизайн-документе.
-    ///
-    /// Единственный источник правды по состоянию конкретного наперстка.
-    /// Вся логика раунда (кто выиграл, сколько меток и т.д.) живёт выше —
-    /// в ShellsTableController — этот класс сознательно "глупый".
-    /// </summary>
     [RequireComponent(typeof(ShellAnimator))]
     [RequireComponent(typeof(Collider))]
     public sealed class Shell : MonoBehaviour, IPoolResettable, IRoundInputTarget
     {
         [SerializeField] private Collider _clickCollider;
-        [SerializeField] private Transform _markerVisualAnchor; // сюда включается спрайт метки при Reveal, если нужно
+        [SerializeField] private Transform _markerVisualAnchor;
         [SerializeField] private Renderer[] _sideRenderers;
 
         private ShellAnimator _animator;
@@ -38,6 +31,8 @@ namespace ShellGame.Shells
         private MaterialPropertyBlock _sidePropertyBlock;
         private Tween _sideTween;
         private static readonly int SidePropertyId = Shader.PropertyToID("_Side");
+
+        private Action<Shell> _pendingKnifeCallback;
 
         public int SlotIndex { get; private set; } = -1;
         public ShellSlot AssignedSlot { get; private set; }
@@ -54,7 +49,6 @@ namespace ShellGame.Shells
             _sidePropertyBlock = new MaterialPropertyBlock();
         }
 
-        /// <summary>Вызывается пул-сервисом сразу после создания/раздачи слота — задаёт зависимости и правило один раз.</summary>
         public void Initialize(ShellConfig config, IAudioService audioService)
         {
             _config = config;
@@ -62,10 +56,7 @@ namespace ShellGame.Shells
             _animator.Initialize(config);
         }
 
-        public void AssignToSlot(int slotIndex)
-        {
-            SlotIndex = slotIndex;
-        }
+        public void AssignToSlot(int slotIndex) => SlotIndex = slotIndex;
 
         public void AssignToSlot(ShellSlot slot)
         {
@@ -73,43 +64,28 @@ namespace ShellGame.Shells
             SlotIndex = slot != null ? slot.Index : -1;
         }
 
-        public void SetSide(TurnSide side)
-        {
-            SetSideValue(side == TurnSide.Enemy ? 1f : 0f);
-        }
+        public void SetSide(TurnSide side) => SetSideValue(side == TurnSide.Enemy ? 1f : 0f);
 
         public void AnimateSide(TurnSide side, float duration)
         {
             _sideTween?.Kill();
             float targetValue = side == TurnSide.Enemy ? 1f : 0f;
-            _sideTween = DOTween.To(
-                    () => GetSideValue(),
-                    SetSideValue,
-                    targetValue,
-                    Mathf.Max(0f, duration))
-                .SetEase(Ease.Linear);
+            _sideTween = DOTween.To(() => GetSideValue(), SetSideValue, targetValue, Mathf.Max(0f, duration)).SetEase(Ease.Linear);
         }
 
         private float GetSideValue()
         {
-            if (_sideRenderers == null || _sideRenderers.Length == 0 || _sidePropertyBlock == null)
-                return 0f;
-
+            if (_sideRenderers == null || _sideRenderers.Length == 0 || _sidePropertyBlock == null) return 0f;
             _sideRenderers[0].GetPropertyBlock(_sidePropertyBlock);
             return _sidePropertyBlock.GetFloat(SidePropertyId);
         }
 
         private void SetSideValue(float value)
         {
-            if (_sideRenderers == null || _sidePropertyBlock == null)
-                return;
-
+            if (_sideRenderers == null || _sidePropertyBlock == null) return;
             _sidePropertyBlock.SetFloat(SidePropertyId, value);
             foreach (var renderer in _sideRenderers)
-            {
-                if (renderer != null)
-                    renderer.SetPropertyBlock(_sidePropertyBlock);
-            }
+                if (renderer != null) renderer.SetPropertyBlock(_sidePropertyBlock);
         }
 
         public void PlaceAtSurface(Vector3 surfacePoint)
@@ -121,9 +97,7 @@ namespace ShellGame.Shells
         public void AttachMarker(Marker marker)
         {
             _marker = marker;
-            if (marker == null)
-                return;
-
+            if (marker == null) return;
             marker.transform.SetParent(null, true);
             marker.Hide();
         }
@@ -131,8 +105,7 @@ namespace ShellGame.Shells
         public void SetMarker(bool hasMarker)
         {
             HasMarker = hasMarker;
-            if (_marker != null)
-                _marker.Hide();
+            if (_marker != null) _marker.Hide();
         }
 
         public void RevealMarker(float holdDuration)
@@ -140,17 +113,11 @@ namespace ShellGame.Shells
             State = ShellState.Revealing;
             ApplySpawnSurfacePosition();
             ShowMarkerVisual();
-
-            // Звук лифта — сразу, синхронно со стартом анимации подъёма.
             PlayRevealStartSound();
 
             _animator.PlayReveal(
                 holdDuration,
-                onPeakReached: () =>
-                {
-                    // Лифт долетел до верха — глушим стартовый звук с фейд-аутом ровно здесь.
-                    StopRevealStartSound();
-                },
+                onPeakReached: () => StopRevealStartSound(),
                 onDescendingStarted: () => { },
                 onComplete: () =>
                 {
@@ -160,22 +127,14 @@ namespace ShellGame.Shells
                 });
         }
 
-        public void HideMarker()
-        {
-            HideMarkerVisual();
-        }
+        public void HideMarker() => HideMarkerVisual();
 
-        public void SetInteractable(bool interactable)
-        {
-            _clickCollider.enabled = interactable;
-        }
+        public void SetInteractable(bool interactable) => _clickCollider.enabled = interactable;
 
         private void OnDrawGizmos()
         {
 #if UNITY_EDITOR
-            if (!enabled)
-                return;
-
+            if (!enabled) return;
             var label = HasMarker ? "Marker" : "No marker";
             var color = HasMarker ? Color.yellow : Color.gray;
             Gizmos.color = color;
@@ -199,7 +158,6 @@ namespace ShellGame.Shells
             GameEvents.RaiseShellHoverExit(this);
         }
 
-        /// <summary>Вызывается контроллером стола по клику ЛКМ на этот наперсток (или EnemyAIController-ом на своём ходу).</summary>
         public void Select()
         {
             if (State != ShellState.Idle) return;
@@ -211,35 +169,23 @@ namespace ShellGame.Shells
                 return;
             }
 
-            // Обработка клика при активном предмете "Нож"
-            if (ShellKnifeGate.TryConsume(this, out var knifeHoldDuration, out var onKnifeTarget))
+            // === ОБРАБОТКА МОЛОТКА ===
+            if (ShellHammerGate.TryConsume(this, out var hammerHoldDuration, out var onHammerTarget))
             {
+                // Сразу блокируем наперсток от повторных кликов, но НЕ поднимаем его
                 State = ShellState.Revealing; 
-                ApplySpawnSurfacePosition();
-                ShowMarkerVisual();
-                PlayRevealStartSound();
-
-                _animator.PlayReveal(
-                    knifeHoldDuration,
-                    onPeakReached: () =>
-                    {
-                        StopRevealStartSound();
-                        var revealClip = HasMarker ? _config.AudioEvents.RevealMarked : _config.AudioEvents.RevealEmpty;
-                        _audio?.PlayOneShot(revealClip, transform.position);
-                        
-                        // Наносим урон в момент, когда наперсток поднят!
-                        onKnifeTarget?.Invoke(this); 
-                    },
-                    onComplete: () =>
-                    {
-                        HideMarkerVisual();
-                        State = ShellState.Idle;
-                        PlayRevealEndSound();
-                    }
-                );
+                
+                // Передаем контроль Молотку (он сам решит: бить по столу или поднять наперсток)
+                onHammerTarget?.Invoke(this); 
                 return;
             }
 
+            if (ShellKnifeGate.TryConsume(this, out var knifeHoldDuration, out var onKnifeTarget))
+            {
+                _pendingKnifeCallback = onKnifeTarget;
+            }
+
+            // --- СТАНДАРТНЫЙ ВЫБОР ---
             State = ShellState.Selected;
             SetInteractable(false);
             _audio?.PlayOneShot(_config.AudioEvents.Select, transform.position);
@@ -252,7 +198,6 @@ namespace ShellGame.Shells
                 onPeakReached: () =>
                 {
                     StopRevealStartSound();
-
                     var revealClip = HasMarker ? _config.AudioEvents.RevealMarked : _config.AudioEvents.RevealEmpty;
                     _audio?.PlayOneShot(revealClip, transform.position);
                     GameEvents.RaiseShellRevealed(this, HasMarker);
@@ -267,7 +212,6 @@ namespace ShellGame.Shells
                 });
         }
 
-        /// <summary>Переместить наперсток на новую позицию слота (используется алгоритмом перемешивания).</summary>
         public void MoveToSlot(ShellSlot targetSlot, System.Action onComplete = null, float moveDuration = -1f)
         {
             if (targetSlot == null)
@@ -278,16 +222,13 @@ namespace ShellGame.Shells
 
             State = ShellState.Shuffling;
             SetInteractable(false);
-            if (AssignedSlot != null)
-                AssignedSlot.OccupyingShell = null;
-
+            if (AssignedSlot != null) AssignedSlot.OccupyingShell = null;
             AssignedSlot = targetSlot;
             targetSlot.OccupyingShell = this;
             SlotIndex = targetSlot.Index;
             _audio?.PlayOneShot(_config.AudioEvents.ShuffleMove, transform.position);
-            Vector3 targetPosition = ShellGame.Core.TableSurfacePlacement.GetObjectPositionOnSurface(
-                transform,
-                targetSlot.SpawnPosition);
+            Vector3 targetPosition = ShellGame.Core.TableSurfacePlacement.GetObjectPositionOnSurface(transform, targetSlot.SpawnPosition);
+            
             _animator.PlayMoveTo(targetPosition, () =>
             {
                 ShellGame.Core.TableSurfacePlacement.PlaceObjectOnSurface(transform, targetSlot.SpawnPosition);
@@ -305,8 +246,7 @@ namespace ShellGame.Shells
 
         public void RevealResult()
         {
-            if (State != ShellState.Selected)
-                return;
+            if (State != ShellState.Selected) return;
 
             State = ShellState.Revealing;
             ShowMarkerVisual();
@@ -321,16 +261,19 @@ namespace ShellGame.Shells
                     State = ShellState.Idle;
                     SetInteractable(true);
                     PlayRevealEndSound();
+
+                    if (_pendingKnifeCallback != null)
+                    {
+                        _pendingKnifeCallback.Invoke(this);
+                        _pendingKnifeCallback = null;
+                    }
                 });
         }
 
         private void PlayRevealStartSound()
         {
-            StopRevealStartSound(); // на случай повторного вызова без завершения предыдущего инстанса
-
-            if (_audio == null)
-                return;
-
+            StopRevealStartSound();
+            if (_audio == null) return;
             _revealStartInstance = _audio.CreateInstance(_config.AudioEvents.RevealStart);
             _revealStartInstance.set3DAttributes(RuntimeUtils.To3DAttributes(transform.position));
             _revealStartInstance.start();
@@ -338,58 +281,29 @@ namespace ShellGame.Shells
 
         private void StopRevealStartSound()
         {
-            if (!_revealStartInstance.isValid())
-                return;
-
+            if (!_revealStartInstance.isValid()) return;
             _revealStartInstance.stop(FMOD.Studio.STOP_MODE.ALLOWFADEOUT);
             _revealStartInstance.release();
             _revealStartInstance.clearHandle();
         }
 
-        private void PlayRevealEndSound()
-        {
-            _audio?.PlayOneShot(_config.AudioEvents.RevealEnd, transform.position);
-        }
-
-        private void ApplySpawnSurfacePosition()
-        {
-            if (AssignedSlot != null)
-            {
-                PlaceAtSurface(AssignedSlot.SpawnPosition);
-            }
-        }
-
+        private void PlayRevealEndSound() => _audio?.PlayOneShot(_config.AudioEvents.RevealEnd, transform.position);
+        private void ApplySpawnSurfacePosition() { if (AssignedSlot != null) PlaceAtSurface(AssignedSlot.SpawnPosition); }
+        
         private void ShowMarkerVisual()
         {
-            if (!HasMarker)
-                return;
-
+            if (!HasMarker) return;
             var surfacePosition = AssignedSlot != null ? AssignedSlot.SpawnPosition : transform.position;
-
-            if (_marker != null)
-            {
-                _marker.PlaceAtSurface(surfacePosition);
-                _marker.Show();
-            }
-            else if (_markerVisualAnchor != null)
-            {
-                _markerVisualAnchor.position = surfacePosition;
-                _markerVisualAnchor.gameObject.SetActive(true);
-            }
+            if (_marker != null) { _marker.PlaceAtSurface(surfacePosition); _marker.Show(); }
+            else if (_markerVisualAnchor != null) { _markerVisualAnchor.position = surfacePosition; _markerVisualAnchor.gameObject.SetActive(true); }
         }
 
         private void HideMarkerVisual()
         {
-            if (!HasMarker)
-                return;
-
-            if (_marker != null)
-                _marker.Hide();
-            else if (_markerVisualAnchor != null)
-                _markerVisualAnchor.gameObject.SetActive(false);
+            if (!HasMarker) return;
+            if (_marker != null) _marker.Hide();
+            else if (_markerVisualAnchor != null) _markerVisualAnchor.gameObject.SetActive(false);
         }
-
-        // --- IPoolResettable ---
 
         public void OnSpawnFromPool()
         {
@@ -399,15 +313,13 @@ namespace ShellGame.Shells
             SlotIndex = -1;
             AssignedSlot = null;
             _marker = null;
+            _pendingKnifeCallback = null;
             SetInteractable(true);
-            if (_markerVisualAnchor != null)
-                _markerVisualAnchor.gameObject.SetActive(false);
-
+            if (_markerVisualAnchor != null) _markerVisualAnchor.gameObject.SetActive(false);
             if (_animator != null)
             {
                 var baseScale = _animator.BaseScale;
-                if (baseScale == Vector3.zero)
-                    baseScale = Vector3.one;
+                if (baseScale == Vector3.zero) baseScale = Vector3.one;
                 transform.localScale = baseScale;
             }
         }
@@ -420,26 +332,15 @@ namespace ShellGame.Shells
             StopRevealStartSound();
             State = ShellState.PooledInactive;
             SetInteractable(false);
-            if (_marker != null)
-            {
-                _marker.Hide();
-                _marker = null;
-            }
+            if (_marker != null) { _marker.Hide(); _marker = null; }
         }
 
         private void OnDestroy()
         {
-            // 1. Убиваем все анимации привязанные к этому Transform
             transform.DOKill();
-
-            // 2. Убиваем внутренние твины аниматора
-            if (_animator != null)
-            {
-                _animator.Kill();
-            }
-
-            // 3. Останавливаем 3D-звук лифта, чтобы он не завис в воздухе
+            if (_animator != null) _animator.Kill();
             StopRevealStartSound();
         }
     }
 }
+// END OF FILE

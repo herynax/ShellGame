@@ -207,7 +207,9 @@ namespace ShellGame.Items
             var baseScale = itemObject.transform.localScale;
             itemObject.transform.localScale = Vector3.zero;
             itemObject.transform.DOScale(baseScale, Mathf.Max(0f, _spawnAnimationDuration)).SetEase(_spawnEase);
+            
             return true;
+            
         }
 
         private static void RotateVisualRandomly(Transform itemTransform)
@@ -245,6 +247,16 @@ namespace ShellGame.Items
                 {
                     _playerUseMessage?.ClearMessage();
                     onPeeked?.Invoke(peekedShell);
+                });
+            };
+
+            var baseBeginHammer = context.BeginHammerAttack;
+            context.BeginHammerAttack = (holdDuration, onTargeted) =>
+            {
+                baseBeginHammer?.Invoke(holdDuration, targetedShell =>
+                {
+                    _playerUseMessage?.ClearMessage();
+                    onTargeted?.Invoke(targetedShell);
                 });
             };
 

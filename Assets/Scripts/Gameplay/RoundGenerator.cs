@@ -79,21 +79,19 @@ namespace ShellGame.Gameplay
             int levelIndex,
             int roundIndex,
             int completedRoundsBeforeCurrentRound = 0,
-            float difficultyOverride = -1f)
+            float difficultyOverride = -1f,
+            int penalty = 0) // <-- НОВЫЙ АРГУМЕНТ
         {
             ResolveSlots();
             GameEvents.RaiseRoundSetupStarted();
 
             var parameters = _progressionConfig != null
-                ? _progressionConfig.GetRoundParameters(
-                    levelIndex,
-                    roundIndex,
-                    completedRoundsBeforeCurrentRound,
-                    difficultyOverride)
+                ? _progressionConfig.GetRoundParameters(levelIndex, roundIndex, completedRoundsBeforeCurrentRound, difficultyOverride)
                 : new RoundParameters { LevelIndex = levelIndex, RoundIndex = roundIndex, CupCount = 3, MarkerCount = 1 };
 
-            parameters.CupCount = Mathf.Clamp(parameters.CupCount, 1, _slots.Count);
-            parameters.MarkerCount = Mathf.Clamp(parameters.MarkerCount, 0, parameters.CupCount);
+            // ПРИМЕНЯЕМ ШТРАФ (минимум 2 наперстка на столе, и хотя бы 1 пустой)
+            parameters.CupCount = Mathf.Clamp(parameters.CupCount - penalty, 2, _slots.Count);
+            parameters.MarkerCount = Mathf.Clamp(parameters.MarkerCount, 1, parameters.CupCount - 1);
 
             _spawnedSlots.Clear();
             _spawnedSlots.AddRange(PickRandomSlots(parameters.CupCount));
@@ -252,6 +250,15 @@ namespace ShellGame.Gameplay
             }
 
             return new HashSet<int>(indices.GetRange(0, markerCount));
+        }
+
+                public void RemoveShell(Shell shell)
+        {
+            if (_activeShells.Contains(shell))
+            {
+                _activeShells.Remove(shell);
+                shell.gameObject.SetActive(false); // Прячем до конца раунда
+            }
         }
     }
 }

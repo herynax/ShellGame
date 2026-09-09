@@ -49,6 +49,8 @@ MonoBehaviour:
   EnemyUseAnimationTrigger: EnemyUseItem
   FloatingCrossPrefab: {fileID: 4645671740475329784, guid: e5ce0168dee234e4c99bf7cd57233718,
     type: 3}
+  ShieldBreakParticlesPrefab: {fileID: 158534570442112090, guid: b7ec786bf30b42041ae755b08ebadf5b,
+    type: 3}
   ShieldBreakSound:
     Guid:
       Data1: -173251077
