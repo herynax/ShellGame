@@ -3,12 +3,13 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.InputSystem;
+using UnityEngine.InputSystem; 
 using Unity.Cinemachine;
 using DG.Tweening;
-using ShellGame.Audio;
+using ShellGame.Audio; 
+using ShellGame.Gameplay; // Добавлено для GameSessionProgression
 using Zenject;
-using SpankyBoy.JuiceUI.Free; // Подключаем пространство имен аниматора панелей
+using SpankyBoy.JuiceUI.Free;
 
 /// <summary>
 /// Контроллер паузы с поддержкой вложенных меню (Стек меню).
@@ -26,7 +27,7 @@ public class PauseController : MonoBehaviour
     [HideInInspector] public CinemachineCamera mainCamera;
     [HideInInspector] public CinemachineCamera pauseCamera;
     [HideInInspector] public CinemachineStationaryLook cameraController;
-    [HideInInspector][SerializeField] private CinemachineBrain _brain;
+    [HideInInspector] [SerializeField] private CinemachineBrain _brain;
 
     [Header("UI паузы")]
     [Tooltip("Канвас-группа с ГЛАВНЫМ меню паузы (кнопки Resume/Exit и т.д.)")]
@@ -53,7 +54,6 @@ public class PauseController : MonoBehaviour
     private List<CinemachineVirtualCameraBase> _sceneVirtualCameras = new List<CinemachineVirtualCameraBase>();
     private List<CanvasGroup> _sceneCanvasGroups = new List<CanvasGroup>();
 
-    // === СИСТЕМА ГЛУБИНЫ МЕНЮ ===
     private Stack<CanvasGroup> _menuStack = new Stack<CanvasGroup>();
 
     [Inject]
@@ -150,7 +150,7 @@ public class PauseController : MonoBehaviour
     {
         if (Keyboard.current == null) return;
         if (isExiting) return;
-
+        
         if (!Keyboard.current.escapeKey.wasPressedThisFrame) return;
 
         if (IsPaused)
@@ -162,10 +162,6 @@ public class PauseController : MonoBehaviour
             TryPause();
         }
     }
-
-    // ==========================================
-    // ЛОГИКА АНИМАЦИИ И ГЛУБИНЫ МЕНЮ
-    // ==========================================
 
     private void PlayMenuIn(CanvasGroup menu)
     {
@@ -181,7 +177,6 @@ public class PauseController : MonoBehaviour
         }
         else
         {
-            // Fallback для простых панелей
             menu.alpha = 0f;
             menu.DOKill();
             menu.DOFade(1f, fadeDuration).SetUpdate(true);
@@ -197,7 +192,7 @@ public class PauseController : MonoBehaviour
 
         if (menu.TryGetComponent<PanelAnimator_Free>(out var animator))
         {
-            animator.Hide(); // Сам скроет GameObject, если в настройках стоит disableOnOutComplete
+            animator.Hide(); 
         }
         else
         {
@@ -225,7 +220,7 @@ public class PauseController : MonoBehaviour
     {
         if (_menuStack.Count <= 1)
         {
-            Resume();
+            Resume(); 
             return;
         }
 
@@ -243,10 +238,6 @@ public class PauseController : MonoBehaviour
     {
         CloseTopMenu();
     }
-
-    // ==========================================
-    // ЛОГИКА ПАУЗЫ И ВОЗОБНОВЛЕНИЯ
-    // ==========================================
 
     public void TryPause()
     {
@@ -296,7 +287,7 @@ public class PauseController : MonoBehaviour
 
         _timeScaleBeforePause = Time.timeScale;
         Time.timeScale = 0f;
-
+        
         foreach (var look in _allLookControllers)
             if (look != null) look.enabled = false;
 
@@ -311,8 +302,7 @@ public class PauseController : MonoBehaviour
         Cursor.visible = true;
 
         activeSequence = DOTween.Sequence().SetUpdate(true);
-
-        // Подготавливаем стек меню
+        
         _menuStack.Clear();
         if (pauseMenuCanvasGroup != null)
         {
@@ -320,7 +310,7 @@ public class PauseController : MonoBehaviour
             PlayMenuIn(pauseMenuCanvasGroup);
         }
 
-        if (crosshairCanvasGroup != null)
+        if (crosshairCanvasGroup != null) 
             activeSequence.Join(crosshairCanvasGroup.DOFade(0f, fadeDuration));
 
         yield return activeSequence.WaitForCompletion();
@@ -331,15 +321,14 @@ public class PauseController : MonoBehaviour
     private IEnumerator ResumeRoutine()
     {
         activeSequence = DOTween.Sequence().SetUpdate(true);
-
-        // Скрываем все окна в стеке (например, если вышли сразу из Настроек)
+        
         foreach (var menu in _menuStack)
         {
             PlayMenuOut(menu);
         }
         _menuStack.Clear();
 
-        if (crosshairCanvasGroup != null)
+        if (crosshairCanvasGroup != null) 
             activeSequence.Join(crosshairCanvasGroup.DOFade(1f, fadeDuration));
 
         yield return activeSequence.WaitForCompletion();
@@ -410,6 +399,34 @@ public class PauseController : MonoBehaviour
 #if UNITY_EDITOR
         UnityEditor.EditorApplication.isPlaying = false;
 #endif
+    }
+
+    /// <summary>
+    /// Рестарт игры (вызывается из окна подтверждения).
+    /// </summary>
+    public void RestartGame()
+    {
+        if (isExiting) return;
+        isExiting = true; // Блокируем дальнейший инпут
+        pauseBlocked = true;
+
+        // Обязательно возвращаем время в норму, иначе новая сцена загрузится "замороженной"
+        Time.timeScale = 1f;
+        IsPaused = false;
+
+        // Сбрасываем прогрессию забега
+        if (GameSessionProgression.Instance != null)
+            GameSessionProgression.Instance.Reset();
+
+        // Запускаем процесс загрузки через SceneLoader (загружаем самую первую сцену)
+        if (SceneLoader.Instance != null)
+        {
+            SceneLoader.Instance.LoadScene("Tutorial"); 
+        }
+        else
+        {
+            UnityEngine.SceneManagement.SceneManager.LoadScene("Tutorial");
+        }
     }
 
     private void OnDestroy()

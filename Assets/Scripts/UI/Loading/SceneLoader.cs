@@ -1,3 +1,4 @@
+// START OF FILE SceneLoader.cs
 using System;
 using System.Collections;
 using UnityEngine;
@@ -7,6 +8,7 @@ using DG.Tweening;
 using ShellGame.Core;
 using ShellGame.Gameplay;
 using ShellGame.Health;
+using ShellGame.Meta; // Добавлено для анлоков
 using ShellGame.UI;
 using Zenject;
 
@@ -19,7 +21,8 @@ public class SceneLoader : MonoBehaviour
     public static event Action LoadingScreenShown;
     public static event Action<float> ScreenRevealing;
     public static event Action SceneRevealCompleted;
-    public static event Action<float> LoadProgressChanged; // 0..1, нормализовано
+    public static event Action<float> LoadProgressChanged;
+    public static event Action FinalLevelCompleted;
 
     [Header("Настройки фейда")]
     public CanvasGroup fadeCanvasGroup;
@@ -29,73 +32,64 @@ public class SceneLoader : MonoBehaviour
     public float delayBeforeFadeOut = 0.3f;
     public bool blockInputDuringLoad = true;
 
-    [Header("Смерть (Переход)")]
+    [Header("Смерть и Переход")]
     public bool loadNextSceneByName = true; 
     public string nextSceneOnEnemyDeath;
     public string firstSceneOnPlayerDeath = "Tutorial";
     public string roomLightTag = "RoomLight";
     public float roomDarkenDuration = 1.5f;
 
-    [Header("Экран загрузки")]
-    [Tooltip("Искусственная минимальная длительность заполнения прогресс-бара (в секундах), чтобы игрок успел прочитать подсказку.")]
-    public float minLoadingDuration = 2.0f;
+    [Header("Победа (Смерть Босса)")]
+    [Tooltip("Если включено, смерть врага на этом уровне считается победой в игре.")]
+    public bool isFinalLevel = false;
+    [Tooltip("Имя сцены, в которой смерть босса завершает забег.")]
+    public string finalLevelSceneName = "Final";
+    public string mainMenuSceneName = "MainMenu"; // Куда кидать после победы/смерти
 
-    [Tooltip("Пауза после того, как прогресс-бар дошел до 100%, перед активацией сцены.")]
+    [Header("Экран загрузки")]
+    public float minLoadingDuration = 2.0f;
     public float delayAfterFullProgress = 0.4f;
 
     [Header("Яркость")]
     [SerializeField] private Image brightnessOverlay;
 
-    [Header("Экран статистики забега (при смерти игрока)")]
+    [Header("UI Контроллеры")]
     [SerializeField] private RunStatsScreenController runStatsScreen;
+    [SerializeField] private UnlockNotificationScreenController unlockScreen; // НОВЫЙ ЭКРАН АНЛОКОВ
 
     public Image BrightnessOverlay => brightnessOverlay;
 
     private Canvas fadeCanvas;
     private bool isLoading = false;
 
-    [InjectOptional]
-    private HealthController _healthController;
-
-    [Inject]
-    private GameSessionProgression _sessionProgression;
+    [InjectOptional] private HealthController _healthController;
+    [InjectOptional] private IUnlockManager _unlockManager;
+    [Inject] private GameSessionProgression _sessionProgression;
 
     private void Awake()
     {
-        // Объект, сохранённый между сценами, может получить повторный Awake
-        // при нестандартной загрузке сцены. Повторный вызов DontDestroyOnLoad
-        // для него вызывает assertion внутри Unity.
         if (gameObject.scene.name == "DontDestroyOnLoad")
         {
-            if (Instance == null)
-                Instance = this;
+            if (Instance == null) Instance = this;
             return;
         }
 
         if (Instance == null)
         {
             Instance = this;
-
-            // Persist the whole hierarchy. Unity can only preserve a root object;
-            // this also keeps the fade canvas, loading UI and stats screen together
-            // if SceneLoader is moved under another object in the scene.
             GameObject persistentRoot = transform.root.gameObject;
-            if (persistentRoot != gameObject)
-                transform.SetParent(null, true);
-
+            if (persistentRoot != gameObject) transform.SetParent(null, true);
             DontDestroyOnLoad(gameObject);
-            Debug.Log($"[SceneLoader] Persistent UI registered: {gameObject.name}");
         }
         else
         {
+            Instance.ApplySceneSettings(this);
             Destroy(gameObject);
             return;
         }
 
         RunStatsTracker.EnsureExists();
-
         if (fadeCanvasGroup == null) fadeCanvasGroup = GetComponentInChildren<CanvasGroup>();
-        
         fadeCanvas = GetComponentInChildren<Canvas>();
         if (fadeCanvas != null) fadeCanvas.sortingOrder = 9999;
     }
@@ -112,16 +106,9 @@ public class SceneLoader : MonoBehaviour
     private void OnEnable() => GameEvents.SideDied += HandleSideDied;
     private void OnDisable() => GameEvents.SideDied -= HandleSideDied;
 
-    private void OnDestroy()
-    {
-        if (Instance == this)
-            Debug.LogWarning("[SceneLoader] Persistent UI was destroyed.");
-    }
-
     private void HandleSideDied(TurnSide side)
     {
         if (isLoading) return;
-
         ReleaseCursorAfterDeath();
         StartCoroutine(UnifiedDeathRoutine(side));
     }
@@ -130,118 +117,97 @@ public class SceneLoader : MonoBehaviour
     {
         var lookControllers = FindObjectsOfType<CinemachineStationaryLook>(true);
         foreach (var lookController in lookControllers)
-        {
-            if (lookController != null)
-                lookController.enabled = false;
-        }
+            if (lookController != null) lookController.enabled = false;
 
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
     }
 
-    /// <summary>
-    /// Единая логика смерти / перехода:
-    /// 1. Плавно тушит свет и делает Fade In черного экрана
-    /// 2. Если умер игрок — показывает экран статистики забега после полного затемнения
-    ///    и только после продолжения включает подсказку и прогресс-бар
-    /// 3. Фоном асинхронно грузит сцену и плавно наполняет шкалу (minLoadingDuration)
-    /// 4. Делает паузу на 100% полоски и активирует сцену
-    /// 5. Делает Fade Out (ScreenRevealing)
-    /// </summary>
     private IEnumerator UnifiedDeathRoutine(TurnSide deadSide)
     {
         isLoading = true;
         SetPauseBlocked(true);
 
-        if (fadeCanvasGroup == null)
-        {
-            Debug.LogError("fadeCanvasGroup не назначена в SceneLoader!");
-            isLoading = false;
-            SetPauseBlocked(false);
-            yield break;
-        }
-
+        if (fadeCanvasGroup == null) yield break;
         if (blockInputDuringLoad) fadeCanvasGroup.blocksRaycasts = true;
+
+        // Определяем исход
+        bool isWin = deadSide == TurnSide.Enemy && IsFinalLevel();
+        bool isLoss = (deadSide == TurnSide.Player);
 
         // --- ШАГ 1: ВИЗУАЛЬНОЕ ЗАТЕМНЕНИЕ ---
         Light roomLight = FindRoomLight();
         float screenFadeDuration = fadeDuration;
         if (_healthController != null && _healthController.DeathSoundDuration > 0f)
-        {
             screenFadeDuration = _healthController.DeathSoundDuration;
-        }
-
-        Debug.Log($"[SceneLoader] Начинаем затемнение экрана (Смерть: {deadSide}, длительность: {screenFadeDuration:0.###}с)...");
 
         FMODUnity.RuntimeManager.StudioSystem.setParameterByName("Dose Counter", 0f, true);
         ScreenGoingBlack?.Invoke(screenFadeDuration);
-        yield return fadeCanvasGroup.DOFade(1f, screenFadeDuration)
-            .SetUpdate(true)
-            .WaitForCompletion();
+        yield return fadeCanvasGroup.DOFade(1f, screenFadeDuration).SetUpdate(true).WaitForCompletion();
 
-        if (roomLight != null)
-            roomLight.DOIntensity(0f, roomDarkenDuration).SetUpdate(true);
+        if (roomLight != null) roomLight.DOIntensity(0f, roomDarkenDuration).SetUpdate(true);
 
-        // --- ШАГ 2: ЭКРАН СТАЛ ПОЛНОСТЬЮ ЧЕРНЫМ ---
         ScreenFullyBlack?.Invoke();
 
-        // --- ШАГ 2.5: ЭКРАН СТАТИСТИКИ ЗАБЕГА (только при смерти игрока) ---
-        if (deadSide == TurnSide.Player)
+        // --- ШАГ 2: СОБЫТИЕ ПОБЕДЫ ---
+        if (isWin)
         {
-            RunStatsTracker.Instance?.StopClock();
-            EnsureSessionProgression().Reset();
-            if (runStatsScreen != null)
-            yield return runStatsScreen.ShowAndWaitForContinue(BuildStatsSnapshot());
+            GameEvents.RaiseGameWon(); // Это увеличит счетчик побед в GlobalProgressService
+            FinalLevelCompleted?.Invoke();
         }
 
-        // Для врага это происходит сразу после fade, для игрока — после закрытия статистики.
-        LoadingScreenShown?.Invoke();
-        LoadProgressChanged?.Invoke(0f);
-
-        // --- ШАГ 3: ФОНОВАЯ ЗАГРУЗКА СЦЕНЫ ---
+        // --- ШАГ 3: ЭКРАН СТАТИСТИКИ И АНЛОКОВ (Только конец игры: Победа или Смерть) ---
         AsyncOperation asyncLoad = null;
 
-        if (deadSide == TurnSide.Player)
+        if (isWin || isLoss)
         {
-            string targetScene = string.IsNullOrEmpty(firstSceneOnPlayerDeath)
-                ? "Tutorial"
-                : firstSceneOnPlayerDeath;
+            // 3.1 Статистика
+            RunStatsTracker.Instance?.StopClock();
+            if (runStatsScreen != null)
+                yield return runStatsScreen.ShowAndWaitForContinue(BuildStatsSnapshot());
 
-            Debug.Log($"[SceneLoader] Возвращаемся на стартовую сцену: {targetScene}");
+            EnsureSessionProgression().Reset();
+
+            // 3.2 Анлоки
+            if (_unlockManager != null)
+            {
+                var newUnlocks = _unlockManager.GetUnacknowledgedUnlocks();
+                if (newUnlocks.Count > 0 && unlockScreen != null)
+                {
+                    yield return unlockScreen.ShowSequence(newUnlocks, _unlockManager);
+                }
+            }
+
+            // Грузим меню (если победа) или туториал (если смерть, либо тоже меню, как настроишь)
+            string targetScene = isWin ? mainMenuSceneName : firstSceneOnPlayerDeath;
             asyncLoad = SceneManager.LoadSceneAsync(targetScene);
         }
         else
         {
+            // --- ОБЫЧНЫЙ ПЕРЕХОД НА СЛЕДУЮЩИЙ УРОВЕНЬ ---
             RunStatsTracker.Instance?.RegisterEnemyDefeated();
             EnsureSessionProgression().AdvanceToNextLevel();
 
             if (loadNextSceneByName)
-            {
-                Debug.Log($"[SceneLoader] Загружаем следующую сцену по имени: {nextSceneOnEnemyDeath}");
                 asyncLoad = SceneManager.LoadSceneAsync(nextSceneOnEnemyDeath);
-            }
             else
             {
-                int nextBuildIndex = SceneManager.GetActiveScene().buildIndex + 1;
-                if (nextBuildIndex >= SceneManager.sceneCountInBuildSettings) nextBuildIndex = 0;
-                
-                Debug.Log($"[SceneLoader] Загружаем следующую сцену по индексу: {nextBuildIndex}");
-                asyncLoad = SceneManager.LoadSceneAsync(nextBuildIndex);
+                int nextIndex = SceneManager.GetActiveScene().buildIndex + 1;
+                asyncLoad = SceneManager.LoadSceneAsync(nextIndex >= SceneManager.sceneCountInBuildSettings ? 0 : nextIndex);
             }
         }
 
-        // Выполняем искусственно растянутое отслеживание загрузки с докруткой бара
+        LoadingScreenShown?.Invoke();
+        LoadProgressChanged?.Invoke(0f);
+
+        // --- ШАГ 4: ФОНОВАЯ ЗАГРУЗКА ---
         yield return TrackAsyncLoading(asyncLoad);
 
-        // --- ШАГ 4: ФЕЙД АУТ (ПРОЯВЛЕНИЕ НОВОЙ СЦЕНЫ) ---
+        // --- ШАГ 5: ФЕЙД АУТ ---
         yield return new WaitForSecondsRealtime(delayBeforeFadeOut);
-
-        Debug.Log($"[SceneLoader] Начинаем Fade Out...");
         ScreenRevealing?.Invoke(fadeDuration);
         
-        yield return fadeCanvasGroup.DOFade(0f, fadeDuration)
-            .SetUpdate(true)
-            .WaitForCompletion();
+        yield return fadeCanvasGroup.DOFade(0f, fadeDuration).SetUpdate(true).WaitForCompletion();
 
         SceneRevealCompleted?.Invoke();
         fadeCanvasGroup.blocksRaycasts = false;
@@ -284,8 +250,7 @@ public class SceneLoader : MonoBehaviour
         if (blockInputDuringLoad && fadeCanvasGroup != null) fadeCanvasGroup.blocksRaycasts = true;
 
         ScreenGoingBlack?.Invoke(fadeDuration);
-        if (fadeCanvasGroup != null) 
-            yield return fadeCanvasGroup.DOFade(1f, fadeDuration).SetUpdate(true).WaitForCompletion();
+        if (fadeCanvasGroup != null) yield return fadeCanvasGroup.DOFade(1f, fadeDuration).SetUpdate(true).WaitForCompletion();
 
         ScreenFullyBlack?.Invoke();
         LoadingScreenShown?.Invoke();
@@ -312,59 +277,34 @@ public class SceneLoader : MonoBehaviour
         SetPauseBlocked(false);
     }
 
-    private void SetPauseBlocked(bool blocked)
-    {
-        PauseController.Instance?.SetPauseBlocked(blocked);
-    }
+    private void SetPauseBlocked(bool blocked) => PauseController.Instance?.SetPauseBlocked(blocked);
 
-    /// <summary>
-    /// Контролирует плавное заполнение шкалы загрузки в течение minLoadingDuration
-    /// и активирует сцену только после завершения и паузы.
-    /// </summary>
     private IEnumerator TrackAsyncLoading(AsyncOperation asyncLoad)
     {
         if (asyncLoad == null) yield break;
 
-        // Не даем сцене активироваться мгновенно
         asyncLoad.allowSceneActivation = false;
-
         float displayedProgress = 0f;
         float elapsedTime = 0f;
 
-        // AsyncOperation.progress доходит максимум до 0.9 пока allowSceneActivation = false
         while (displayedProgress < 1f || asyncLoad.progress < 0.9f)
         {
             elapsedTime += Time.unscaledDeltaTime;
-
             float realNormalized = Mathf.Clamp01(asyncLoad.progress / 0.9f);
             float timeNormalized = minLoadingDuration > 0f ? Mathf.Clamp01(elapsedTime / minLoadingDuration) : 1f;
 
-            // Прогресс растет по таймеру, но не обгоняет реальную загрузку данных
             displayedProgress = Mathf.Min(realNormalized, timeNormalized);
             LoadProgressChanged?.Invoke(displayedProgress);
 
-            // Если время вышло и сцена в памяти готова
-            if (displayedProgress >= 1f && asyncLoad.progress >= 0.9f)
-                break;
-
+            if (displayedProgress >= 1f && asyncLoad.progress >= 0.9f) break;
             yield return null;
         }
 
-        // Фиксируем 100%
         LoadProgressChanged?.Invoke(1f);
-
-        // Пауза, чтобы игрок увидел полную полоску
-        if (delayAfterFullProgress > 0f)
-        {
-            yield return new WaitForSecondsRealtime(delayAfterFullProgress);
-        }
-
-        // Разрешаем фактическое включение сцены
+        if (delayAfterFullProgress > 0f) yield return new WaitForSecondsRealtime(delayAfterFullProgress);
+        
         asyncLoad.allowSceneActivation = true;
-        while (!asyncLoad.isDone)
-        {
-            yield return null;
-        }
+        while (!asyncLoad.isDone) yield return null;
     }
 
     private Light FindRoomLight()
@@ -376,15 +316,27 @@ public class SceneLoader : MonoBehaviour
 
     private GameSessionProgression EnsureSessionProgression()
     {
-        if (_sessionProgression != null)
-            return _sessionProgression;
-
+        if (_sessionProgression != null) return _sessionProgression;
         var progressionObject = new GameObject("GameSessionProgression");
         _sessionProgression = progressionObject.AddComponent<GameSessionProgression>();
         return _sessionProgression;
     }
 
-    public void SetFadeAlpha(float alpha) { if (fadeCanvasGroup != null) fadeCanvasGroup.alpha = Mathf.Clamp01(alpha); }
-    public void FadeInInstant() { if (fadeCanvasGroup != null) { fadeCanvasGroup.alpha = 1f; fadeCanvasGroup.blocksRaycasts = true; } }
-    public void FadeOutInstant() { if (fadeCanvasGroup != null) { fadeCanvasGroup.alpha = 0f; fadeCanvasGroup.blocksRaycasts = false; } }
+    private bool IsFinalLevel()
+    {
+        return isFinalLevel ||
+               (!string.IsNullOrEmpty(finalLevelSceneName) &&
+                SceneManager.GetActiveScene().name == finalLevelSceneName);
+    }
+
+    private void ApplySceneSettings(SceneLoader sceneLoader)
+    {
+        isFinalLevel = sceneLoader.isFinalLevel;
+        finalLevelSceneName = sceneLoader.finalLevelSceneName;
+        loadNextSceneByName = sceneLoader.loadNextSceneByName;
+        nextSceneOnEnemyDeath = sceneLoader.nextSceneOnEnemyDeath;
+        firstSceneOnPlayerDeath = sceneLoader.firstSceneOnPlayerDeath;
+        mainMenuSceneName = sceneLoader.mainMenuSceneName;
+    }
 }
+// END OF FILE

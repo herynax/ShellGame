@@ -1258,6 +1258,11 @@ PrefabInstance:
       propertyPath: m_Name
       value: ===Cameras
       objectReference: {fileID: 0}
+    - target: {fileID: 8786765410447538634, guid: c9addad12bab62f499835aa0cad73c8a,
+        type: 3}
+      propertyPath: Priority.m_Value
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents:
     - {fileID: 8636408095300426449, guid: c9addad12bab62f499835aa0cad73c8a, type: 3}
     m_RemovedGameObjects:

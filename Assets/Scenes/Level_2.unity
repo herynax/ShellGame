@@ -676,24 +676,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f9dfa5b682dcd46bda6128250e975f58, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Cinemachine::Unity.Cinemachine.CinemachineCamera
---- !u!4 &1042785197 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 5574809436895080519, guid: e227562570c26f7428a3c01b27c2bdb4,
-    type: 3}
-  m_PrefabInstance: {fileID: 2073325895}
-  m_PrefabAsset: {fileID: 0}
---- !u!114 &1175832407 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 1291078403557956507, guid: 1af5593e793d8884998e80f4b7b52259,
-    type: 3}
-  m_PrefabInstance: {fileID: 859377569}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0da06d6766b6e934d85e144fcd2a2b12, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ShellGame.Gameplay.GameManager
 --- !u!225 &1237828000 stripped
 CanvasGroup:
   m_CorrespondingSourceObject: {fileID: 2334693029107444221, guid: e227562570c26f7428a3c01b27c2bdb4,
@@ -913,74 +895,9 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 385955227594480064, guid: e227562570c26f7428a3c01b27c2bdb4,
         type: 3}
-      propertyPath: _gameManager
-      value: 
-      objectReference: {fileID: 1175832407}
-    - target: {fileID: 385955227594480064, guid: e227562570c26f7428a3c01b27c2bdb4,
-        type: 3}
-      propertyPath: _inputSystem
-      value: 
-      objectReference: {fileID: 330585549}
-    - target: {fileID: 385955227594480064, guid: e227562570c26f7428a3c01b27c2bdb4,
-        type: 3}
       propertyPath: _interactionCamera
       value: 
       objectReference: {fileID: 330585545}
-    - target: {fileID: 1186385762087609170, guid: e227562570c26f7428a3c01b27c2bdb4,
-        type: 3}
-      propertyPath: _enemyTarget
-      value: 
-      objectReference: {fileID: 1042785197}
-    - target: {fileID: 1186385762087609170, guid: e227562570c26f7428a3c01b27c2bdb4,
-        type: 3}
-      propertyPath: _playerTarget
-      value: 
-      objectReference: {fileID: 963371779}
-    - target: {fileID: 1186385762087609170, guid: e227562570c26f7428a3c01b27c2bdb4,
-        type: 3}
-      propertyPath: _rotationOffset.y
-      value: 25
-      objectReference: {fileID: 0}
-    - target: {fileID: 1205248672526062228, guid: e227562570c26f7428a3c01b27c2bdb4,
-        type: 3}
-      propertyPath: mainCamera
-      value: 
-      objectReference: {fileID: 1024483301}
-    - target: {fileID: 1205248672526062228, guid: e227562570c26f7428a3c01b27c2bdb4,
-        type: 3}
-      propertyPath: pauseCamera
-      value: 
-      objectReference: {fileID: 1024483300}
-    - target: {fileID: 1205248672526062228, guid: e227562570c26f7428a3c01b27c2bdb4,
-        type: 3}
-      propertyPath: cameraController
-      value: 
-      objectReference: {fileID: 1024483299}
-    - target: {fileID: 1205248672526062228, guid: e227562570c26f7428a3c01b27c2bdb4,
-        type: 3}
-      propertyPath: pauseMenuCanvasGroup
-      value: 
-      objectReference: {fileID: 0}
-    - target: {fileID: 1406444736687566113, guid: e227562570c26f7428a3c01b27c2bdb4,
-        type: 3}
-      propertyPath: sfxSlider
-      value: 
-      objectReference: {fileID: 0}
-    - target: {fileID: 1406444736687566113, guid: e227562570c26f7428a3c01b27c2bdb4,
-        type: 3}
-      propertyPath: musicSlider
-      value: 
-      objectReference: {fileID: 0}
-    - target: {fileID: 1406444736687566113, guid: e227562570c26f7428a3c01b27c2bdb4,
-        type: 3}
-      propertyPath: masterSlider
-      value: 
-      objectReference: {fileID: 0}
-    - target: {fileID: 1810576775033457872, guid: e227562570c26f7428a3c01b27c2bdb4,
-        type: 3}
-      propertyPath: 'm_Materials.Array.data[0]'
-      value: 
-      objectReference: {fileID: 2100000, guid: 84b6dd99b50e0da47a60c7b784fc5fc1, type: 2}
     - target: {fileID: 1984938839250446428, guid: e227562570c26f7428a3c01b27c2bdb4,
         type: 3}
       propertyPath: m_Camera
@@ -1006,11 +923,8 @@ PrefabInstance:
       propertyPath: m_Name
       value: ===Environment
       objectReference: {fileID: 0}
-    m_RemovedComponents:
-    - {fileID: 6601891038297542177, guid: e227562570c26f7428a3c01b27c2bdb4, type: 3}
-    m_RemovedGameObjects:
-    - {fileID: 6616025381602573191, guid: e227562570c26f7428a3c01b27c2bdb4, type: 3}
-    - {fileID: 9076741620122770247, guid: e227562570c26f7428a3c01b27c2bdb4, type: 3}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: e227562570c26f7428a3c01b27c2bdb4, type: 3}

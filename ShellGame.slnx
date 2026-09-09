@@ -6,7 +6,9 @@
   <Project Path="Zenject-UnitTests-Editor.csproj" />
   <Project Path="Zenject-Editor.csproj" />
   <Project Path="Zenject-IntegrationTests.csproj" />
+  <Project Path="ToonyColorsPro.Demo.Editor.csproj" />
   <Project Path="Assembly-CSharp.csproj" />
+  <Project Path="CFXRRuntime.csproj" />
   <Project Path="FMODUnityResonanceEditor.csproj" />
   <Project Path="CW.Common.csproj" />
   <Project Path="FMODUnityEditor.csproj" />
@@ -15,7 +17,11 @@
   <Project Path="Zenject-TestFramework.csproj" />
   <Project Path="FMODUnityHaptics.csproj" />
   <Project Path="Assembly-CSharp-Editor.csproj" />
+  <Project Path="CFXREditor.csproj" />
   <Project Path="Zenject-PoolMonitor-Editor.csproj" />
   <Project Path="FMODUnityResonance.csproj" />
+  <Project Path="KinoBloom.Runtime.csproj" />
+  <Project Path="CFXRDemo.csproj" />
   <Project Path="LeanPool.csproj" />
+  <Project Path="CFXR.WelcomeScreen.csproj" />
 </Solution>

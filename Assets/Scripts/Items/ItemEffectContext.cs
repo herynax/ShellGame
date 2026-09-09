@@ -36,5 +36,10 @@ namespace ShellGame.Items
         public Action SkipCurrentTurn;
         public Action RequestExtraTurn;
         public Func<bool> CanRequestExtraTurn;
+
+        public Func<bool> CanUsePlayerHammer;
+        public Action<float, Action<Shell>> BeginHammerAttack;
+        public Action ReduceMaxShells;
+        public Action<Shell> RemoveShellFromPlay;
     }
 }

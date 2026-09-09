@@ -9,6 +9,7 @@ namespace ShellGame.Gameplay
         public int CompletedRoundsInSession { get; private set; }
         public int CurrentLevelIndex { get; private set; }
         public float CurrentDifficultyIndex { get; private set; }
+        public int MaxShellsPenalty { get; private set; }
 
         private void Awake()
         {
@@ -32,10 +33,17 @@ namespace ShellGame.Gameplay
             CurrentLevelIndex = Mathf.Max(0, levelIndex);
         }
 
+        public void AddMaxShellsPenalty(int amount = 1)
+        {
+            MaxShellsPenalty += amount;
+        }
+
+
         public void AdvanceToNextLevel()
         {
             SetCurrentLevelIndex(Mathf.Max(1, CurrentLevelIndex + 1));
             CurrentDifficultyIndex += 1f;
+            MaxShellsPenalty = 0; // Сбрасываем штраф на новом уровне
         }
 
         public void AdvanceDifficultyForRound()
@@ -59,6 +67,7 @@ namespace ShellGame.Gameplay
             CompletedRoundsInSession = 0;
             CurrentLevelIndex = 0;
             CurrentDifficultyIndex = 0f;
+            MaxShellsPenalty = 0; // Сбрасываем при рестарте забега
         }
     }
 }

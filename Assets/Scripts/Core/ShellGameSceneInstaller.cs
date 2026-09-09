@@ -14,6 +14,9 @@ namespace ShellGame.Core
 {
     public sealed class ShellGameSceneInstaller : MonoInstaller
     {
+
+        [SerializeField] private ShellGame.Items.UnlocksConfig _unlocksConfig;
+
         public override void InstallBindings()
         {
             BindSceneComponent<GameManager>();
@@ -27,6 +30,16 @@ namespace ShellGame.Core
             BindSceneComponent<TurnIndicatorController>();
             BindSceneComponent<ItemSpawner>();
             BindSceneComponent<TurnSpotlightController>();
+
+            Container.BindInstance(_unlocksConfig).IfNotBound();
+            Container.BindInterfacesTo<ShellGame.Meta.GlobalProgressService>().AsSingle();
+            Container.BindInterfacesTo<ShellGame.Meta.UnlockManager>().AsSingle();
+
+            if (SceneLoader.Instance != null)
+                Container.Inject(SceneLoader.Instance);
+
+            BindSceneComponent<GameManager>();
+            Container.Bind<GameSessionProgression>().FromInstance(GameSessionProgression.Instance).AsSingle();
 
             Container.Bind<CinemachineBrain>().FromComponentInHierarchy().AsSingle().IfNotBound();
             Container.Bind<CinemachineCamera>().FromComponentsInHierarchy().AsTransient().IfNotBound();

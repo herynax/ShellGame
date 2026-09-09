@@ -9,11 +9,6 @@ using UnityEngine;
 
 namespace ShellGame.Items
 {
-    /// <summary>
-    /// Предмет "Нож".
-    /// Игрок выбирает наперсток. Наперсток приподнимается.
-    /// На пике подъема нож выстреливает в того, кто должен получить урон.
-    /// </summary>
     [CreateAssetMenu(fileName = "KnifeItem", menuName = "ShellGame/Items/Knife Item")]
     public sealed class KnifeItemDefinition : ItemDefinition
     {
@@ -23,13 +18,13 @@ namespace ShellGame.Items
         public int DamageToPlayer = 1;
 
         [Header("Визуал (Анимация полета)")]
-        [Tooltip("Префаб ножа (3D модель). Должен быть направлен острием по оси Z.")]
         public GameObject KnifeProjectilePrefab;
         public float KnifeFlightDuration = 0.35f;
         public bool SpinKnife = true;
+        [Tooltip("Префаб частиц в точке попадания ножа")]
+        public GameObject HitParticlesPrefab;
 
         [Header("Звук попадания")]
-        [Tooltip("Звук при попадании ножа в ИГРОКА (стаб)")]
         public EventReference PlayerStabSound;
 
         public override bool CanUse(ItemEffectContext context)
@@ -46,57 +41,59 @@ namespace ShellGame.Items
         {
             if (!CanUse(context)) return false;
 
-            // 1. Создаем визуал ножа, который "парит" в ожидании броска
             GameObject activeKnife = null;
             Tween bobTween = null;
+            Tween shakeTween = null;
 
             if (KnifeProjectilePrefab != null)
             {
-                // Появляется на месте кликнутого предмета
+                // Задаем позицию и поворот по умолчанию (на случай если Анкоры не настроены)
+                Vector3 anchorPos = context.ItemWorldPosition + Vector3.up * 1f;
+                Quaternion anchorRot = Quaternion.identity;
+
+                // ЧИТАЕМ ИЗ ПОИНТОВ
+                if (ItemVisualAnchors.Instance != null)
+                {
+                    Transform anchor = context.UserSide == TurnSide.Player 
+                        ? ItemVisualAnchors.Instance.PlayerKnifeHoverPoint 
+                        : ItemVisualAnchors.Instance.EnemyKnifeHoverPoint;
+
+                    if (anchor != null)
+                    {
+                        anchorPos = anchor.position;
+                        anchorRot = anchor.rotation;
+                    }
+                }
+
+                // Спавним нож на столе
                 activeKnife = Instantiate(KnifeProjectilePrefab, context.ItemWorldPosition, Quaternion.identity);
                 
-                // Подлетает выше, чем обычный ховер
-                Vector3 floatPos = context.ItemWorldPosition + Vector3.up * 0.45f;
-                
-                activeKnife.transform.DOMove(floatPos, 0.3f).SetEase(Ease.OutBack);
+                // Летим в поинт и принимаем его поворот
+                activeKnife.transform.DOMove(anchorPos, 0.4f).SetEase(Ease.OutBack);
+                activeKnife.transform.DORotateQuaternion(anchorRot, 0.4f).SetEase(Ease.OutQuad);
 
                 if (context.UserSide == TurnSide.Player)
                 {
-                    // Игрок активировал: нож смотрит лезвием вниз 
-                    // (предполагаем, что лезвие смотрит по Z. Чтобы смотрело вниз, крутим по X на 90 градусов)
-                    activeKnife.transform.DORotate(new Vector3(90f, 0f, 0f), 0.3f).SetEase(Ease.OutQuad);
-                    
-                    // Запускаем легкое покачивание (дыхание/ожидание)
-                    bobTween = activeKnife.transform.DOMoveY(floatPos.y + 0.1f, 1f)
+                    // Легкое покачивание и тряска (накладывается поверх)
+                    bobTween = activeKnife.transform.DOMoveY(anchorPos.y + 0.05f, 1f)
                         .SetEase(Ease.InOutSine)
                         .SetLoops(-1, LoopType.Yoyo)
-                        .SetDelay(0.3f);
-                }
-                else
-                {
-                    // Враг активировал: нож просто смотрит в сторону игрока (в камеру)
-                    if (Camera.main != null)
-                    {
-                        Vector3 dirToCam = Camera.main.transform.position - floatPos;
-                        activeKnife.transform.rotation = Quaternion.LookRotation(dirToCam);
-                    }
+                        .SetDelay(0.4f);
+
+                    shakeTween = activeKnife.transform.DOShakeRotation(1f, new Vector3(3f, 3f, 3f), 10, 90f)
+                        .SetLoops(-1, LoopType.Restart)
+                        .SetDelay(0.4f);
                 }
             }
 
-            // Логика противника (бьет автоматически после небольшой паузы)
             if (context.UserSide == TurnSide.Enemy)
             {
                 if (context.EnemyAI == null) return false;
-                
                 Shell targetShell = null;
 
                 foreach (var shell in context.ActiveShells)
                 {
-                    if (shell.HasMarker)
-                    {
-                        targetShell = shell;
-                        break;
-                    }
+                    if (shell.HasMarker) { targetShell = shell; break; }
                 }
                 
                 if (targetShell == null)
@@ -105,7 +102,7 @@ namespace ShellGame.Items
                 targetShell.RevealMarker(RevealDuration);
                 context.ConsumedExtraDelay = context.ResolveShellRevealDuration?.Invoke(RevealDuration) ?? RevealDuration;
 
-                float delay = context.ConsumedExtraDelay * 0.4f; 
+                float delay = context.ConsumedExtraDelay; 
                 DOVirtual.DelayedCall(delay, () =>
                 {
                     TurnSide targetSide = targetShell.HasMarker ? TurnSide.Player : TurnSide.Enemy;
@@ -116,17 +113,16 @@ namespace ShellGame.Items
                 return true;
             }
 
-            // Логика игрока (ждет, пока игрок выберет наперсток)
             if (context.BeginKnifeAttack == null) return false;
             
             context.BeginKnifeAttack(RevealDuration, targetShell =>
             {
-                bobTween?.Kill(); // Останавливаем парение
+                bobTween?.Kill(); 
+                shakeTween?.Kill();
 
                 TurnSide targetSide = targetShell.HasMarker ? TurnSide.Enemy : TurnSide.Player;
                 int damage = targetShell.HasMarker ? DamageToEnemy : DamageToPlayer;
                 
-                // Передаем наш уже парящий нож в функцию удара
                 ExecuteStrike(context, activeKnife, targetSide, damage);
             });
 
@@ -141,46 +137,43 @@ namespace ShellGame.Items
                 return;
             }
 
-            Vector3 endPos;
-            var provider = HealthSoundProvider.Instance;
+            // Цель удара по умолчанию
+            Vector3 endPos = knife.transform.position + (targetSide == TurnSide.Player ? -Vector3.forward : Vector3.forward) * 2f;
 
-            if (targetSide == TurnSide.Player)
+            // ЧИТАЕМ ИЗ ПОИНТОВ
+            if (ItemVisualAnchors.Instance != null)
             {
-                if (provider != null && provider.playerTransform != null)
-                    endPos = provider.playerTransform.position;
-                else if (Camera.main != null)
-                    endPos = Camera.main.transform.position + Camera.main.transform.forward * 0.6f - Camera.main.transform.up * 0.2f;
-                else
-                    endPos = knife.transform.position - Vector3.forward * 2f;
-            }
-            else
-            {
-                if (provider != null && provider.enemyTransform != null)
-                    endPos = provider.enemyTransform.position + Vector3.up * 1.0f;
-                else
-                    endPos = knife.transform.position + Vector3.forward * 2f;
+                Transform hitAnchor = targetSide == TurnSide.Player 
+                    ? ItemVisualAnchors.Instance.PlayerHitPoint 
+                    : ItemVisualAnchors.Instance.EnemyHitPoint;
+
+                if (hitAnchor != null)
+                {
+                    endPos = hitAnchor.position;
+                }
             }
 
-            // Убиваем все анимации покачивания перед броском
             knife.transform.DOKill(); 
-            knife.transform.LookAt(endPos); // Нацеливаем
+            knife.transform.LookAt(endPos); 
 
             if (SpinKnife)
             {
-                // Быстрое сальто по оси Х во время полета
                 knife.transform.DORotate(new Vector3(360f * 3f, 0, 0), KnifeFlightDuration, RotateMode.LocalAxisAdd)
                     .SetEase(Ease.Linear);
             }
 
-            // Сам полет до точки
             knife.transform.DOMove(endPos, KnifeFlightDuration)
                 .SetEase(Ease.InCubic) 
                 .OnComplete(() =>
                 {
-                    // Проигрываем звук попадания в игрока (если есть)
                     if (targetSide == TurnSide.Player && !PlayerStabSound.IsNull)
                     {
                         RuntimeManager.PlayOneShot(PlayerStabSound, endPos);
+                    }
+
+                    if (HitParticlesPrefab != null)
+                    {
+                        Instantiate(HitParticlesPrefab, endPos, Quaternion.identity);
                     }
                     
                     Destroy(knife);
@@ -196,7 +189,6 @@ namespace ShellGame.Items
         public override float EvaluateEnemyDesire(ItemEffectContext context)
         {
             if (!CanUse(context) || context.EnemyAI == null) return 0f;
-            
             float knowledgeFraction = context.EnemyAI.GetTrackedKnowledgeFraction();
             return knowledgeFraction > 0.99f ? 0.9f : 0f; 
         }
