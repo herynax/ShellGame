@@ -1,0 +1,61 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 851ba3464650a324994bc219fd09ee36, type: 3}
+  m_Name: CrossItem
+  m_EditorClassIdentifier: Assembly-CSharp::ShellGame.Items.CrossItemDefinition
+  DisplayName: "\u041A\u0440\u0435\u0441\u0442"
+  Icon: {fileID: 21300000, guid: 444c9ad7add192b42a9a81b5f9cf15c8, type: 3}
+  TooltipDescription: "\u041E\u0442\u043C\u0435\u043D\u044F\u0435\u0442 \u043E\u0434\u0438\u043D
+    \u0440\u0430\u0437 \u043D\u0430\u0441\u0435\u0441\u0435\u043D\u043D\u044B\u0439
+    \u0443\u0440\u043E\u043D."
+  UseDescription: "\u0412\u0440\u0430\u0433 \u043D\u0435 \u043F\u043E\u043B\u0443\u0447\u0438\u0442
+    \u0443\u0440\u043E\u043D \u043E\u0434\u0438\u043D \u0440\u0430\u0437"
+  WorldPrefab: {fileID: 2464826568082180442, guid: 6a5b96da0ecc5da448bff7c899ce830d,
+    type: 3}
+  HoverLiftHeight: 0.08
+  HoverScaleMultiplier: 1.15
+  HoverTweenDuration: 0.15
+  HoverEnterSound:
+    Guid:
+      Data1: -684100409
+      Data2: 1197088562
+      Data3: 48967553
+      Data4: 2002275623
+    Path: event:/SFX/Items/Cross/I_Cross
+  HoverExitSound:
+    Guid:
+      Data1: -684100409
+      Data2: 1197088562
+      Data3: 48967553
+      Data4: 2002275623
+    Path: event:/SFX/Items/Cross/I_Cross
+  TooltipHoverDelay: 0.6
+  UseSound:
+    Guid:
+      Data1: -848834235
+      Data2: 1134695305
+      Data3: -949290094
+      Data4: -1684936138
+    Path: event:/SFX/Items/Cross/I_CrossUse
+  PlayerUseAnimationTrigger: UseItem
+  EnemyUseAnimationTrigger: EnemyUseItem
+  FloatingCrossPrefab: {fileID: 4645671740475329784, guid: e5ce0168dee234e4c99bf7cd57233718,
+    type: 3}
+  ShieldBreakParticlesPrefab: {fileID: 158534570442112090, guid: b7ec786bf30b42041ae755b08ebadf5b,
+    type: 3}
+  ShieldBreakSound:
+    Guid:
+      Data1: -173251077
+      Data2: 1136416815
+      Data3: -77715289
+      Data4: 809834919
+    Path: event:/SFX/Items/Cross/I_CrossDestroy

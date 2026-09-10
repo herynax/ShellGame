@@ -1,4 +1,3 @@
-// START OF FILE PauseController.cs
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -7,7 +6,7 @@ using UnityEngine.InputSystem;
 using Unity.Cinemachine;
 using DG.Tweening;
 using ShellGame.Audio; 
-using ShellGame.Gameplay; // Добавлено для GameSessionProgression
+using ShellGame.Gameplay;
 using Zenject;
 using SpankyBoy.JuiceUI.Free;
 
@@ -30,14 +29,21 @@ public class PauseController : MonoBehaviour
     [HideInInspector] [SerializeField] private CinemachineBrain _brain;
 
     [Header("UI паузы")]
-    [Tooltip("Канвас-группа с ГЛАВНЫМ меню паузы (кнопки Resume/Exit и т.д.)")]
-    public CanvasGroup pauseMenuCanvasGroup;
+    [Tooltip("Главная панель с кнопками Resume, Settings, Exit (MainPanel в иерархии, НЕ родительский объект PauseMenu!)")]
+    [SerializeField] private CanvasGroup rootPanelCanvasGroup;
+
+    [Tooltip("Общий родительский контейнер всего меню (PauseMenu), если нужен для общего включения/выключения")]
+    [SerializeField] private GameObject pauseMenuRootObject;
 
     [Header("Игровой прицел (Crosshair)")]
     [HideInInspector] public CanvasGroup crosshairCanvasGroup;
 
     [Header("Настройки")]
     public float fadeDuration = 0.3f;
+
+    [Header("Настройки сцены")]
+    [Tooltip("Имя сцены главного меню, которая загрузится при выходе из паузы в меню")]
+    [SerializeField] private string mainMenuSceneName = "MainMenu";
 
     public bool IsPaused { get; private set; }
 
@@ -105,8 +111,18 @@ public class PauseController : MonoBehaviour
 
         if (cameraController == null)
             cameraController = _allLookControllers != null && _allLookControllers.Length > 0 ? _allLookControllers[0] : null;
-        if (pauseMenuCanvasGroup == null)
-            pauseMenuCanvasGroup = FindCanvasGroup("PauseMenu");
+
+        if (rootPanelCanvasGroup == null)
+            rootPanelCanvasGroup = FindCanvasGroup("MainPanel") ?? FindCanvasGroup("PauseMenu");
+
+        if (pauseMenuRootObject == null && rootPanelCanvasGroup != null)
+        {
+            // Если родительский контейнер не назначен, берем либо родителя MainPanel, либо сам объект
+            pauseMenuRootObject = rootPanelCanvasGroup.transform.parent != null 
+                ? rootPanelCanvasGroup.transform.parent.gameObject 
+                : rootPanelCanvasGroup.gameObject;
+        }
+
         if (crosshairCanvasGroup == null)
             crosshairCanvasGroup = FindCanvasGroup("Pointer") ?? FindCanvasGroup("Crosshair");
     }
@@ -132,11 +148,14 @@ public class PauseController : MonoBehaviour
     {
         ResolveReferences();
 
-        if (pauseMenuCanvasGroup != null)
+        if (pauseMenuRootObject != null)
+            pauseMenuRootObject.SetActive(false);
+
+        if (rootPanelCanvasGroup != null)
         {
-            pauseMenuCanvasGroup.alpha = 0f;
-            pauseMenuCanvasGroup.blocksRaycasts = false;
-            pauseMenuCanvasGroup.gameObject.SetActive(false);
+            rootPanelCanvasGroup.alpha = 0f;
+            rootPanelCanvasGroup.blocksRaycasts = false;
+            rootPanelCanvasGroup.gameObject.SetActive(false);
         }
 
         if (crosshairCanvasGroup != null)
@@ -148,8 +167,7 @@ public class PauseController : MonoBehaviour
 
     private void Update()
     {
-        if (Keyboard.current == null) return;
-        if (isExiting) return;
+        if (Keyboard.current == null || isExiting) return;
         
         if (!Keyboard.current.escapeKey.wasPressedThisFrame) return;
 
@@ -204,7 +222,7 @@ public class PauseController : MonoBehaviour
 
     public void OpenSubmenu(CanvasGroup submenu)
     {
-        if (submenu == null || !IsPaused) return;
+        if (submenu == null || !IsPaused || isExiting) return;
 
         if (_menuStack.Count > 0)
         {
@@ -224,6 +242,20 @@ public class PauseController : MonoBehaviour
             return;
         }
 
+        CanvasGroup top = _menuStack.Peek();
+
+        // Поддержка ICloseGuard (как в MainMenuController)
+        if (top.TryGetComponent<ICloseGuard>(out var guard))
+        {
+            guard.RequestClose(ForceCloseTopMenu);
+            return;
+        }
+
+        ForceCloseTopMenu();
+    }
+
+    private void ForceCloseTopMenu()
+    {
         CanvasGroup top = _menuStack.Pop();
         PlayMenuOut(top);
 
@@ -301,13 +333,17 @@ public class PauseController : MonoBehaviour
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
 
+        // Включаем общий контейнер
+        if (pauseMenuRootObject != null)
+            pauseMenuRootObject.SetActive(true);
+
         activeSequence = DOTween.Sequence().SetUpdate(true);
         
         _menuStack.Clear();
-        if (pauseMenuCanvasGroup != null)
+        if (rootPanelCanvasGroup != null)
         {
-            _menuStack.Push(pauseMenuCanvasGroup);
-            PlayMenuIn(pauseMenuCanvasGroup);
+            _menuStack.Push(rootPanelCanvasGroup);
+            PlayMenuIn(rootPanelCanvasGroup);
         }
 
         if (crosshairCanvasGroup != null) 
@@ -332,6 +368,9 @@ public class PauseController : MonoBehaviour
             activeSequence.Join(crosshairCanvasGroup.DOFade(1f, fadeDuration));
 
         yield return activeSequence.WaitForCompletion();
+
+        if (pauseMenuRootObject != null)
+            pauseMenuRootObject.SetActive(false);
 
         if (_pausedFromCamera != null)
             _pausedFromCamera.Priority = _pausedFromCameraPriority;
@@ -370,6 +409,21 @@ public class PauseController : MonoBehaviour
         OnResumed?.Invoke();
     }
 
+    public void ExitToMainMenu()
+    {
+        if (isExiting) return;
+        isExiting = true;
+        pauseBlocked = true;
+
+        Time.timeScale = 1f;
+        IsPaused = false;
+
+        if (SceneLoader.Instance != null)
+            SceneLoader.Instance.LoadScene(mainMenuSceneName);
+        else
+            UnityEngine.SceneManagement.SceneManager.LoadScene(mainMenuSceneName);
+    }
+
     public void ExitGame()
     {
         if (isExiting) return;
@@ -384,14 +438,10 @@ public class PauseController : MonoBehaviour
         Sequence exitSequence = DOTween.Sequence().SetUpdate(true);
 
         if (SceneLoader.Instance != null && SceneLoader.Instance.fadeCanvasGroup != null)
-        {
             exitSequence.Join(SceneLoader.Instance.fadeCanvasGroup.DOFade(1f, fadeDuration));
-        }
 
         if (MusicManager.Instance != null)
-        {
             MusicManager.Instance.FadeOutMusic(fadeDuration);
-        }
 
         yield return exitSequence.WaitForCompletion();
 
@@ -401,32 +451,22 @@ public class PauseController : MonoBehaviour
 #endif
     }
 
-    /// <summary>
-    /// Рестарт игры (вызывается из окна подтверждения).
-    /// </summary>
     public void RestartGame()
     {
         if (isExiting) return;
-        isExiting = true; // Блокируем дальнейший инпут
+        isExiting = true;
         pauseBlocked = true;
 
-        // Обязательно возвращаем время в норму, иначе новая сцена загрузится "замороженной"
         Time.timeScale = 1f;
         IsPaused = false;
 
-        // Сбрасываем прогрессию забега
         if (GameSessionProgression.Instance != null)
             GameSessionProgression.Instance.Reset();
 
-        // Запускаем процесс загрузки через SceneLoader (загружаем самую первую сцену)
         if (SceneLoader.Instance != null)
-        {
             SceneLoader.Instance.LoadScene("Tutorial"); 
-        }
         else
-        {
             UnityEngine.SceneManagement.SceneManager.LoadScene("Tutorial");
-        }
     }
 
     private void OnDestroy()
@@ -434,4 +474,3 @@ public class PauseController : MonoBehaviour
         activeSequence?.Kill();
     }
 }
-// END OF FILE

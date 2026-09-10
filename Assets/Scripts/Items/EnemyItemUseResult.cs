@@ -12,5 +12,7 @@ namespace ShellGame.Items
         public bool UsedAnything;
         public bool SkippedTurn;
         public float ExtraDelaySeconds;
+
+        public bool TurnResolvedByItem;
     }
 }

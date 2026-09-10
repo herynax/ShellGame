@@ -41,5 +41,7 @@ namespace ShellGame.Items
         public Action<float, Action<Shell>> BeginHammerAttack;
         public Action ReduceMaxShells;
         public Action<Shell> RemoveShellFromPlay;
+
+        public bool EnemyTurnResolvedByItem;
     }
 }

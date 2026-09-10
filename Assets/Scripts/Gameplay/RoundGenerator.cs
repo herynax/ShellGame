@@ -75,6 +75,122 @@ namespace ShellGame.Gameplay
             }
         }
 
+        /// <summary>
+        /// Восстанавливает раскладку стола из чекпоинта (конкретные слоты и то,
+        /// под каким наперстком метка) вместо случайной генерации. Мгновенно, без
+        /// анимации перехода (LayoutTransitionDuration = 0) — это не "новый
+        /// раунд", а буквальное продолжение с того же места.
+        /// </summary>
+        public RoundParameters RestoreRound(
+            IReadOnlyList<ShellGame.Meta.ShellCheckpointData> savedShells,
+            float difficultyIndex,
+            int levelIndex,
+            int roundIndex)
+        {
+            ResolveSlots();
+            GameEvents.RaiseRoundSetupStarted();
+
+            _spawnedSlots.Clear();
+            var matchedSaved = new List<ShellGame.Meta.ShellCheckpointData>();
+            if (savedShells != null)
+            {
+                foreach (var saved in savedShells)
+                {
+                    var slot = FindSlotByIndex(saved.SlotIndex);
+                    if (slot == null)
+                    {
+                        Debug.LogWarning($"[RoundGenerator] Чекпоинт ссылается на несуществующий слот {saved.SlotIndex} — пропускаю этот наперсток.");
+                        continue;
+                    }
+
+                    _spawnedSlots.Add(slot);
+                    matchedSaved.Add(saved);
+                }
+            }
+
+            if (_spawnedSlots.Count == 0)
+            {
+                Debug.LogWarning("[RoundGenerator] Чекпоинт не дал ни одного валидного слота — генерирую раунд заново как обычно.");
+                return GenerateRound(levelIndex, roundIndex, 0, difficultyIndex, 0);
+            }
+
+            foreach (var slot in _slots)
+                slot.OccupyingShell = null;
+
+            foreach (var marker in _activeMarkers)
+                Destroy(marker.gameObject);
+            _activeMarkers.Clear();
+
+            var previousShells = new List<Shell>(_activeShells);
+            var nextShells = new List<Shell>(_spawnedSlots.Count);
+            LayoutTransitionDuration = 0f;
+
+            int markerCount = 0;
+            for (int i = 0; i < _spawnedSlots.Count; i++)
+            {
+                var slot = _spawnedSlots[i];
+                var saved = matchedSaved[i];
+
+                Shell shell = i < previousShells.Count ? previousShells[i] : _pool.Spawn(slot.SpawnPosition, slot.Rotation);
+
+                if (_shellPrefab != null)
+                    shell.transform.localScale = _shellPrefab.transform.localScale;
+                shell.Initialize(_shellConfig, _audio);
+                shell.AssignToSlot(slot);
+                shell.PlaceAtSurface(slot.SpawnPosition);
+                shell.gameObject.SetActive(true);
+
+                Marker marker = null;
+                if (saved.HasMarker)
+                {
+                    markerCount++;
+                    if (_markerPrefab != null)
+                    {
+                        marker = Instantiate(_markerPrefab, transform, true);
+                        marker.PlaceAtSurface(slot.SpawnPosition);
+                    }
+                    else
+                    {
+                        var markerObject = new GameObject("Marker");
+                        markerObject.transform.SetParent(transform, false);
+                        marker = markerObject.AddComponent<Marker>();
+                        marker.PlaceAtSurface(slot.SpawnPosition);
+                    }
+                }
+
+                shell.AttachMarker(marker);
+                shell.SetMarker(saved.HasMarker);
+
+                slot.OccupyingShell = shell;
+                nextShells.Add(shell);
+                if (marker != null)
+                    _activeMarkers.Add(marker);
+            }
+
+            for (int i = _spawnedSlots.Count; i < previousShells.Count; i++)
+                _pool.Despawn(previousShells[i]);
+
+            _activeShells.Clear();
+            _activeShells.AddRange(nextShells);
+
+            return new RoundParameters
+            {
+                LevelIndex = levelIndex,
+                RoundIndex = roundIndex,
+                CupCount = _spawnedSlots.Count,
+                MarkerCount = markerCount,
+                DifficultyIndex = difficultyIndex,
+            };
+        }
+
+        private ShellSlot FindSlotByIndex(int index)
+        {
+            foreach (var slot in _slots)
+                if (slot != null && slot.Index == index)
+                    return slot;
+            return null;
+        }
+
         public RoundParameters GenerateRound(
             int levelIndex,
             int roundIndex,

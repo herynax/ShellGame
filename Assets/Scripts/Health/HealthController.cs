@@ -122,6 +122,22 @@ namespace ShellGame.Health
             return overdosed;
         }
 
+        /// <summary>
+        /// Восстанавливает HP/дозу из сохранённого чекпоинта — в отличие от
+        /// Initialize() не обнуляет, а выставляет конкретные значения напрямую.
+        /// Чекпоинт по построению сохраняется только пока никто ещё не умер в этом
+        /// раунде, но на всякий случай явно снимаем "мёртв", если он почему-то
+        /// был выставлен раньше.
+        /// </summary>
+        public void RestoreState(TurnSide side, int current, int max)
+        {
+            _max[side] = max;
+            _current[side] = Mathf.Clamp(current, 0, max);
+            _dead.Remove(side);
+            GameEvents.RaiseHealthChanged(side, _current[side], max);
+            UpdateDoseCounterParameter(side);
+        }
+
         public void Heal(TurnSide side, int amount)
         {
             if (_dead.Contains(side) || amount <= 0) return;

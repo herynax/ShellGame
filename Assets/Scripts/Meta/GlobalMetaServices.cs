@@ -12,6 +12,7 @@ namespace ShellGame.Meta
     {
         int TotalDeaths { get; }
         int TotalWins { get; }
+        void ResetAll();
     }
 
     public interface IUnlockManager
@@ -37,6 +38,15 @@ namespace ShellGame.Meta
 
             GameEvents.SideDied += OnSideDied;
             GameEvents.GameWon += OnGameWon;
+        }
+
+        public void ResetAll()
+        {
+            TotalDeaths = 0;
+            TotalWins = 0;
+            PlayerPrefs.SetInt("Meta_TotalDeaths", 0);
+            PlayerPrefs.SetInt("Meta_TotalWins", 0);
+            PlayerPrefs.Save();
         }
 
         public void Dispose()

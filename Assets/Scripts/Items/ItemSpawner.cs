@@ -11,6 +11,9 @@ using ShellGame.Shells;
 using UnityEngine;
 using Zenject;
 
+// Явный алиас, чтобы типы внутри ShellGame.Items не перекрывали тип из ShellGame.Meta
+using ItemStackCheckpointData = ShellGame.Meta.ItemStackCheckpointData;
+
 namespace ShellGame.Items
 {
     public sealed class ItemSpawner : MonoBehaviour
@@ -177,6 +180,119 @@ namespace ShellGame.Items
             if (count < points.Count)
                 points.RemoveRange(count, points.Count - count);
             return points;
+        }
+
+        /// <summary>Все ItemDefinition, которые СЕЙЧАС физически лежат на столе у этой стороны (по заспавненным ItemPickupView, не по _playerInventory/_enemyInventory — у игрока эти счётчики не ведутся, предметы читаются прямо из мира).</summary>
+        public List<ItemDefinition> GetOwnedItemDefinitions(TurnSide side)
+        {
+            var result = new List<ItemDefinition>();
+            foreach (var itemObject in _spawnedItems)
+            {
+                if (itemObject == null) continue;
+                var pickup = itemObject.GetComponent<ItemPickupView>();
+                if (pickup != null && pickup.Owner == side && pickup.Item != null)
+                    result.Add(pickup.Item);
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// Восстанавливает предметы на столе из чекпоинта вместо обычного
+        /// случайного спавна — вызывается ДО того, как WaitForStart дойдёт до
+        /// SpawnItems() (которая после этого просто увидит _hasSpawned=true и
+        /// молча ничего не сделает).
+        /// </summary>
+        public void RestoreFromCheckpoint(List<ShellGame.Meta.ItemStackCheckpointData> playerItems, List<ShellGame.Meta.ItemStackCheckpointData> enemyItems)
+        {
+            if (_hasSpawned) return;
+            _hasSpawned = true;
+
+            _playerSpawnCounts.Clear();
+            _enemySpawnCounts.Clear();
+
+            var playerPoints = GetPointsForSide(TurnSide.Player, _playerItemCount);
+            var enemyPoints = GetPointsForSide(TurnSide.Enemy, _enemyItemCount);
+
+            SpawnRestoredStacks(playerItems, playerPoints, TurnSide.Player, _playerSpawnCounts);
+            SpawnRestoredStacks(enemyItems, enemyPoints, TurnSide.Enemy, _enemySpawnCounts);
+
+            HasFinishedSpawning = true;
+        }
+
+        private void SpawnRestoredStacks(List<ShellGame.Meta.ItemStackCheckpointData> stacks, List<ItemSpawnPoint> points, TurnSide side, Dictionary<ItemDefinition, int> sideCounts)
+        {
+            if (stacks == null) return;
+
+            int pointIndex = 0;
+            foreach (var stack in stacks)
+            {
+                var definition = ResolveItemByName(stack.ItemAssetName);
+                if (definition == null)
+                {
+                    Debug.LogWarning($"[ItemSpawner] Чекпоинт ссылается на неизвестный предмет '{stack.ItemAssetName}' — пропускаю.");
+                    continue;
+                }
+
+                for (int i = 0; i < stack.Count; i++)
+                {
+                    if (pointIndex >= points.Count)
+                    {
+                        Debug.LogWarning($"[ItemSpawner] Не хватило точек спавна для восстановления всех предметов стороны {side}.");
+                        return;
+                    }
+
+                    SpawnSpecificItem(points[pointIndex], side, definition, sideCounts);
+                    pointIndex++;
+                }
+            }
+        }
+
+        private ItemDefinition ResolveItemByName(string assetName)
+        {
+            if (string.IsNullOrEmpty(assetName)) return null;
+
+            if (_unlocksConfig != null)
+            {
+                foreach (var entry in _unlocksConfig.Entries)
+                    if (entry.Item != null && entry.Item.name == assetName)
+                        return entry.Item;
+            }
+
+            foreach (var item in _fallbackAvailableItems)
+                if (item != null && item.name == assetName)
+                    return item;
+
+            return null;
+        }
+
+        private void SpawnSpecificItem(ItemSpawnPoint point, TurnSide owner, ItemDefinition definition, Dictionary<ItemDefinition, int> sideCounts)
+        {
+            if (definition == null || definition.WorldPrefab == null) return;
+
+            var spawnPosition = point.SpawnPosition;
+            var itemObject = Instantiate(definition.WorldPrefab, spawnPosition, point.Rotation, transform);
+            if (itemObject == null) return;
+
+            RotateVisualRandomly(itemObject.transform);
+            ShellGame.Core.TableSurfacePlacement.PlaceObjectOnSurface(itemObject.transform, spawnPosition);
+
+            var pickup = itemObject.GetComponent<ItemPickupView>();
+            if (pickup == null)
+                pickup = itemObject.AddComponent<ItemPickupView>();
+
+            pickup.SetItem(definition);
+            pickup.SetOwner(owner);
+            pickup.Used += HandleItemUsed;
+            _spawnedItems.Add(itemObject);
+
+            sideCounts.TryGetValue(definition, out var count);
+            sideCounts[definition] = count + 1;
+
+            if (owner == TurnSide.Enemy)
+                _enemyInventory.Add(definition);
+
+            // Без анимации "появления из ниоткуда" — это восстановление, предмет
+            // просто уже лежит на столе, а не появляется впервые.
         }
 
         /// <summary>
@@ -373,6 +489,14 @@ namespace ShellGame.Items
                 if (itemSkippedTurn)
                 {
                     result.SkippedTurn = true;
+                    break;
+                }
+
+                // НОВОЕ: если предмет сам разрешил ход (сейчас — Нож), дальше в этом ходу
+                // использовать предметы нельзя — ход уже "потрачен" на реальный выбор.
+                if (bestContext.EnemyTurnResolvedByItem)
+                {
+                    result.TurnResolvedByItem = true;
                     break;
                 }
             }

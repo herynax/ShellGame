@@ -303,6 +303,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 64
   _shellAimAssistRadius: 0.7
+  _depthWeight: 0.1
   _aimSmoothingTime: 0.15
 --- !u!114 &6015278446830344563
 MonoBehaviour:

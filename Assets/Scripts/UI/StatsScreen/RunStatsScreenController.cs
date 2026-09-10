@@ -69,7 +69,11 @@ namespace ShellGame.UI
             {
                 _continueButton.interactable = false;
                 _continueButton.gameObject.SetActive(false);
-                _continueButton.onClick.AddListener(() => _continueRequested = true);
+                _continueButton.onClick.AddListener(() =>
+                {
+                    _continueButton.gameObject.SetActive(false); // <--- Кнопка мгновенно пропадает при клике
+                    _continueRequested = true;
+                });
             }
 
             gameObject.SetActive(false);

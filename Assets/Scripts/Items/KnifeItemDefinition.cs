@@ -27,6 +27,8 @@ namespace ShellGame.Items
         [Header("Звук попадания")]
         public EventReference PlayerStabSound;
 
+        private static TurnSide Opposite(TurnSide side) => side == TurnSide.Player ? TurnSide.Enemy : TurnSide.Player;
+
         public override bool CanUse(ItemEffectContext context)
         {
             if (context?.ActiveShells == null || context.ActiveShells.Count == 0) return false;
@@ -47,11 +49,9 @@ namespace ShellGame.Items
 
             if (KnifeProjectilePrefab != null)
             {
-                // Задаем позицию и поворот по умолчанию (на случай если Анкоры не настроены)
                 Vector3 anchorPos = context.ItemWorldPosition + Vector3.up * 1f;
                 Quaternion anchorRot = Quaternion.identity;
 
-                // ЧИТАЕМ ИЗ ПОИНТОВ
                 if (ItemVisualAnchors.Instance != null)
                 {
                     Transform anchor = context.UserSide == TurnSide.Player 
@@ -65,51 +65,54 @@ namespace ShellGame.Items
                     }
                 }
 
-                // Спавним нож на столе
                 activeKnife = Instantiate(KnifeProjectilePrefab, context.ItemWorldPosition, Quaternion.identity);
                 
-                // Летим в поинт и принимаем его поворот
                 activeKnife.transform.DOMove(anchorPos, 0.4f).SetEase(Ease.OutBack);
                 activeKnife.transform.DORotateQuaternion(anchorRot, 0.4f).SetEase(Ease.OutQuad);
 
-                if (context.UserSide == TurnSide.Player)
-                {
-                    // Легкое покачивание и тряска (накладывается поверх)
-                    bobTween = activeKnife.transform.DOMoveY(anchorPos.y + 0.05f, 1f)
-                        .SetEase(Ease.InOutSine)
-                        .SetLoops(-1, LoopType.Yoyo)
-                        .SetDelay(0.4f);
+                // Покачивание/тряска в ожидании удара — теперь для ОБЕИХ
+                // сторон одинаково (раньше было только для игрока; враг с
+                // ножом теперь тоже реально "ждёт" решения через
+                // MakeDecisionAndAttack, так что визуально это уместно и
+                // для него).
+                bobTween = activeKnife.transform.DOMoveY(anchorPos.y + 0.05f, 1f)
+                    .SetEase(Ease.InOutSine)
+                    .SetLoops(-1, LoopType.Yoyo)
+                    .SetDelay(0.4f);
 
-                    shakeTween = activeKnife.transform.DOShakeRotation(1f, new Vector3(3f, 3f, 3f), 10, 90f)
-                        .SetLoops(-1, LoopType.Restart)
-                        .SetDelay(0.4f);
-                }
+                shakeTween = activeKnife.transform.DOShakeRotation(1f, new Vector3(3f, 3f, 3f), 10, 90f)
+                    .SetLoops(-1, LoopType.Restart)
+                    .SetDelay(0.4f);
             }
 
             if (context.UserSide == TurnSide.Enemy)
             {
-                if (context.EnemyAI == null) return false;
-                Shell targetShell = null;
+                if (context.EnemyAI == null || context.BeginKnifeAttack == null) return false;
 
-                foreach (var shell in context.ActiveShells)
+                // Ход противника теперь считается разрешённым этим предметом —
+                // GameManager не должен ещё раз запускать обычное решение
+                // поверх этого же хода (см. ItemSpawner.TryUseEnemyItemsRoutine).
+                context.EnemyTurnResolvedByItem = true;
+
+                context.BeginKnifeAttack(RevealDuration, targetShell =>
                 {
-                    if (shell.HasMarker) { targetShell = shell; break; }
-                }
-                
-                if (targetShell == null)
-                    targetShell = context.ActiveShells[Random.Range(0, context.ActiveShells.Count)];
+                    bobTween?.Kill();
+                    shakeTween?.Kill();
 
-                targetShell.RevealMarker(RevealDuration);
-                context.ConsumedExtraDelay = context.ResolveShellRevealDuration?.Invoke(RevealDuration) ?? RevealDuration;
-
-                float delay = context.ConsumedExtraDelay; 
-                DOVirtual.DelayedCall(delay, () =>
-                {
-                    TurnSide targetSide = targetShell.HasMarker ? TurnSide.Player : TurnSide.Enemy;
+                    TurnSide targetSide = targetShell.HasMarker ? Opposite(context.UserSide) : context.UserSide;
                     int damage = targetShell.HasMarker ? DamageToEnemy : DamageToPlayer;
+
                     ExecuteStrike(context, activeKnife, targetSide, damage);
                 });
-                
+
+                // НАСТОЯЩИЙ выбор через ту же вероятностную Knowledge-модель,
+                // что и обычный ход врага — раньше здесь была прямая проверка
+                // shell.HasMarker, из-за которой нож всегда попадал в цель.
+                // Shell.Select() сам подхватит вооружённый выше ShellKnifeGate
+                // (гейт общий для обеих сторон) и пройдёт полный обычный цикл
+                // выбора/реванила/смены хода — никакого ручного управления
+                // раундом здесь больше не нужно.
+                context.EnemyAI.MakeDecisionAndAttack(context.ActiveShells, chosen => chosen.Select());
                 return true;
             }
 
@@ -120,7 +123,7 @@ namespace ShellGame.Items
                 bobTween?.Kill(); 
                 shakeTween?.Kill();
 
-                TurnSide targetSide = targetShell.HasMarker ? TurnSide.Enemy : TurnSide.Player;
+                TurnSide targetSide = targetShell.HasMarker ? Opposite(context.UserSide) : context.UserSide;
                 int damage = targetShell.HasMarker ? DamageToEnemy : DamageToPlayer;
                 
                 ExecuteStrike(context, activeKnife, targetSide, damage);
@@ -137,10 +140,8 @@ namespace ShellGame.Items
                 return;
             }
 
-            // Цель удара по умолчанию
             Vector3 endPos = knife.transform.position + (targetSide == TurnSide.Player ? -Vector3.forward : Vector3.forward) * 2f;
 
-            // ЧИТАЕМ ИЗ ПОИНТОВ
             if (ItemVisualAnchors.Instance != null)
             {
                 Transform hitAnchor = targetSide == TurnSide.Player 
@@ -166,7 +167,7 @@ namespace ShellGame.Items
                 .SetEase(Ease.InCubic) 
                 .OnComplete(() =>
                 {
-                    if (targetSide == TurnSide.Player && !PlayerStabSound.IsNull)
+                    if (!PlayerStabSound.IsNull)
                     {
                         RuntimeManager.PlayOneShot(PlayerStabSound, endPos);
                     }

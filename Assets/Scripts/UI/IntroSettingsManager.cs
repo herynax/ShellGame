@@ -14,10 +14,8 @@ using FMODUnity;
 public class IntroSettingsManager : MonoBehaviour
 {
     [Header("Яркость")]
-    [SerializeField] private BrightnessController brightnessController;
     [SerializeField] private CanvasGroup brightnessPanel;
     [SerializeField] private RectTransform brightnessPanelRect;
-    [SerializeField] private Slider brightnessSlider;
     [SerializeField] private Button acceptBrightnessButton;
 
     [Header("Звук")]
@@ -72,7 +70,7 @@ public class IntroSettingsManager : MonoBehaviour
 
         if (!isFirstLaunch)
         {
-            brightnessController.LoadAndApply();
+            BrightnessManager.Instance.LoadAndApply();
 
             float master = PlayerPrefs.GetFloat(MASTER_KEY, 1f);
             float music = PlayerPrefs.GetFloat(MUSIC_KEY, 1f);
@@ -89,8 +87,7 @@ public class IntroSettingsManager : MonoBehaviour
     private IEnumerator RunFirstLaunchFlow()
     {
         // Значения по умолчанию
-        brightnessSlider.SetValueWithoutNotify(1f);
-        brightnessController.ApplyInstant(1f);
+        BrightnessManager.Instance.ApplyInstant(0f);
 
         masterSlider.SetValueWithoutNotify(1f);
         musicSlider.SetValueWithoutNotify(1f);
@@ -127,7 +124,6 @@ public class IntroSettingsManager : MonoBehaviour
         soundPanel.blocksRaycasts = false;
 
         // 2. После звука показываем последнее меню — панель яркости.
-        brightnessSlider.onValueChanged.AddListener(brightnessController.ApplyInstant);
         yield return FadeInPanel(brightnessPanel);
 
         bool brightnessConfirmed = false;
@@ -136,14 +132,12 @@ public class IntroSettingsManager : MonoBehaviour
 
         yield return new WaitUntil(() => brightnessConfirmed);
         acceptBrightnessButton.onClick.RemoveListener(OnAccept);
-        brightnessSlider.onValueChanged.RemoveListener(brightnessController.ApplyInstant);
 
         // Длинный финальный переход и стартовый звук должны быть после
         // закрытия последнего меню, а не после подтверждения звука.
         yield return TheatricalFadeOut(brightnessPanel);
 
         // 3. Сохранение
-        brightnessController.Save(brightnessSlider.value);
         PlayerPrefs.SetFloat(MASTER_KEY, masterSlider.value);
         PlayerPrefs.SetFloat(MUSIC_KEY, musicSlider.value);
         PlayerPrefs.SetFloat(SFX_KEY, sfxSlider.value);

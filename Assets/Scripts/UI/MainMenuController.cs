@@ -2,8 +2,11 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.UI;
 using DG.Tweening;
 using ShellGame.Audio;
+using ShellGame.Gameplay;
+using ShellGame.Meta;
 using SpankyBoy.JuiceUI.Free;
 
 /// <summary>
@@ -16,11 +19,18 @@ public class MainMenuController : MonoBehaviour
     [Tooltip("Самая первая (корневая) панель меню, где находятся кнопки 'Играть', 'Настройки' и т.д.")]
     [SerializeField] private CanvasGroup rootMenuCanvasGroup;
 
+    [Header("Продолжение забега")]
+    [Tooltip("Кнопка 'Продолжить попытку' — становится неактивной (не скрывается), если сохранённого чекпоинта нет.")]
+    [SerializeField] private Button continueAttemptButton;
+
+    [Tooltip("Панель подтверждения 'начать заново поверх существующего чекпоинта' — показывается через OpenSubmenu только если чекпоинт есть. Кнопка 'Да' внутри неё должна вызывать ConfirmStartNewGame().")]
+    [SerializeField] private CanvasGroup newRunConfirmationPanel;
+
     [Header("Настройки анимации (для Fallback)")]
     [SerializeField] private float fadeDuration = 0.3f;
 
     [Header("Настройки сцены")]
-    [Tooltip("Имя сцены, которая загрузится при нажатии 'Играть'")]
+    [Tooltip("Имя сцены, которая загрузится при нажатии 'Новая попытка'")]
     [SerializeField] private string firstGameplaySceneName = "Tutorial";
 
     private Stack<CanvasGroup> _menuStack = new Stack<CanvasGroup>();
@@ -28,28 +38,26 @@ public class MainMenuController : MonoBehaviour
 
     private void Start()
     {
-        // Убеждаемся, что при старте показано только корневое меню
         if (rootMenuCanvasGroup != null)
         {
             _menuStack.Push(rootMenuCanvasGroup);
             PlayMenuIn(rootMenuCanvasGroup);
         }
+
+        if (continueAttemptButton != null)
+            continueAttemptButton.interactable = RunCheckpointStorage.HasCheckpoint;
     }
 
     private void Update()
     {
         if (Keyboard.current == null || isExitingOrLoading) return;
         
-        // Обработка Escape
         if (Keyboard.current.escapeKey.wasPressedThisFrame)
         {
-            // Если мы находимся в подменю (в стеке больше 1 элемента) - закрываем его
             if (_menuStack.Count > 1)
             {
                 CloseTopMenu();
             }
-            // Если в стеке только корневое меню - ничего не делаем 
-            // (или можно здесь вызывать окно подтверждения выхода, если хочешь)
         }
     }
 
@@ -120,8 +128,23 @@ public class MainMenuController : MonoBehaviour
     /// </summary>
     public void CloseTopMenu()
     {
-        if (_menuStack.Count <= 1 || isExitingOrLoading) return;
+        if (_menuStack.Count <= 1 || isExitingOrLoading) return; // или свой аналогичный guard
 
+        CanvasGroup top = _menuStack.Peek();
+
+        // Если у верхней панели есть ICloseGuard (например, это панель настроек с
+        // несохранёнными изменениями) — отдаём ей решение, закрываться сразу или нет.
+        if (top.TryGetComponent<ICloseGuard>(out var guard))
+        {
+            guard.RequestClose(ForceCloseTopMenu);
+            return;
+        }
+
+        ForceCloseTopMenu();
+    }
+
+    private void ForceCloseTopMenu()
+    {
         CanvasGroup top = _menuStack.Pop();
         PlayMenuOut(top);
 
@@ -145,12 +168,55 @@ public class MainMenuController : MonoBehaviour
     // ==========================================
 
     /// <summary>
-    /// Начать игру. Вешать на кнопку "Играть".
+    /// Вешать на кнопку "Начать игру"/"Новая попытка". Если чекпоинта нет —
+    /// стартует сразу без вопросов. Если чекпоинт есть — новая попытка его
+    /// сотрёт, поэтому вместо немедленного старта открывает панель
+    /// подтверждения (обычная запись в тот же стек меню, что и любое другое
+    /// подменю) и ничего не делает, пока игрок явно не подтвердит.
     /// </summary>
     public void StartGame()
     {
         if (isExitingOrLoading) return;
+
+        if (!RunCheckpointStorage.HasCheckpoint)
+        {
+            BeginNewGame();
+            return;
+        }
+
+        if (newRunConfirmationPanel != null)
+        {
+            OpenSubmenu(newRunConfirmationPanel);
+        }
+        else
+        {
+            Debug.LogWarning("[MainMenuController] Есть чекпоинт, но newRunConfirmationPanel не назначена — стартую без подтверждения.");
+            BeginNewGame();
+        }
+    }
+
+    /// <summary>
+    /// Вешать на кнопку "Да, начать заново" ВНУТРИ newRunConfirmationPanel.
+    /// </summary>
+    public void ConfirmStartNewGame()
+    {
+        if (isExitingOrLoading) return;
+        BeginNewGame();
+    }
+
+    /// <summary>
+    /// Фактический запуск новой попытки — сбрасывает прогрессию забега и
+    /// чекпоинт (даже если предыдущий забег не был доигран до победы/смерти
+    /// и чекпоинт не стёрся сам, новая попытка не должна его унаследовать),
+    /// затем грузит стартовую сцену.
+    /// </summary>
+    private void BeginNewGame()
+    {
         isExitingOrLoading = true;
+
+        if (GameSessionProgression.Instance != null)
+            GameSessionProgression.Instance.Reset();
+        RunCheckpointStorage.Clear();
 
         if (SceneLoader.Instance != null)
         {
@@ -160,6 +226,34 @@ public class MainMenuController : MonoBehaviour
         {
             UnityEngine.SceneManagement.SceneManager.LoadScene(firstGameplaySceneName);
         }
+    }
+
+    /// <summary>
+    /// "Продолжить попытку". Кнопка неактивна, если чекпоинта нет (см.
+    /// Start()), так что этот метод в норме вызывается только когда он
+    /// точно есть — проверка ниже это подтверждающая, не основная логика.
+    /// </summary>
+    public void ContinueAttempt()
+    {
+        if (isExitingOrLoading) return;
+
+        var checkpoint = RunCheckpointStorage.Load();
+        if (checkpoint == null)
+        {
+            Debug.LogWarning("[MainMenuController] Нажата 'Продолжить попытку', но чекпоинта нет.");
+            if (continueAttemptButton != null) continueAttemptButton.interactable = false;
+            return;
+        }
+
+        isExitingOrLoading = true;
+
+        if (GameSessionProgression.Instance != null)
+            GameSessionProgression.Instance.PendingContinueFromCheckpoint = true;
+
+        if (SceneLoader.Instance != null)
+            SceneLoader.Instance.LoadScene(checkpoint.SceneName);
+        else
+            UnityEngine.SceneManagement.SceneManager.LoadScene(checkpoint.SceneName);
     }
 
     /// <summary>

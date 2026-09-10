@@ -38,7 +38,11 @@ namespace ShellGame.UI
 
             if (_continueButton != null)
             {
-                _continueButton.onClick.AddListener(() => _continueRequested = true);
+                    _continueButton.onClick.AddListener(() =>
+                    {
+                        _continueButton.gameObject.SetActive(false); // <--- Кнопка мгновенно пропадает при клике
+                        _continueRequested = true;
+                    });
             }
 
             gameObject.SetActive(false);

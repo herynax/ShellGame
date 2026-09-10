@@ -111,11 +111,6 @@ public class SceneLoader : MonoBehaviour
     {
         if (isLoading) return;
 
-        // GlobalProgressService тоже слушает этот же ивент для TotalDeaths/TotalWins,
-        // но порядок вызова подписчиков не гарантирован (Zenject IInitializable vs
-        // обычный OnEnable) — если наш обработчик отработает раньше, проверка
-        // анлоков ниже увидит устаревший счётчик. Поэтому пересчитываем счётчик
-        // явно здесь же, синхронно, ДО запуска остальной логики.
         if (side == TurnSide.Player && _globalProgress is ShellGame.Meta.GlobalProgressService concreteProgress)
             concreteProgress.EnsureDeathCounted();
 
@@ -157,16 +152,19 @@ public class SceneLoader : MonoBehaviour
 
         if (roomLight != null) roomLight.DOIntensity(0f, roomDarkenDuration).SetUpdate(true);
 
+        // ЗАМОРАЖИВАЕМ ВРЕМЯ НА ВРЕМЯ ЗАГРУЗКИ
+        Time.timeScale = 0f;
+
         ScreenFullyBlack?.Invoke();
 
         // --- ШАГ 2: СОБЫТИЕ ПОБЕДЫ ---
         if (isWin)
         {
-            GameEvents.RaiseGameWon(); // Это увеличит счетчик побед в GlobalProgressService
+            GameEvents.RaiseGameWon();
             FinalLevelCompleted?.Invoke();
         }
 
-        // --- ШАГ 3: ЭКРАН СТАТИСТИКИ И АНЛОКОВ (Только конец игры: Победа или Смерть) ---
+        // --- ШАГ 3: ЭКРАН СТАТИСТИКИ И АНЛОКОВ ---
         AsyncOperation asyncLoad = null;
 
         if (isWin || isLoss)
@@ -177,6 +175,7 @@ public class SceneLoader : MonoBehaviour
                 yield return runStatsScreen.ShowAndWaitForContinue(BuildStatsSnapshot());
 
             EnsureSessionProgression().Reset();
+            ShellGame.Meta.RunCheckpointStorage.Clear();
 
             // 3.2 Анлоки
             if (_unlockManager != null)
@@ -188,7 +187,6 @@ public class SceneLoader : MonoBehaviour
                 }
             }
 
-            // Грузим меню (если победа) или туториал (если смерть, либо тоже меню, как настроишь)
             string targetScene = isWin ? mainMenuSceneName : firstSceneOnPlayerDeath;
             asyncLoad = SceneManager.LoadSceneAsync(targetScene);
         }
@@ -218,6 +216,9 @@ public class SceneLoader : MonoBehaviour
         ScreenRevealing?.Invoke(fadeDuration);
         
         yield return fadeCanvasGroup.DOFade(0f, fadeDuration).SetUpdate(true).WaitForCompletion();
+
+        // ВОЗВРАЩАЕМ ВРЕМЯ В НОРМУ ТОЛЬКО ПОЛНОСТЬЮ ЗАВЕРШИВ ПЕРЕХОД
+        Time.timeScale = 1f;
 
         SceneRevealCompleted?.Invoke();
         fadeCanvasGroup.blocksRaycasts = false;
@@ -262,6 +263,9 @@ public class SceneLoader : MonoBehaviour
         ScreenGoingBlack?.Invoke(fadeDuration);
         if (fadeCanvasGroup != null) yield return fadeCanvasGroup.DOFade(1f, fadeDuration).SetUpdate(true).WaitForCompletion();
 
+        // ЗАМОРАЖИВАЕМ ВРЕМЯ НА ВРЕМЯ ЗАГРУЗКИ
+        Time.timeScale = 0f;
+
         ScreenFullyBlack?.Invoke();
         LoadingScreenShown?.Invoke();
         LoadProgressChanged?.Invoke(0f);
@@ -282,6 +286,10 @@ public class SceneLoader : MonoBehaviour
             yield return fadeCanvasGroup.DOFade(0f, fadeDuration).SetUpdate(true).WaitForCompletion();
             fadeCanvasGroup.blocksRaycasts = false;
         }
+
+        // ВОЗВРАЩАЕМ ВРЕМЯ В НОРМУ ТОЛЬКО ПОЛНОСТЬЮ ЗАВЕРШИВ ПЕРЕХОД
+        Time.timeScale = 1f;
+
         SceneRevealCompleted?.Invoke();
         isLoading = false;
         SetPauseBlocked(false);

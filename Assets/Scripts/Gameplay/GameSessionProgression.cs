@@ -11,6 +11,17 @@ namespace ShellGame.Gameplay
         public float CurrentDifficultyIndex { get; private set; }
         public int MaxShellsPenalty { get; private set; }
 
+        /// <summary>
+        /// Одноразовый флаг: "следующая загружаемая игровая сцена должна
+        /// восстановить состояние из RunCheckpointStorage вместо обычного
+        /// свежего старта". Выставляется MainMenuController перед загрузкой
+        /// сцены по кнопке "Продолжить попытку", потребляется (сбрасывается)
+        /// в GameManager.Start() сразу же — поэтому обычная внутриигровая
+        /// смена уровня никогда его не видит и никогда не восстанавливается
+        /// вместо честной генерации нового раунда.
+        /// </summary>
+        public bool PendingContinueFromCheckpoint { get; set; }
+
         private void Awake()
         {
             if (Instance == null)
@@ -28,6 +39,11 @@ namespace ShellGame.Gameplay
             CompletedRoundsInSession++;
         }
 
+        public void SetCompletedRounds(int count)
+        {
+            CompletedRoundsInSession = Mathf.Max(0, count);
+        }
+
         public void SetCurrentLevelIndex(int levelIndex)
         {
             CurrentLevelIndex = Mathf.Max(0, levelIndex);
@@ -38,6 +54,10 @@ namespace ShellGame.Gameplay
             MaxShellsPenalty += amount;
         }
 
+        public void SetMaxShellsPenalty(int amount)
+        {
+            MaxShellsPenalty = Mathf.Max(0, amount);
+        }
 
         public void AdvanceToNextLevel()
         {
@@ -68,6 +88,7 @@ namespace ShellGame.Gameplay
             CurrentLevelIndex = 0;
             CurrentDifficultyIndex = 0f;
             MaxShellsPenalty = 0; // Сбрасываем при рестарте забега
+            PendingContinueFromCheckpoint = false;
         }
     }
 }

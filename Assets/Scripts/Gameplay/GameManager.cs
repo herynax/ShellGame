@@ -5,11 +5,17 @@ using ShellGame.Core;
 using ShellGame.Feedback;
 using ShellGame.Health;
 using ShellGame.Items;
+using ShellGame.Meta;
 using ShellGame.Shells;
 using FMODUnity;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using Zenject;
+
+// Явные алиасы исключают коллизии с одноимёнными типами из глобального namespace
+using RunCheckpointData = ShellGame.Meta.RunCheckpointData;
+using ShellCheckpointData = ShellGame.Meta.ShellCheckpointData;
+using RunCheckpointStorage = ShellGame.Meta.RunCheckpointStorage;
 
 namespace ShellGame.Gameplay
 {
@@ -52,6 +58,14 @@ namespace ShellGame.Gameplay
         private bool _tutorialPlayerChoiceLocked;
         private bool _skipEnemyTurn;
         private int _enemySlowItemChoicesRemaining;
+
+        /// <summary>
+        /// Не null между Start() и моментом, когда Generate-кейс реально
+        /// применит восстановление (EnsureHealthInitializedForLevel должна
+        /// успеть отработать первой, иначе она перетрёт восстановленное HP
+        /// свежими нулями) — см. ApplyCheckpointRestore.
+        /// </summary>
+        private ShellGame.Meta.RunCheckpointData _pendingCheckpointRestore;
 
         private readonly Dictionary<TurnSide, bool> _extraTurnRequested = new Dictionary<TurnSide, bool>
         {
@@ -157,34 +171,70 @@ namespace ShellGame.Gameplay
 
             RunStatsTracker.EnsureExists();
 
-            if (IsTutorialScene())
+            // Одноразовый флаг — потребляем немедленно, чтобы случайная
+            // повторная загрузка этой же сцены (например, обычный переход
+            // между уровнями внутри забега) никогда не попыталась
+            // восстановиться повторно.
+            bool wantsRestore = _sessionProgression.PendingContinueFromCheckpoint;
+            _sessionProgression.PendingContinueFromCheckpoint = false;
+
+            ShellGame.Meta.RunCheckpointData checkpoint = null;
+            if (wantsRestore)
             {
-                bool isTutorialRestartScene = SceneManager.GetActiveScene().buildIndex == 1;
-                if (isTutorialRestartScene)
-                    _sessionProgression.Reset();
-
-                _completedRoundsInSession = 0;
-                _levelIndex = 0;
-                _roundIndex = 0;
-                RunStatsTracker.Instance.StartRun();
-
-                if (!IsTutorialCompleted())
+                checkpoint = ShellGame.Meta.RunCheckpointStorage.Load();
+                if (checkpoint == null || !string.Equals(checkpoint.SceneName, SceneManager.GetActiveScene().name, System.StringComparison.OrdinalIgnoreCase))
                 {
-                    _firstRoundReadyWaited = false;
-                    _tutorialPlayerChoiceLocked = true;
+                    Debug.LogWarning("[GameManager] Запрошено продолжение, но чекпоинт отсутствует/не для этой сцены — стартую как обычно.");
+                    checkpoint = null;
                 }
+            }
+
+            if (checkpoint != null)
+            {
+                _tutorialPlayerChoiceLocked = false;
+                _completedRoundsInSession = checkpoint.CompletedRoundsInSession;
+                _levelIndex = checkpoint.LevelIndex;
+                _activeSide = checkpoint.ActiveSide;
+
+                _sessionProgression.SetCurrentLevelIndex(_levelIndex);
+                _sessionProgression.SetDifficultyIndex(checkpoint.DifficultyIndex);
+                _sessionProgression.SetCompletedRounds(checkpoint.CompletedRoundsInSession);
+                _sessionProgression.SetMaxShellsPenalty(checkpoint.MaxShellsPenalty);
+
+                _pendingCheckpointRestore = checkpoint;
             }
             else
             {
-                _tutorialPlayerChoiceLocked = false;
+                if (IsTutorialScene())
+                {
+                    bool isTutorialRestartScene = SceneManager.GetActiveScene().buildIndex == 1;
+                    if (isTutorialRestartScene)
+                        _sessionProgression.Reset();
+
+                    _completedRoundsInSession = 0;
+                    _levelIndex = 0;
+                    _roundIndex = 0;
+                    RunStatsTracker.Instance.StartRun();
+
+                    if (!IsTutorialCompleted())
+                    {
+                        _firstRoundReadyWaited = false;
+                        _tutorialPlayerChoiceLocked = true;
+                    }
+                }
+                else
+                {
+                    _tutorialPlayerChoiceLocked = false;
+                }
+
+                _completedRoundsInSession = _sessionProgression.CompletedRoundsInSession;
+                if (_sessionProgression.CurrentLevelIndex > 0) _levelIndex = _sessionProgression.CurrentLevelIndex;
+                else if (_levelIndex < 0) _levelIndex = SceneManager.GetActiveScene().buildIndex;
+
+                _sessionProgression.SetCurrentLevelIndex(_levelIndex);
+                _activeSide = _startingSide;
             }
 
-            _completedRoundsInSession = _sessionProgression.CompletedRoundsInSession;
-            if (_sessionProgression.CurrentLevelIndex > 0) _levelIndex = _sessionProgression.CurrentLevelIndex;
-            else if (_levelIndex < 0) _levelIndex = SceneManager.GetActiveScene().buildIndex;
-
-            _sessionProgression.SetCurrentLevelIndex(_levelIndex);
-            _activeSide = _startingSide;
             _tutorialRevealPaused = false;
             _turnIndicator?.SetImmediate(_activeSide);
 
@@ -203,6 +253,84 @@ namespace ShellGame.Gameplay
             StartCoroutine(RunRoundRoutine());
         }
 
+        /// <summary>
+        /// Применяет отложенное восстановление из чекпоинта — вызывается из
+        /// Generate-кейса СРАЗУ ПОСЛЕ EnsureHealthInitializedForLevel(),
+        /// потому что та инициализирует HP свежими нулями и должна успеть
+        /// отработать первой, иначе перетрёт восстановленные значения.
+        /// </summary>
+        private void ApplyCheckpointRestore(ShellGame.Meta.RunCheckpointData data)
+        {
+            _healthController?.RestoreState(TurnSide.Player, data.PlayerHealth, data.PlayerMaxHealth);
+            _healthController?.RestoreState(TurnSide.Enemy, data.EnemyHealth, data.EnemyMaxHealth);
+            _healthInitializedForLevel = _levelIndex;
+
+            _itemSpawner?.RestoreFromCheckpoint(data.PlayerItems, data.EnemyItems);
+
+            if (_roundGenerator != null)
+                _currentParameters = _roundGenerator.RestoreRound(data.Shells, data.DifficultyIndex, _levelIndex, _roundIndex);
+
+            _roundLayoutGenerated = true;
+            _turnsCompletedInCurrentRound = 0;
+            _initiativeAnimationPending = false;
+        }
+
+        /// <summary>
+        /// Сохраняет чекпоинт "начало раунда" — вызывается ровно один раз на
+        /// цикл ход-игрока+ход-врага, сразу после того, как стол
+        /// сгенерирован заново (см. вызов в Generate-кейсе). Перетирает
+        /// предыдущий чекпоинт безусловно — это и есть требуемое "мгновенно
+        /// перезаписывается на новом уровне/раунде".
+        /// </summary>
+        private void SaveRoundStartCheckpoint()
+        {
+            if (_healthController == null || _roundGenerator == null) return;
+
+            var data = new ShellGame.Meta.RunCheckpointData
+            {
+                SceneName = SceneManager.GetActiveScene().name,
+                LevelIndex = _levelIndex,
+                DifficultyIndex = _currentParameters.DifficultyIndex,
+                CompletedRoundsInSession = _completedRoundsInSession,
+                MaxShellsPenalty = _sessionProgression != null ? _sessionProgression.MaxShellsPenalty : 0,
+                ActiveSide = _activeSide,
+                PlayerHealth = _healthController.GetHealth(TurnSide.Player),
+                PlayerMaxHealth = _healthController.GetMaxHealth(TurnSide.Player),
+                EnemyHealth = _healthController.GetHealth(TurnSide.Enemy),
+                EnemyMaxHealth = _healthController.GetMaxHealth(TurnSide.Enemy),
+            };
+
+            if (_itemSpawner != null)
+            {
+                data.PlayerItems = BuildItemStacks(_itemSpawner.GetOwnedItemDefinitions(TurnSide.Player));
+                data.EnemyItems = BuildItemStacks(_itemSpawner.GetOwnedItemDefinitions(TurnSide.Enemy));
+            }
+
+            foreach (var shell in _roundGenerator.ActiveShells)
+            {
+                if (shell == null) continue;
+                data.Shells.Add(new ShellGame.Meta.ShellCheckpointData { SlotIndex = shell.SlotIndex, HasMarker = shell.HasMarker });
+            }
+
+            ShellGame.Meta.RunCheckpointStorage.Save(data);
+        }
+
+        private static List<ShellGame.Meta.ItemStackCheckpointData> BuildItemStacks(List<ItemDefinition> items)
+        {
+            var counts = new Dictionary<ItemDefinition, int>();
+            foreach (var item in items)
+            {
+                if (item == null) continue;
+                counts.TryGetValue(item, out var count);
+                counts[item] = count + 1;
+            }
+
+            var result = new List<ShellGame.Meta.ItemStackCheckpointData>();
+            foreach (var kvp in counts)
+                result.Add(new ShellGame.Meta.ItemStackCheckpointData { ItemAssetName = kvp.Key.name, Count = kvp.Value });
+            return result;
+        }
+
         public ItemEffectContext CreateItemContext(TurnSide userSide)
         {
             return new ItemEffectContext
@@ -215,8 +343,7 @@ namespace ShellGame.Gameplay
                 CanSlowGamePace = () => Mathf.Approximately(_activeGameSpeedMultiplier, 1f),
                 ReduceEnemyTrackingLossNextShuffle = multiplier => _enemyAI?.ReduceTrackingLossNextShuffle(multiplier),
                 CanReduceEnemyTrackingLossNextShuffle = () => _enemyAI?.CanReduceTrackingLossNextShuffle() ?? false,
-                
-                // Монокль нельзя использовать, если активен шлюз Ножа
+
                 CanUsePlayerMonocle = () => _activeSide == TurnSide.Player
                     && _state == RoundState.PlayerTurn
                     && !ShellPeekGate.IsPending
@@ -232,7 +359,6 @@ namespace ShellGame.Gameplay
                 ReduceMaxShells = () => _sessionProgression?.AddMaxShellsPenalty(1),
                 RemoveShellFromPlay = shell => _roundGenerator?.RemoveShell(shell),
 
-                // Нож нельзя использовать, если активен шлюз Монокля
                 CanUsePlayerKnife = () => _activeSide == TurnSide.Player
                     && _state == RoundState.PlayerTurn
                     && !ShellPeekGate.IsPending
@@ -318,8 +444,6 @@ namespace ShellGame.Gameplay
 
         private void ApplyGameSpeed()
         {
-            // На паузе Time.timeScale держит PauseController (0f) и сам восстановит
-            // корректное значение при снятии паузы (см. PauseController._timeScaleBeforePause).
             if (PauseController.Instance != null && PauseController.Instance.IsPaused)
                 return;
 
@@ -381,6 +505,12 @@ namespace ShellGame.Gameplay
 
                         EnsureHealthInitializedForLevel();
 
+                        if (_pendingCheckpointRestore != null)
+                        {
+                            ApplyCheckpointRestore(_pendingCheckpointRestore);
+                            _pendingCheckpointRestore = null;
+                        }
+
                         if (!_firstRoundReadyWaited)
                         {
                             _state = RoundState.WaitForStart;
@@ -401,12 +531,15 @@ namespace ShellGame.Gameplay
                                 _roundIndex,
                                 _completedRoundsInSession,
                                 difficultyIndex,
-                                _sessionProgression != null ? _sessionProgression.MaxShellsPenalty : 0); // ПЕРЕДАЕМ ПЕНАЛЬТИ
+                                _sessionProgression != null ? _sessionProgression.MaxShellsPenalty : 0);
                             if (_sessionProgression != null)
                             {
                                 _sessionProgression.AdvanceDifficultyForRound();
                             }
                             _roundLayoutGenerated = true;
+
+                            SaveRoundStartCheckpoint();
+
                             if (_roundGenerator.LayoutTransitionDuration > 0f)
                                 yield return new WaitForSeconds(_roundGenerator.LayoutTransitionDuration);
 
@@ -495,7 +628,6 @@ namespace ShellGame.Gameplay
                         if (_extraTurnCooldown[_activeSide] > 0)
                             _extraTurnCooldown[_activeSide]--;
 
-                        // Блокируем только выбор игрока, но не мешаем ходу врага
                         if (_activeSide == TurnSide.Player && IsTutorialScene()
                             && _completedRoundsInSession == 0 && _tutorialPlayerChoiceLocked)
                         {
@@ -511,25 +643,25 @@ namespace ShellGame.Gameplay
                         {
                             _inputSystem.SetEnabled(false);
 
-                        if (_extraTurnRequested[TurnSide.Player])
-                        {
-                            _extraTurnRequested[TurnSide.Player] = false;
-                            _activeSide = TurnSide.Player;
-                            GameEvents.RaiseActiveSideChanged(_activeSide);
-                            _initiativeAnimationPending = true;
-                            _state = RoundState.InitiativeAnimation;
-                            break;
-                        }
+                            if (_extraTurnRequested[TurnSide.Player])
+                            {
+                                _extraTurnRequested[TurnSide.Player] = false;
+                                _activeSide = TurnSide.Player;
+                                GameEvents.RaiseActiveSideChanged(_activeSide);
+                                _initiativeAnimationPending = true;
+                                _state = RoundState.InitiativeAnimation;
+                                break;
+                            }
 
-                        _skipEnemyTurn = false;
-                        float itemExtraDelay = 0f;
-                        if (_itemSpawner != null)
-                        {
-                            var itemUseResult = new EnemyItemUseResult();
-                            yield return _itemSpawner.TryUseEnemyItemsRoutine(this, _currentParameters.DifficultyIndex, itemUseResult);
-                            _skipEnemyTurn = itemUseResult.SkippedTurn;
-                            itemExtraDelay = itemUseResult.ExtraDelaySeconds;
-                        }
+                            _skipEnemyTurn = false;
+                            float itemExtraDelay = 0f;
+                            if (_itemSpawner != null)
+                            {
+                                var itemUseResult = new EnemyItemUseResult();
+                                yield return _itemSpawner.TryUseEnemyItemsRoutine(this, _currentParameters.DifficultyIndex, itemUseResult);
+                                _skipEnemyTurn = itemUseResult.SkippedTurn;
+                                itemExtraDelay = itemUseResult.ExtraDelaySeconds;
+                            }
 
                             if (_skipEnemyTurn)
                             {
@@ -546,55 +678,13 @@ namespace ShellGame.Gameplay
                             if (itemExtraDelay > 0f)
                                 yield return new WaitForSeconds(itemExtraDelay);
 
-                            // ВАЖНО: выбор врага всегда идёт через
-                            // EnemyAIController.MakeDecisionAndAttack, даже в
-                            // туториале — никогда не вызывайте shell.Select()
-                            // отсюда напрямую. MakeDecisionAndAttack всегда
-                            // проходит через собственную корутину с yield
-                            // ПЕРЕД вызовом onShellChosen, поэтому Select()
-                            // выполняется на отдельном "тике", а не внутри
-                            // этого же стека вызовов RunRoundRoutine.
-                            //
-                            // Раньше здесь был прямой поиск шелла с меткой и
-                            // synchronous correctShell.Select() — это вызывало
-                            // Select() ПРЯМО из этого switch-case без единого
-                            // yield между ними. GameEvents.RaiseShellSelected
-                            // внутри Select() синхронно долетал до
-                            // OnShellSelected() и реентрантно переключал
-                            // _state на RevealResult ещё ДО того, как первый
-                            // вызов Select() успевал доиграть свою анимацию
-                            // (_animator.PlayReveal ещё не отработал onComplete,
-                            // Shell.State ещё оставался Selected). В итоге
-                            // RevealResult() проходил свой guard повторно и
-                            // запускал PlayReveal ВТОРОЙ раз поверх первого —
-                            // после чего корутина RunRoundRoutine падала с
-                            // исключением и весь раунд-луп молча останавливался
-                            // (TutorialSequencer при этом продолжал жить,
-                            // отсюда ощущение "секвенс висит" именно после
-                            // выбора наперстка врагом).
                             if (_enemyAI != null && _roundGenerator != null)
                             {
-                                // БАГФИКС: раньше форс срабатывал на КАЖДЫЙ ход врага,
-                                // пока активна туториальная сцена (IsTutorialScene()
-                                // остаётся true все её раунды, не только первый) — из-за
-                                // этого враг угадывал маркер всегда, а не только в
-                                // единственном скриптованном обучающем раунде.
-                                // ForceCorrectChoice сам себя сбрасывает после одного
-                                // решения (persistent=false), поэтому форсить нужно
-                                // только на входе в самый первый раунд туториала.
                                 bool shouldForceTutorialChoice = IsTutorialScene() && _completedRoundsInSession == 0;
                                 Debug.Log($"[GameManager] Enemy turn: scene={SceneManager.GetActiveScene().name} level={_levelIndex} round={_roundIndex} completedRounds={_completedRoundsInSession} state={_state} shouldForceTutorialChoice={shouldForceTutorialChoice}");
                                 if (shouldForceTutorialChoice)
-                                    _enemyAI.ForceCorrectChoice(); // сам найдёт помеченный шелл через FindMarkedShell
+                                    _enemyAI.ForceCorrectChoice();
 
-                                // Передаём врагу его текущую долю HP (0..1), чтобы
-                                // EnemyAIConfig мог снижать точность решения по мере
-                                // получения урона — симметрично "поплывшему" экрану
-                                // игрока от дозы. См. EnemyAIConfig.EvaluateHealthAccuracyPenalty.
-                                //
-                                // HealthController.GetDoseFraction(side) возвращает долю
-                                // ДОЗЫ (0 = полное здоровье, 1 = смерть от передозировки),
-                                // поэтому для доли HP её нужно инвертировать.
                                 if (_healthController != null)
                                     _enemyAI.SetHealthFraction(1f - _healthController.GetDoseFraction(TurnSide.Enemy));
 
@@ -617,7 +707,6 @@ namespace ShellGame.Gameplay
                         _selectedShell.RevealResult();
                         yield return new WaitForSeconds(Mathf.Max(_roundEndDelay, _roundGenerator.GetRevealDuration()));
 
-                        // Пауза перед нанесением урона
                         if (IsTutorialScene()
                             && _completedRoundsInSession == 0 && _tutorialBeforeDamagePaused)
                         {
@@ -641,7 +730,6 @@ namespace ShellGame.Gameplay
                             }
                         }
 
-                        // Пауза после нанесения урона
                         if (IsTutorialScene()
                             && _completedRoundsInSession == 0 && _tutorialAfterDamagePaused)
                         {
