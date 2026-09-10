@@ -48,7 +48,7 @@ MonoBehaviour:
   m_RendererFeatureMap: 0ec2c510764748e544b20f47e3332c24977bacdfdd39aa6060cdff7886235e2fd3c684858218e427
   m_UseNativeRenderPass: 1
   xrSystemData: {fileID: 0}
-  postProcessData: {fileID: 11400000, guid: 41439944d30ece34e96484bdb6645b55, type: 2}
+  postProcessData: {fileID: 11400000, guid: e7b20d8e594294f4380ea14212e1b042, type: 2}
   m_AssetVersion: 3
   m_PrepassLayerMask:
     serializedVersion: 2

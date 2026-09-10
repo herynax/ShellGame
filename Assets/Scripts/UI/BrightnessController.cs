@@ -1,5 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
 using DG.Tweening;
 
 public class BrightnessController : MonoBehaviour
@@ -9,16 +11,19 @@ public class BrightnessController : MonoBehaviour
     [Header("UI")]
     [SerializeField] private Slider brightnessSlider;
 
-    [Header("Настройки")]
-    [Range(0f, 1f)]
-    [SerializeField] private float minBrightness = 0.15f;
+    [Header("Post Processing")]
+    [SerializeField] private Volume globalVolume;
+
+    [Header("Настройки (Exposure, EV)")]
+    [SerializeField] private float minExposure = -2f;  // самое тёмное (value = 0)
+    [SerializeField] private float maxExposure = 1.5f; // самое светлое (value = 1)
 
     [SerializeField] private float applyTweenDuration = 0.15f;
 
     private const string BRIGHTNESS_KEY = "BrightnessLevel";
-    private const float DEFAULT_BRIGHTNESS = 1f;
+    private const float DEFAULT_BRIGHTNESS = 0.5f; // центр слайдера — нейтральная экспозиция (0 EV)
 
-    private Image brightnessOverlay;
+    private ColorAdjustments colorAdjustments;
     private Tween applyTween;
 
     private void Awake()
@@ -28,19 +33,21 @@ public class BrightnessController : MonoBehaviour
 
     private void Start()
     {
-        if (SceneLoader.Instance == null)
+        if (globalVolume == null)
         {
-            Debug.LogError("[BrightnessController] SceneLoader не найден!");
+            Debug.LogError("[BrightnessController] Global Volume не назначен!");
             return;
         }
 
-        brightnessOverlay = SceneLoader.Instance.BrightnessOverlay;
-
-        if (brightnessOverlay == null)
+        if (!globalVolume.profile.TryGet(out colorAdjustments))
         {
-            Debug.LogError("[BrightnessController] BrightnessOverlay не назначен в SceneLoader!");
+            Debug.LogError("[BrightnessController] В профиле Volume нет override'а Color Adjustments!");
             return;
         }
+
+        // Экспозиция должна быть включена (override enabled) в профиле,
+        // иначе значение не будет применяться рендером.
+        colorAdjustments.postExposure.overrideState = true;
     }
 
     public float LoadAndApply()
@@ -58,46 +65,49 @@ public class BrightnessController : MonoBehaviour
         return value;
     }
 
+    // value 0..1, 0.5 = нейтральная экспозиция (0 EV)
+    private float EvaluateExposure(float value)
+    {
+        value = Mathf.Clamp01(value);
+
+        if (value < 0.5f)
+        {
+            float t = value / 0.5f; // 0 в крайней тьме, 1 в центре
+            return Mathf.Lerp(minExposure, 0f, t);
+        }
+        else
+        {
+            float t = (value - 0.5f) / 0.5f; // 0 в центре, 1 в максимальной светлоте
+            return Mathf.Lerp(0f, maxExposure, t);
+        }
+    }
+
     public void ApplyInstant(float value)
     {
-        if (brightnessOverlay == null)
+        if (colorAdjustments == null)
             return;
 
         applyTween?.Kill();
 
-        value = Mathf.Clamp01(value);
-
-        float brightness = Mathf.Lerp(
-            minBrightness,
-            DEFAULT_BRIGHTNESS,
-            value
-        );
-
-        Color color = brightnessOverlay.color;
-        color.a = 1f - brightness;
-        brightnessOverlay.color = color;
+        colorAdjustments.postExposure.value = EvaluateExposure(value);
     }
 
     public void ApplySmooth(float value)
     {
-        if (brightnessOverlay == null)
+        if (colorAdjustments == null)
             return;
 
         applyTween?.Kill();
 
-        value = Mathf.Clamp01(value);
+        float targetExposure = EvaluateExposure(value);
+        float startExposure = colorAdjustments.postExposure.value;
 
-        float brightness = Mathf.Lerp(
-            minBrightness,
-            DEFAULT_BRIGHTNESS,
-            value
-        );
-
-        float targetAlpha = 1f - brightness;
-
-        applyTween = brightnessOverlay
-            .DOFade(targetAlpha, applyTweenDuration)
-            .SetEase(Ease.OutSine);
+        applyTween = DOVirtual.Float(
+            startExposure,
+            targetExposure,
+            applyTweenDuration,
+            v => colorAdjustments.postExposure.value = v
+        ).SetEase(Ease.OutSine);
     }
 
     public void Save()
