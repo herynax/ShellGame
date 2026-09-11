@@ -1,5 +1,6 @@
 // START OF FILE KnifeItemDefinition.cs
 using DG.Tweening;
+using FMOD.Studio;
 using FMODUnity;
 using ShellGame.Audio;
 using ShellGame.Core;
@@ -24,7 +25,9 @@ namespace ShellGame.Items
         [Tooltip("Префаб частиц в точке попадания ножа")]
         public GameObject HitParticlesPrefab;
 
-        [Header("Звук попадания")]
+        [Header("Звук")]
+        [Tooltip("3D-звук полёта ножа. Стартует, когда нож заспавнен, и крепится к его трансформу (позиция трекается автоматически).")]
+        public EventReference KnifeFlightSound;
         public EventReference PlayerStabSound;
 
         private static TurnSide Opposite(TurnSide side) => side == TurnSide.Player ? TurnSide.Enemy : TurnSide.Player;
@@ -46,6 +49,7 @@ namespace ShellGame.Items
             GameObject activeKnife = null;
             Tween bobTween = null;
             Tween shakeTween = null;
+            EventInstance flightSound = default;
 
             if (KnifeProjectilePrefab != null)
             {
@@ -66,15 +70,21 @@ namespace ShellGame.Items
                 }
 
                 activeKnife = Instantiate(KnifeProjectilePrefab, context.ItemWorldPosition, Quaternion.identity);
-                
+
+                // Звук полёта — 3D-инстанс, привязанный к трансформу ножа.
+                // AttachInstanceToGameObject сам обновляет 3D-attributes
+                // каждый кадр, пока инстанс жив, так что отдельно дёргать
+                // set3DAttributes на каждом Move/Rotate не нужно.
+                if (!KnifeFlightSound.IsNull)
+                {
+                    flightSound = RuntimeManager.CreateInstance(KnifeFlightSound);
+                    RuntimeManager.AttachInstanceToGameObject(flightSound, activeKnife.transform);
+                    flightSound.start();
+                }
+
                 activeKnife.transform.DOMove(anchorPos, 0.4f).SetEase(Ease.OutBack);
                 activeKnife.transform.DORotateQuaternion(anchorRot, 0.4f).SetEase(Ease.OutQuad);
 
-                // Покачивание/тряска в ожидании удара — теперь для ОБЕИХ
-                // сторон одинаково (раньше было только для игрока; враг с
-                // ножом теперь тоже реально "ждёт" решения через
-                // MakeDecisionAndAttack, так что визуально это уместно и
-                // для него).
                 bobTween = activeKnife.transform.DOMoveY(anchorPos.y + 0.05f, 1f)
                     .SetEase(Ease.InOutSine)
                     .SetLoops(-1, LoopType.Yoyo)
@@ -87,11 +97,12 @@ namespace ShellGame.Items
 
             if (context.UserSide == TurnSide.Enemy)
             {
-                if (context.EnemyAI == null || context.BeginKnifeAttack == null) return false;
+                if (context.EnemyAI == null || context.BeginKnifeAttack == null)
+                {
+                    StopFlightSound(flightSound);
+                    return false;
+                }
 
-                // Ход противника теперь считается разрешённым этим предметом —
-                // GameManager не должен ещё раз запускать обычное решение
-                // поверх этого же хода (см. ItemSpawner.TryUseEnemyItemsRoutine).
                 context.EnemyTurnResolvedByItem = true;
 
                 context.BeginKnifeAttack(RevealDuration, targetShell =>
@@ -102,21 +113,18 @@ namespace ShellGame.Items
                     TurnSide targetSide = targetShell.HasMarker ? Opposite(context.UserSide) : context.UserSide;
                     int damage = targetShell.HasMarker ? DamageToEnemy : DamageToPlayer;
 
-                    ExecuteStrike(context, activeKnife, targetSide, damage);
+                    ExecuteStrike(context, activeKnife, flightSound, targetSide, damage);
                 });
 
-                // НАСТОЯЩИЙ выбор через ту же вероятностную Knowledge-модель,
-                // что и обычный ход врага — раньше здесь была прямая проверка
-                // shell.HasMarker, из-за которой нож всегда попадал в цель.
-                // Shell.Select() сам подхватит вооружённый выше ShellKnifeGate
-                // (гейт общий для обеих сторон) и пройдёт полный обычный цикл
-                // выбора/реванила/смены хода — никакого ручного управления
-                // раундом здесь больше не нужно.
                 context.EnemyAI.MakeDecisionAndAttack(context.ActiveShells, chosen => chosen.Select());
                 return true;
             }
 
-            if (context.BeginKnifeAttack == null) return false;
+            if (context.BeginKnifeAttack == null)
+            {
+                StopFlightSound(flightSound);
+                return false;
+            }
             
             context.BeginKnifeAttack(RevealDuration, targetShell =>
             {
@@ -126,16 +134,17 @@ namespace ShellGame.Items
                 TurnSide targetSide = targetShell.HasMarker ? Opposite(context.UserSide) : context.UserSide;
                 int damage = targetShell.HasMarker ? DamageToEnemy : DamageToPlayer;
                 
-                ExecuteStrike(context, activeKnife, targetSide, damage);
+                ExecuteStrike(context, activeKnife, flightSound, targetSide, damage);
             });
 
             return true;
         }
 
-        private void ExecuteStrike(ItemEffectContext context, GameObject knife, TurnSide targetSide, int damage)
+        private void ExecuteStrike(ItemEffectContext context, GameObject knife, EventInstance flightSound, TurnSide targetSide, int damage)
         {
             if (knife == null)
             {
+                StopFlightSound(flightSound);
                 context.Health.ApplyDamage(targetSide, damage);
                 return;
             }
@@ -167,10 +176,15 @@ namespace ShellGame.Items
                 .SetEase(Ease.InCubic) 
                 .OnComplete(() =>
                 {
+                    // Втыкание: звук стеба + фейдаут звука полёта (через
+                    // release-огибающую самого события — ALLOWFADEOUT её
+                    // уважает, отдельный DOTween-твин громкости не нужен).
                     if (!PlayerStabSound.IsNull)
                     {
                         RuntimeManager.PlayOneShot(PlayerStabSound, endPos);
                     }
+
+                    StopFlightSound(flightSound);
 
                     if (HitParticlesPrefab != null)
                     {
@@ -180,6 +194,14 @@ namespace ShellGame.Items
                     Destroy(knife);
                     context.Health.ApplyDamage(targetSide, damage);
                 });
+        }
+
+        private static void StopFlightSound(EventInstance instance)
+        {
+            if (!instance.isValid()) return;
+
+            instance.stop(FMOD.Studio.STOP_MODE.ALLOWFADEOUT);
+            instance.release();
         }
 
         public override void ShowPlayerUseFeedback(ItemUseMessageView messageView)

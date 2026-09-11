@@ -60,6 +60,13 @@ MonoBehaviour:
   SpinKnife: 1
   HitParticlesPrefab: {fileID: 2226710916107464663, guid: 2eb8b7b2e5c8cd346a365782dda23d4a,
     type: 3}
+  KnifeFlightSound:
+    Guid:
+      Data1: -1366810335
+      Data2: 1234388751
+      Data3: 1055168958
+      Data4: 576765403
+    Path: event:/SFX/Items/Knife/I_KnifeThrow
   PlayerStabSound:
     Guid:
       Data1: 2105211205
