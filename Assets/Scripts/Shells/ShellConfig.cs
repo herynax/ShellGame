@@ -29,6 +29,9 @@ namespace ShellGame.Shells
         [Tooltip("На сколько секунд сокращать длительность при переходе на следующий уровень.")]
         public float ShuffleLevelReduction = 0.03f;
         public Ease ShuffleEase = Ease.InOutSine;
+        [Tooltip("Множитель длительности перемещения наперстка ДЛЯ ХОДА ВРАГА (применяется поверх обычной длительности). 0.55 = враг перемешивает на 45% быстрее игрока. 1 = без разницы.")]
+        [Range(0.05f, 1f)]
+        public float EnemyShuffleSpeedMultiplier = 0.55f;
 
         [Header("Наведение курсора")]
         public float HoverScale = 1.05f;

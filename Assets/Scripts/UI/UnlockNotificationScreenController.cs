@@ -55,13 +55,19 @@ namespace ShellGame.UI
             if (_panelGroup != null)
             {
                 _panelGroup.blocksRaycasts = true;
-                _panelGroup.DOFade(1f, _panelFadeDuration).SetUpdate(true);
+                yield return _panelGroup.DOFade(1f, _panelFadeDuration).SetUpdate(true).WaitForCompletion();
             }
 
             // Показываем предметы по очереди, если их открылось несколько за раз
             foreach (var item in unlockedItems)
             {
                 _continueRequested = false;
+
+                if (_continueButton != null)
+                {
+                    _continueButton.gameObject.SetActive(true);
+                    _continueButton.interactable = true;
+                }
 
                 if (_itemNameText != null) _itemNameText.text = item.DisplayName;
                 if (_itemDescText != null) _itemDescText.text = item.TooltipDescription;

@@ -173,10 +173,10 @@ namespace ShellGame.Shells
             if (ShellHammerGate.TryConsume(this, out var hammerHoldDuration, out var onHammerTarget))
             {
                 // Сразу блокируем наперсток от повторных кликов, но НЕ поднимаем его
-                State = ShellState.Revealing; 
-                
+                State = ShellState.Revealing;
+
                 // Передаем контроль Молотку (он сам решит: бить по столу или поднять наперсток)
-                onHammerTarget?.Invoke(this); 
+                onHammerTarget?.Invoke(this);
                 return;
             }
 
@@ -186,30 +186,22 @@ namespace ShellGame.Shells
             }
 
             // --- СТАНДАРТНЫЙ ВЫБОР ---
+            // ВАЖНО: сама анимация подъёма/раскрытия наперстка здесь больше НЕ
+            // запускается. Она целиком выполняется в RevealResult(), который
+            // GameManager вызывает через кадр после ShellSelected (после того
+            // как переведёт стейт-машину раунда в RoundState.RevealResult).
+            //
+            // Раньше Select() параллельно с этим запускал собственную
+            // _animator.PlayReveal(...), и когда следом вызывался
+            // RevealResult() (со своим отдельным PlayReveal на том же
+            // аниматоре), вторая анимация обрывала первую ДО onPeakReached —
+            // то есть GameEvents.ShellRevealed никогда не успевал
+            // сработать. Из-за этого зависало вообще всё, что ждёт этот
+            // ивент: игровой цикл туториала, статистика ходов и т.д.
             State = ShellState.Selected;
             SetInteractable(false);
             _audio?.PlayOneShot(_config.AudioEvents.Select, transform.position);
             GameEvents.RaiseShellSelected(this);
-
-            ShowMarkerVisual();
-            PlayRevealStartSound();
-
-            _animator.PlayReveal(
-                onPeakReached: () =>
-                {
-                    StopRevealStartSound();
-                    var revealClip = HasMarker ? _config.AudioEvents.RevealMarked : _config.AudioEvents.RevealEmpty;
-                    _audio?.PlayOneShot(revealClip, transform.position);
-                    GameEvents.RaiseShellRevealed(this, HasMarker);
-                },
-                onDescendingStarted: () => { },
-                onComplete: () =>
-                {
-                    HideMarkerVisual();
-                    PlayRevealEndSound();
-                    State = ShellState.Idle;
-                    SetInteractable(true);
-                });
         }
 
         public void MoveToSlot(ShellSlot targetSlot, System.Action onComplete = null, float moveDuration = -1f)
@@ -228,7 +220,7 @@ namespace ShellGame.Shells
             SlotIndex = targetSlot.Index;
             _audio?.PlayOneShot(_config.AudioEvents.ShuffleMove, transform.position);
             Vector3 targetPosition = ShellGame.Core.TableSurfacePlacement.GetObjectPositionOnSurface(transform, targetSlot.SpawnPosition);
-            
+
             _animator.PlayMoveTo(targetPosition, () =>
             {
                 ShellGame.Core.TableSurfacePlacement.PlaceObjectOnSurface(transform, targetSlot.SpawnPosition);
@@ -253,7 +245,13 @@ namespace ShellGame.Shells
             PlayRevealStartSound();
 
             _animator.PlayReveal(
-                onPeakReached: () => StopRevealStartSound(),
+                onPeakReached: () =>
+                {
+                    StopRevealStartSound();
+                    var revealClip = HasMarker ? _config.AudioEvents.RevealMarked : _config.AudioEvents.RevealEmpty;
+                    _audio?.PlayOneShot(revealClip, transform.position);
+                    GameEvents.RaiseShellRevealed(this, HasMarker);
+                },
                 onDescendingStarted: () => { },
                 onComplete: () =>
                 {
@@ -289,7 +287,7 @@ namespace ShellGame.Shells
 
         private void PlayRevealEndSound() => _audio?.PlayOneShot(_config.AudioEvents.RevealEnd, transform.position);
         private void ApplySpawnSurfacePosition() { if (AssignedSlot != null) PlaceAtSurface(AssignedSlot.SpawnPosition); }
-        
+
         private void ShowMarkerVisual()
         {
             if (!HasMarker) return;

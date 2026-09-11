@@ -1,6 +1,5 @@
 using UnityEngine;
 
-/// <summary>Живёт на persistent-канвасе, активен всегда — показывает/скрывает оверлей FPS.</summary>
 public class FpsCounterManager : MonoBehaviour, ISettingsModule
 {
     public static FpsCounterManager Instance { get; private set; }
@@ -18,16 +17,26 @@ public class FpsCounterManager : MonoBehaviour, ISettingsModule
 
     private void Awake()
     {
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
         Instance = this;
         DontDestroyOnLoad(gameObject);
-
-        IsVisible = PlayerPrefs.GetInt(VISIBLE_KEY, 0) == 1;
-        if (fpsLabel != null) fpsLabel.gameObject.SetActive(IsVisible);
     }
 
     private void Start()
     {
+        LoadAndApply();
         SettingsSaveController.Instance?.RegisterModule(this);
+    }
+
+    public void LoadAndApply()
+    {
+        IsVisible = PlayerPrefs.GetInt(VISIBLE_KEY, 0) == 1;
+        if (fpsLabel != null) fpsLabel.gameObject.SetActive(IsVisible);
     }
 
     public void SetVisible(bool visible)
@@ -56,6 +65,6 @@ public class FpsCounterManager : MonoBehaviour, ISettingsModule
 
     // --- ISettingsModule ---
     public void CaptureSnapshot() => _snapshot = IsVisible;
-    public void Save() { PlayerPrefs.SetInt(VISIBLE_KEY, IsVisible ? 1 : 0); PlayerPrefs.Save(); }
+    public void Save() => PlayerPrefs.SetInt(VISIBLE_KEY, IsVisible ? 1 : 0);
     public void Revert() => SetVisible(_snapshot);
 }

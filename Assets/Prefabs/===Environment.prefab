@@ -638,7 +638,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a621b81fb782a4145a860f1bb0733c0b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ShellGame.Items.ItemSpawner
-  _itemsAvailable: 1
+  _itemsAvailable: 0
   _fallbackAvailableItems: []
   _spawnPoints:
   - {fileID: 8524527050246170955}
@@ -716,7 +716,7 @@ GameObject:
   - component: {fileID: 2979381426632308494}
   - component: {fileID: 2525949608338353316}
   - component: {fileID: 5413669323229921596}
-  m_Layer: 15
+  m_Layer: 5
   m_Name: DialogueView
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -808,7 +808,6 @@ GameObject:
   - component: {fileID: 5346035220409763714}
   - component: {fileID: 1825556823110734332}
   - component: {fileID: 33476950058274648}
-  - component: {fileID: 9117863429638814187}
   m_Layer: 16
   m_Name: PauseCanvas
   m_TagString: Untagged
@@ -856,8 +855,8 @@ Canvas:
   m_VertexColorAlwaysGammaSpace: 0
   m_AdditionalShaderChannelsFlag: 25
   m_UpdateRectTransformForStandalone: 0
-  m_SortingLayerID: -943254627
-  m_SortingOrder: 1
+  m_SortingLayerID: 0
+  m_SortingOrder: 2
   m_TargetDisplay: 0
 --- !u!114 &5346035220409763714
 MonoBehaviour:
@@ -920,21 +919,6 @@ MonoBehaviour:
   crosshairCanvasGroup: {fileID: 0}
   fadeDuration: 0.75
   mainMenuSceneName: MainMenu
---- !u!114 &9117863429638814187
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1466320787525523550}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b718be47f43100749a2e522f85d5d082, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SoundSettingsManager
-  masterBusPath: bus:/
-  musicBusPath: bus:/Music
-  sfxBusPath: bus:/SFX
 --- !u!1 &1535083081005286191
 GameObject:
   m_ObjectHideFlags: 0
@@ -7795,7 +7779,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 84b6dd99b50e0da47a60c7b784fc5fc1, type: 2}
+  - {fileID: 2100000, guid: 1434bfa99d6130442929c1f986230e17, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -7980,7 +7964,7 @@ GameObject:
   - component: {fileID: 5090988067401312680}
   - component: {fileID: 8696278387401015233}
   - component: {fileID: 2644233385483051286}
-  m_Layer: 15
+  m_Layer: 5
   m_Name: ItemUsage
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -8476,7 +8460,7 @@ GameObject:
   - component: {fileID: 6745882705491333245}
   - component: {fileID: 5289998170365735534}
   - component: {fileID: 8259736380913699078}
-  m_Layer: 15
+  m_Layer: 5
   m_Name: Text (TMP)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -8499,8 +8483,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0.5}
   m_AnchorMax: {x: 1, y: 0.5}
-  m_AnchoredPosition: {x: -0.25732422, y: -0.000061035}
-  m_SizeDelta: {x: -99.48535, y: 175}
+  m_AnchoredPosition: {x: -0.25732422, y: -63.704987}
+  m_SizeDelta: {x: -99.4854, y: 247.812}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &6745882705491333245
 MonoBehaviour:
@@ -8551,7 +8535,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: 
+  m_text: "\u0417\u0434\u0440\u0430\u0432\u0441\u044C\u0432\u0443\u0439"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 0d0e12f7eb5bc9640b10be4929c296ce, type: 2}
   m_sharedMaterial: {fileID: 3689317300026632945, guid: 0d0e12f7eb5bc9640b10be4929c296ce,
@@ -8579,15 +8563,15 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 36
-  m_fontSizeBase: 36
+  m_fontSize: 72
+  m_fontSizeBase: 60
   m_fontWeight: 400
   m_enableAutoSizing: 1
   m_fontSizeMin: 18
   m_fontSizeMax: 72
   m_fontStyle: 1
   m_HorizontalAlignment: 2
-  m_VerticalAlignment: 512
+  m_VerticalAlignment: 256
   m_textAlignment: 65535
   m_characterSpacing: 0
   m_characterHorizontalScale: 1
@@ -9644,7 +9628,7 @@ GameObject:
   - component: {fileID: 5604176344476648767}
   - component: {fileID: 1307234554664861657}
   - component: {fileID: 2334693029107444221}
-  m_Layer: 15
+  m_Layer: 5
   m_Name: Blood
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -9977,7 +9961,7 @@ GameObject:
   - component: {fileID: 5306073271909683847}
   - component: {fileID: 5381706003283969861}
   - component: {fileID: 7855634982232600168}
-  m_Layer: 15
+  m_Layer: 5
   m_Name: UICanvas
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -10029,7 +10013,7 @@ Canvas:
   m_AdditionalShaderChannelsFlag: 25
   m_UpdateRectTransformForStandalone: 0
   m_SortingLayerID: 0
-  m_SortingOrder: 1
+  m_SortingOrder: 0
   m_TargetDisplay: 0
 --- !u!114 &7855634982232600168
 MonoBehaviour:
@@ -11934,7 +11918,7 @@ GameObject:
   - component: {fileID: 5474872232622076462}
   - component: {fileID: 4869274423567715258}
   - component: {fileID: 3780808481801658923}
-  m_Layer: 15
+  m_Layer: 5
   m_Name: VisualDisclaimer
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -12607,7 +12591,7 @@ GameObject:
   - component: {fileID: 5618079018261181418}
   - component: {fileID: 2478064428975410835}
   - component: {fileID: 2417778202677995397}
-  m_Layer: 15
+  m_Layer: 5
   m_Name: Pointer
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -12940,6 +12924,21 @@ PrefabInstance:
       propertyPath: m_AnchoredPosition.x
       value: 64.399994
       objectReference: {fileID: 0}
+    - target: {fileID: 3466211004259370406, guid: 54dee66043a15464698234d2f06c67f4,
+        type: 3}
+      propertyPath: confirmSaveButton
+      value: 
+      objectReference: {fileID: 2561056462424384630}
+    - target: {fileID: 3466211004259370406, guid: 54dee66043a15464698234d2f06c67f4,
+        type: 3}
+      propertyPath: unsavedChangesPanel
+      value: 
+      objectReference: {fileID: 6160619352005720228}
+    - target: {fileID: 3466211004259370406, guid: 54dee66043a15464698234d2f06c67f4,
+        type: 3}
+      propertyPath: confirmDiscardButton
+      value: 
+      objectReference: {fileID: 4534198108541307291}
     - target: {fileID: 3601163111260206134, guid: 54dee66043a15464698234d2f06c67f4,
         type: 3}
       propertyPath: m_AnchorMax.y

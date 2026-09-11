@@ -2,7 +2,6 @@ using System.Collections;
 using UnityEngine;
 using FMODUnity;
 
-/// <summary>Висит на всегда активном объекте (например, там же, где BrightnessManager).</summary>
 public class SoundSettingsManager : MonoBehaviour, ISettingsModule
 {
     public static SoundSettingsManager Instance { get; private set; }
@@ -16,14 +15,24 @@ public class SoundSettingsManager : MonoBehaviour, ISettingsModule
     private const string SFX_KEY = "SFXVolume";
 
     private FMOD.Studio.Bus masterBus, musicBus, sfxBus;
-    private Vector3 _snapshot; // x=master, y=music, z=sfx
+    private Vector3 _snapshot;
 
     public float MasterVolume { get; private set; } = 1f;
     public float MusicVolume { get; private set; } = 1f;
     public float SfxVolume { get; private set; } = 1f;
     public bool IsReady { get; private set; }
 
-    private void Awake() => Instance = this;
+    private void Awake()
+    {
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        Instance = this;
+        DontDestroyOnLoad(gameObject);
+    }
 
     private IEnumerator Start()
     {
@@ -34,13 +43,18 @@ public class SoundSettingsManager : MonoBehaviour, ISettingsModule
         musicBus = RuntimeManager.GetBus(musicBusPath);
         sfxBus = RuntimeManager.GetBus(sfxBusPath);
 
+        IsReady = true;
+
+        LoadAndApply();
+        SettingsSaveController.Instance?.RegisterModule(this);
+    }
+
+    public void LoadAndApply()
+    {
         MasterVolume = PlayerPrefs.GetFloat(MASTER_KEY, 1f);
         MusicVolume = PlayerPrefs.GetFloat(MUSIC_KEY, 1f);
         SfxVolume = PlayerPrefs.GetFloat(SFX_KEY, 1f);
         ApplyVolumes(MasterVolume, MusicVolume, SfxVolume);
-
-        IsReady = true;
-        SettingsSaveController.Instance?.RegisterModule(this);
     }
 
     private void ApplyVolumes(float master, float music, float sfx)
@@ -68,7 +82,6 @@ public class SoundSettingsManager : MonoBehaviour, ISettingsModule
         PlayerPrefs.SetFloat(MASTER_KEY, MasterVolume);
         PlayerPrefs.SetFloat(MUSIC_KEY, MusicVolume);
         PlayerPrefs.SetFloat(SFX_KEY, SfxVolume);
-        PlayerPrefs.Save();
     }
 
     public void Revert()

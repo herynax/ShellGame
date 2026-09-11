@@ -26,6 +26,7 @@ namespace ShellGame.Tutorial
         public TutorialBuilder Do(Action action) { _steps.Add(new DoAction(action)); return this; }
         public TutorialBuilder WaitSeconds(float seconds) { _steps.Add(new global::ShellGame.Tutorial.WaitSeconds(seconds)); return this; }
         public TutorialBuilder WaitUntil(Func<bool> condition) { _steps.Add(new global::ShellGame.Tutorial.WaitUntil(condition)); return this; }
+        public TutorialBuilder WaitForAdvance() { _steps.Add(new WaitForTutorialAdvance()); return this; }
 
         /// <summary>Добавляет произвольный готовый шаг — WaitForEvent, WaitForShellSelected, PlaySfx, CameraFocus и т.д.</summary>
         public TutorialBuilder Wait(TutorialStep step) { _steps.Add(step); return this; }

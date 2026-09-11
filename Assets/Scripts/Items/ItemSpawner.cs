@@ -55,6 +55,19 @@ namespace ShellGame.Items
 
         public bool HasFinishedSpawning { get; private set; }
 
+
+        /// <summary>
+        /// Принудительно включает/выключает спавн предметов на сцене — например,
+        /// чтобы включить предметы на первом уровне после того, как игрок хотя
+        /// бы раз загрузился на втором уровне (см. GameManager.AreFirstLevelItemsUnlocked).
+        /// Вызывать ДО SpawnItems()/RestoreFromCheckpoint() — после того как
+        /// _hasSpawned станет true, вызов уже ни на что не повлияет.
+        /// </summary>
+        public void SetItemsAvailable(bool available)
+        {
+            _itemsAvailable = available;
+        }
+
         [Inject]
         private void InjectDependencies(GameManager gameManager)
         {
@@ -108,6 +121,27 @@ namespace ShellGame.Items
             return _fallbackAvailableItems;
         }
 
+
+        private List<ItemDefinition> GetFinalItemPool()
+        {
+            var finalPool = new List<ItemDefinition>();
+            
+            // ВАЖНО: используем UnlocksConfig как единственный источник всех предметов
+            foreach (var entry in _unlocksConfig.Entries)
+            {
+                ItemDefinition item = entry.Item;
+                if (item == null) continue;
+
+                bool unlocked = _unlockManager.IsUnlocked(item);
+
+                if (unlocked)
+                {
+                    finalPool.Add(item);
+                }
+            }
+            return finalPool;
+        }
+
         public IEnumerator SpawnItems()
         {
             if (_hasSpawned || !_itemsAvailable)
@@ -118,8 +152,13 @@ namespace ShellGame.Items
 
             _hasSpawned = true;
 
-            var availableItems = ResolveAvailableItems();
-            if (availableItems == null || availableItems.Count == 0)
+            yield return null; 
+
+            // Получаем актуальный пул предметов прямо сейчас
+            var availableItems = GetFinalItemPool();
+            
+            
+            if (availableItems.Count == 0)
             {
                 HasFinishedSpawning = true;
                 yield break;

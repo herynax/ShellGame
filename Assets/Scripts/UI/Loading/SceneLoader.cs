@@ -10,6 +10,7 @@ using ShellGame.Gameplay;
 using ShellGame.Health;
 using ShellGame.Meta; // Добавлено для анлоков
 using ShellGame.UI;
+using ShellGame.Tutorial;
 using Zenject;
 
 public class SceneLoader : MonoBehaviour
@@ -111,11 +112,23 @@ public class SceneLoader : MonoBehaviour
     {
         if (isLoading) return;
 
+        // The tutorial owns the final narration after the first opponent is
+        // defeated. It will explicitly resume this same transition once the
+        // narration has ended.
+        if (side == TurnSide.Enemy && TutorialSceneTransitionGate.HoldEnemyDeathTransition)
+            return;
+
         if (side == TurnSide.Player && _globalProgress is ShellGame.Meta.GlobalProgressService concreteProgress)
             concreteProgress.EnsureDeathCounted();
 
         ReleaseCursorAfterDeath();
         StartCoroutine(UnifiedDeathRoutine(side));
+    }
+
+    public void ContinueAfterTutorialEnemyDefeat()
+    {
+        if (isLoading) return;
+        StartCoroutine(UnifiedDeathRoutine(TurnSide.Enemy));
     }
 
     private void ReleaseCursorAfterDeath()

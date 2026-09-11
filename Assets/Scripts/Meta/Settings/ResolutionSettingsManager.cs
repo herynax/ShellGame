@@ -2,11 +2,6 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-/// <summary>
-/// Разрешение экрана + режим окна (Fullscreen / Borderless / Windowed).
-/// Живёт на persistent-объекте (там же, где DisplaySettingsManager), применяет
-/// сохранённое (или текущее нативное) значение сразу в Awake.
-/// </summary>
 public class ResolutionSettingsManager : MonoBehaviour, ISettingsModule
 {
     public static ResolutionSettingsManager Instance { get; private set; }
@@ -15,15 +10,14 @@ public class ResolutionSettingsManager : MonoBehaviour, ISettingsModule
     private const string RES_HEIGHT_KEY = "ResolutionHeight";
     private const string SCREEN_MODE_KEY = "ScreenMode";
 
-    // Порядок = то, что листается стрелками < > на UI.
     private static readonly FullScreenMode[] ScreenModes =
     {
-        FullScreenMode.ExclusiveFullScreen, // "Полноэкранный"
-        FullScreenMode.FullScreenWindow,    // "Без рамки" (borderless)
-        FullScreenMode.Windowed             // "Оконный"
+        FullScreenMode.ExclusiveFullScreen,
+        FullScreenMode.FullScreenWindow,
+        FullScreenMode.Windowed
     };
 
-    private Resolution[] _resolutions; // отфильтрованные, без дублей по width x height
+    private Resolution[] _resolutions;
     private int _resolutionIndex;
     private int _screenModeIndex;
 
@@ -36,10 +30,28 @@ public class ResolutionSettingsManager : MonoBehaviour, ISettingsModule
 
     private void Awake()
     {
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
         Instance = this;
         DontDestroyOnLoad(gameObject);
 
         BuildResolutionList();
+    }
+
+    private void Start()
+    {
+        LoadAndApply();
+        SettingsSaveController.Instance?.RegisterModule(this);
+    }
+
+    public void LoadAndApply()
+    {
+        if (_resolutions == null || _resolutions.Length == 0)
+            BuildResolutionList();
 
         int savedWidth = PlayerPrefs.GetInt(RES_WIDTH_KEY, Screen.currentResolution.width);
         int savedHeight = PlayerPrefs.GetInt(RES_HEIGHT_KEY, Screen.currentResolution.height);
@@ -52,16 +64,8 @@ public class ResolutionSettingsManager : MonoBehaviour, ISettingsModule
         Apply();
     }
 
-    private void Start()
-    {
-        SettingsSaveController.Instance?.RegisterModule(this);
-    }
-
     private void BuildResolutionList()
     {
-        // Screen.resolutions на одном и том же разрешении часто даёт несколько записей
-        // с разной частотой обновления — схлопываем по width x height, оставляя
-        // максимальную частоту для каждого разрешения.
         _resolutions = Screen.resolutions
             .GroupBy(r => new { r.width, r.height })
             .Select(g => g.OrderByDescending(r => r.refreshRateRatio.value).First())
@@ -78,7 +82,6 @@ public class ResolutionSettingsManager : MonoBehaviour, ISettingsModule
             if (_resolutions[i].width == width && _resolutions[i].height == height)
                 return i;
 
-        // Сохранённого разрешения больше нет (сменили монитор и т.п.) — берём ближайшее к нативному.
         return _resolutions.Length - 1;
     }
 
@@ -100,7 +103,6 @@ public class ResolutionSettingsManager : MonoBehaviour, ISettingsModule
         Apply();
     }
 
-    /// <summary>Человекочитаемое имя текущего режима — для UI-лейбла.</summary>
     public string GetScreenModeLabel(int index)
     {
         switch (ScreenModes[index])
@@ -132,7 +134,6 @@ public class ResolutionSettingsManager : MonoBehaviour, ISettingsModule
         PlayerPrefs.SetInt(RES_WIDTH_KEY, res.width);
         PlayerPrefs.SetInt(RES_HEIGHT_KEY, res.height);
         PlayerPrefs.SetInt(SCREEN_MODE_KEY, _screenModeIndex);
-        PlayerPrefs.Save();
     }
 
     public void Revert()

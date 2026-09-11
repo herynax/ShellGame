@@ -4669,8 +4669,8 @@ GameObject:
   - component: {fileID: 6256577592115985439}
   - component: {fileID: 3400427115817009636}
   - component: {fileID: 6511075999675760463}
-  - component: {fileID: 5248750016933369995}
   - component: {fileID: 6311008545488121263}
+  - component: {fileID: 3466211004259370406}
   m_Layer: 16
   m_Name: SettingsMenu
   m_TagString: Untagged
@@ -4773,23 +4773,6 @@ MonoBehaviour:
   inactiveTabColor: {r: 0.4056604, g: 0.4056604, b: 0.4056604, a: 0.5882353}
   fadeDuration: 0.15
   defaultTabIndex: 0
---- !u!114 &5248750016933369995
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4907945856193713443}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6a39a58abd8062f4290ba1eb915b8a7e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SettingsSaveController
-  unsavedChangesPanel: {fileID: 0}
-  confirmSaveButton: {fileID: 0}
-  confirmDiscardButton: {fileID: 0}
-  fadeDuration: 0.2
-  saveButton: {fileID: 1981114209328623869}
 --- !u!114 &6311008545488121263
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4802,6 +4785,23 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bf49ee58100110849876e169f6b88eb5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ResolutionSettingsManager
+--- !u!114 &3466211004259370406
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4907945856193713443}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 799da10f49e30ae4eae7d94ee2c5b840, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SettingsMenuGuard
+  unsavedChangesPanel: {fileID: 0}
+  confirmSaveButton: {fileID: 0}
+  confirmDiscardButton: {fileID: 0}
+  fadeDuration: 0.2
+  saveButton: {fileID: 1981114209328623869}
 --- !u!1 &4996107715072601064
 GameObject:
   m_ObjectHideFlags: 0

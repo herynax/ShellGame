@@ -20,6 +20,7 @@ namespace ShellGame.Gameplay
         private int _currentRoundIndex;
         private float _currentDifficultyIndex;
         private float _moveDurationMultiplier = 1f;
+        private bool _isEnemyTurn;
         private System.Action _onComplete;
 
         // === ПЕРЕМЕННЫЕ ДЛЯ ОБУЧЕНИЯ ===
@@ -32,9 +33,24 @@ namespace ShellGame.Gameplay
             _shellConfig = shellConfig;
         }
 
-        public void StartShuffling(IReadOnlyList<Shell> shells, System.Action onComplete, int levelIndex, int roundIndex, float difficultyIndex = 0f)
+        /// <summary>
+        /// Запускает перемешивание.
+        /// <paramref name="isEnemyTurn"/> — true, если перемешивает сторона врага
+        /// (см. GameManager._activeSide) — тогда применяется
+        /// ShellConfig.EnemyShuffleSpeedMultiplier (враг перемешивает быстрее игрока).
+        /// <paramref name="shellConfig"/> — необязательный явный ShellConfig на этот
+        /// конкретный вызов. Передавайте сюда RoundGenerator.ShellConfig из
+        /// GameManager — это надёжнее, чем полагаться на то, что у ShuffleSystem
+        /// (который может спавниться отдельно, без назначенного в инспекторе
+        /// конфига) свой сериализованный _shellConfig вообще установлен. Если
+        /// null — используется локальный _shellConfig как раньше.
+        /// </summary>
+        public void StartShuffling(IReadOnlyList<Shell> shells, System.Action onComplete, int levelIndex, int roundIndex, float difficultyIndex = 0f, bool isEnemyTurn = false, ShellConfig shellConfig = null)
         {
             if (_isRunning) return;
+
+            if (shellConfig != null)
+                _shellConfig = shellConfig;
 
             _shells = shells.ToList();
             _onComplete = onComplete;
@@ -43,7 +59,8 @@ namespace ShellGame.Gameplay
             _currentLevelIndex = Mathf.Max(0, levelIndex);
             _currentRoundIndex = Mathf.Max(0, roundIndex);
             _currentDifficultyIndex = difficultyIndex;
-            
+            _isEnemyTurn = isEnemyTurn;
+
             GameEvents.RaiseRoundShuffleStarted();
 
             // Первый обмен запускаем сразу даже в режиме обучения. В режиме
@@ -121,7 +138,12 @@ namespace ShellGame.Gameplay
             float difficultyReduction = (_shellConfig.ShuffleRoundReduction + _shellConfig.ShuffleLevelReduction)
                 * Mathf.Max(0f, _currentDifficultyIndex);
             float reducedDuration = _shellConfig.ShuffleMoveDurationBase - difficultyReduction;
-            return Mathf.Max(_shellConfig.ShuffleMoveDurationMin, reducedDuration * _moveDurationMultiplier);
+            float duration = reducedDuration * _moveDurationMultiplier;
+
+            if (_isEnemyTurn)
+                duration *= Mathf.Clamp(_shellConfig.EnemyShuffleSpeedMultiplier, 0.05f, 1f);
+
+            return Mathf.Max(_shellConfig.ShuffleMoveDurationMin, duration);
         }
 
         public void SetMoveDurationMultiplier(float multiplier)

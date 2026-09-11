@@ -25,6 +25,12 @@ namespace ShellGame.AI
     {
         [SerializeField] private EnemyAIConfig _config;
 
+        [Tooltip("Множитель задержки принятия решения врагом. <1 = решение принимается быстрее (сейчас: враг в целом чуть расторопнее игрока).")]
+        [SerializeField, Range(0.1f, 1.5f)] private float _decisionSpeedMultiplier = 0.9f;
+
+        [Tooltip("Дополнительный множитель, когда враг НЕ использовал предметы в этом решении. 0.75 = на 25% быстрее, чем если бы предмет использовался.")]
+        [SerializeField, Range(0.1f, 1.5f)] private float _noItemDecisionSpeedMultiplier = 0.75f;
+
         private readonly EnemyKnowledgeModel _knowledge = new EnemyKnowledgeModel();
         private float _currentDifficultyIndex;
         private bool _isFirstLevel;
@@ -67,6 +73,7 @@ namespace ShellGame.AI
             _forcedChoicePersistent = persistent;
             Debug.Log($"[EnemyAI] ForceCorrectChoice ENABLED persistent={persistent} state={State} difficulty={_currentDifficultyIndex:F2}");
         }
+
 
         /// <summary>Снимает форс, включённый через ForceCorrectChoice — возвращает обычное поведение ИИ.</summary>
         public void ClearForcedChoice()
@@ -183,10 +190,19 @@ namespace ShellGame.AI
             // в ГДД. Монокль уже готов (ResyncKnowledge выше), остальные
             // предметы (Пассатижи/Молоток/Метка/Наркотики/Двойной урон)
             // потребуют инвентаря у противника — пока пропускается.
+            //
+            // usedItemThisDecision нужно выставить в true в том месте, где
+            // реально был применён предмет в рамках этого решения — тогда
+            // бонус скорости "без предметов" (_noItemDecisionSpeedMultiplier)
+            // корректно перестанет применяться.
+            bool usedItemThisDecision = false;
 
-            float delay = _config.EvaluateDecisionDelay(_currentDifficultyIndex);
+            float baseDelay = _config.EvaluateDecisionDelay(_currentDifficultyIndex);
+            float delay = baseDelay * _decisionSpeedMultiplier
+                * (usedItemThisDecision ? 1f : _noItemDecisionSpeedMultiplier);
+
             int markedSlotIndex = FindMarkedShell(shells)?.SlotIndex ?? -1;
-            Debug.Log($"[EnemyAI] Decision START delay={delay:F2} forceCorrect={_forceCorrectChoice} persistent={_forcedChoicePersistent} healthFraction={_currentHealthFraction:F2} difficulty={_currentDifficultyIndex:F2} markedSlot={markedSlotIndex}");
+            Debug.Log($"[EnemyAI] Decision START delay={delay:F2} baseDelay={baseDelay:F2} usedItem={usedItemThisDecision} forceCorrect={_forceCorrectChoice} persistent={_forcedChoicePersistent} healthFraction={_currentHealthFraction:F2} difficulty={_currentDifficultyIndex:F2} markedSlot={markedSlotIndex}");
             if (delay > 0f)
                 yield return new WaitForSeconds(delay);
 

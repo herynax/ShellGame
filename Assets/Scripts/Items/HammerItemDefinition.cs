@@ -24,6 +24,7 @@ namespace ShellGame.Items
         [Header("Звуки")]
         public EventReference SmashSound;
         public EventReference HitFaceSound;
+        public EventReference HammerFlightSound; 
 
         public override bool CanUse(ItemEffectContext context)
         {
@@ -76,6 +77,7 @@ namespace ShellGame.Items
                     // Успех: наперсток пустой! Разбиваем его прямо на столе (без поднятия).
                     if (activeHammer != null)
                     {
+                        activeHammer.StartFlightSound(HammerFlightSound);
                         activeHammer.Strike(targetShell.transform.position, () => 
                         {
                             SmashShell(context, targetShell);

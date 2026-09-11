@@ -117,6 +117,52 @@ namespace ShellGame.Tutorial
         }
     }
 
+    /// <summary>Ждёт смерти указанной стороны.</summary>
+    public sealed class WaitForSideDeath : TutorialStep
+    {
+        private readonly TurnSide _side;
+
+        public WaitForSideDeath(TurnSide side) => _side = side;
+
+        public override IEnumerator Run(MonoBehaviour runner)
+        {
+            bool done = false;
+            void Handler(TurnSide side)
+            {
+                if (side == _side) done = true;
+            }
+
+            GameEvents.SideDied += Handler;
+            while (!done)
+                yield return null;
+            GameEvents.SideDied -= Handler;
+        }
+    }
+
+    public sealed class SayShellChoice : TutorialStep
+    {
+        private readonly WaitForShellSelected _selection;
+        private readonly DialogueLine[] _marked;
+        private readonly DialogueLine[] _empty;
+        private readonly float _pause;
+
+        public SayShellChoice(WaitForShellSelected selection, DialogueLine[] marked, DialogueLine[] empty, float pause)
+        {
+            _selection = selection; _marked = marked; _empty = empty; _pause = pause;
+        }
+
+        public override IEnumerator Run(MonoBehaviour runner)
+        {
+            var lines = _selection.SelectedShell != null && _selection.SelectedShell.HasMarker ? _marked : _empty;
+            foreach (var line in lines)
+            {
+                if (line == null) continue;
+                yield return new Say(line).Run(runner);
+                if (_pause > 0f) yield return new WaitForSeconds(_pause);
+            }
+        }
+    }
+
     /// <summary>Ждёт смену активной стороны (переход хода).</summary>
     public sealed class WaitForActiveSideChanged : TutorialStep
     {
@@ -174,5 +220,14 @@ namespace ShellGame.Tutorial
                 yield return null;
             GameEvents.CupSwapPerformed -= Handler;
         }
+    }
+
+    /// <summary>
+    /// Keeps the first opponent's death on the tutorial scene long enough for
+    /// the narrator to finish the closing lines.
+    /// </summary>
+    public static class TutorialSceneTransitionGate
+    {
+        public static bool HoldEnemyDeathTransition { get; set; }
     }
 }
