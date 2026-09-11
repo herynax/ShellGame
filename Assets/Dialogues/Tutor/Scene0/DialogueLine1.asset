@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c664bdc9ac1894149bec712dec42d37d, type: 3}
   m_Name: DialogueLine1
   m_EditorClassIdentifier: Assembly-CSharp::ShellGame.Tutorial.DialogueLine
-  _text: "\u041E\u0447\u043D\u0443\u043B\u0441\u044F"
+  _text: "\u0417\u0434\u0440\u0430\u0432\u0441\u0442\u0432\u0443\u0439."
   _fontAsset: {fileID: 11400000, guid: 0d0e12f7eb5bc9640b10be4929c296ce, type: 2}
   _fontMaterial: {fileID: 0}
   _textColor: {r: 1, g: 1, b: 1, a: 1}
