@@ -79,4 +79,20 @@ namespace ShellGame.Tutorial
                 yield return null;
         }
     }
+
+    /// <summary>
+    /// Явное подтверждение этапа туториала. В отличие от клика, закрывающего
+    /// диалог, этот шаг требует отдельного нажатия до следующей анимации.
+    /// </summary>
+    public sealed class WaitForTutorialAdvance : TutorialStep
+    {
+        public override IEnumerator Run(MonoBehaviour runner)
+        {
+            // Один кадр не позволяет тому же клику, который закрыл реплику,
+            // случайно подтвердить следующий этап.
+            yield return null;
+            while (!Input.GetMouseButtonDown(0) && !Input.GetKeyDown(KeyCode.Space))
+                yield return null;
+        }
+    }
 }

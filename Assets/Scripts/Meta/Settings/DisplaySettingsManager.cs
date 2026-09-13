@@ -1,6 +1,5 @@
 using UnityEngine;
 
-/// <summary>Живёт на persistent-объекте, применяет VSync/лимит FPS сразу в Awake.</summary>
 public class DisplaySettingsManager : MonoBehaviour, ISettingsModule
 {
     public static DisplaySettingsManager Instance { get; private set; }
@@ -19,18 +18,27 @@ public class DisplaySettingsManager : MonoBehaviour, ISettingsModule
 
     private void Awake()
     {
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
         Instance = this;
         DontDestroyOnLoad(gameObject);
-
-        VSyncEnabled = PlayerPrefs.GetInt(VSYNC_KEY, 0) == 1;
-        FpsOptionIndex = Mathf.Clamp(PlayerPrefs.GetInt(FPS_LIMIT_INDEX_KEY, DefaultFpsIndex()), 0, fpsOptions.Length - 1);
-
-        Apply();
     }
 
     private void Start()
     {
+        LoadAndApply();
         SettingsSaveController.Instance?.RegisterModule(this);
+    }
+
+    public void LoadAndApply()
+    {
+        VSyncEnabled = PlayerPrefs.GetInt(VSYNC_KEY, 0) == 1;
+        FpsOptionIndex = Mathf.Clamp(PlayerPrefs.GetInt(FPS_LIMIT_INDEX_KEY, DefaultFpsIndex()), 0, fpsOptions.Length - 1);
+        Apply();
     }
 
     private int DefaultFpsIndex()
@@ -52,13 +60,16 @@ public class DisplaySettingsManager : MonoBehaviour, ISettingsModule
     }
 
     // --- ISettingsModule ---
-    public void CaptureSnapshot() { _snapshotVSync = VSyncEnabled; _snapshotFpsIndex = FpsOptionIndex; }
+    public void CaptureSnapshot()
+    {
+        _snapshotVSync = VSyncEnabled;
+        _snapshotFpsIndex = FpsOptionIndex;
+    }
 
     public void Save()
     {
         PlayerPrefs.SetInt(VSYNC_KEY, VSyncEnabled ? 1 : 0);
         PlayerPrefs.SetInt(FPS_LIMIT_INDEX_KEY, FpsOptionIndex);
-        PlayerPrefs.Save();
     }
 
     public void Revert()

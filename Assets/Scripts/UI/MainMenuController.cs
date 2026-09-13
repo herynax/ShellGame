@@ -31,8 +31,8 @@ public class MainMenuController : MonoBehaviour
 
     [Header("Настройки сцены")]
     [Tooltip("Имя сцены, которая загрузится при нажатии 'Новая попытка'")]
-    [SerializeField] private string firstGameplaySceneName = "Tutorial";
-
+    [SerializeField] private string firstGameplaySceneName = "Level_2";
+    [SerializeField] private string tutorialSceneName = "Tutorial";
     private Stack<CanvasGroup> _menuStack = new Stack<CanvasGroup>();
     private bool isExitingOrLoading = false;
 
@@ -45,7 +45,7 @@ public class MainMenuController : MonoBehaviour
         }
 
         if (continueAttemptButton != null)
-            continueAttemptButton.interactable = RunCheckpointStorage.HasCheckpoint;
+            continueAttemptButton.gameObject.SetActive(RunCheckpointStorage.HasCheckpoint);
     }
 
     private void Update()
@@ -220,11 +220,18 @@ public class MainMenuController : MonoBehaviour
 
         if (SceneLoader.Instance != null)
         {
-            SceneLoader.Instance.LoadScene(firstGameplaySceneName);
+            if (GameManager.IsTutorialCompleted() == true)
+            {
+                SceneLoader.Instance.LoadScene(firstGameplaySceneName);
+            }
+            else
+            {
+                SceneLoader.Instance.LoadScene(tutorialSceneName);
+            }
         }
         else
         {
-            UnityEngine.SceneManagement.SceneManager.LoadScene(firstGameplaySceneName);
+            Debug.LogError("[MainMenuController] Нет SceneLoader.Instance. Добавь на сцену.");
         }
     }
 

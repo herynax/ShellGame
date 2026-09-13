@@ -41,9 +41,6 @@ public class BrightnessSliderUI : MonoBehaviour
 
         BrightnessManager.Instance.ApplySmooth(value);
 
-        if (startGameScreen)
-            BrightnessManager.Instance.Save(value);
-
         SettingsSaveController.Instance?.MarkDirty();
     }
 }

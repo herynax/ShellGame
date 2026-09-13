@@ -21,6 +21,7 @@ MonoBehaviour:
   ShuffleRoundReduction: 0.07
   ShuffleLevelReduction: 0.05
   ShuffleEase: 4
+  EnemyShuffleSpeedMultiplier: 0.05
   HoverScale: 1.5
   HoverTweenDuration: 0.12
   SpawnScaleDuration: 0.25

@@ -289,9 +289,6 @@ GameObject:
   - component: {fileID: 7313718527307601850}
   - component: {fileID: 6512340069369546555}
   - component: {fileID: 8429885846477810261}
-  - component: {fileID: 4608491381618256878}
-  - component: {fileID: 2508253152433587215}
-  - component: {fileID: 6382315114792970209}
   - component: {fileID: 3031495146295207167}
   m_Layer: 5
   m_Name: ===FadeCanvas
@@ -346,7 +343,7 @@ Canvas:
   m_AdditionalShaderChannelsFlag: 25
   m_UpdateRectTransformForStandalone: 0
   m_SortingLayerID: 0
-  m_SortingOrder: 0
+  m_SortingOrder: 999
   m_TargetDisplay: 0
 --- !u!114 &7313718527307601850
 MonoBehaviour:
@@ -389,11 +386,11 @@ MonoBehaviour:
   blockInputDuringLoad: 1
   loadNextSceneByName: 0
   nextSceneOnEnemyDeath: 
-  firstSceneOnPlayerDeath: Tutorial
+  firstSceneOnPlayerDeath: Level_1
   roomLightTag: RoomLight
   roomDarkenDuration: 1.5
   isFinalLevel: 0
-  finalLevelSceneName: Final
+  finalLevelSceneName: Final_Level
   mainMenuSceneName: MainMenu
   minLoadingDuration: 3
   delayAfterFullProgress: 1
@@ -419,45 +416,6 @@ MonoBehaviour:
   delayBeforeTipShow: 0.1
   tipFadeInDuration: 0.3
   tipFadeOutDuration: 0.25
---- !u!114 &4608491381618256878
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 496035266803473719}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 652f2ad667a1e1148844fa4ad9137edb, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::FpsCounterManager
-  fpsLabel: {fileID: 5187146163928045475}
-  updateInterval: 0.5
---- !u!114 &2508253152433587215
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 496035266803473719}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3b35f028ad97a4b4fb0cdda98ef77c45, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::DisplaySettingsManager
-  fpsOptions: 1e0000003c0000005a0000007800000090000000ffffffff
---- !u!114 &6382315114792970209
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 496035266803473719}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: bf49ee58100110849876e169f6b88eb5, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ResolutionSettingsManager
 --- !u!114 &3031495146295207167
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -11113,7 +11071,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &1623762566173887934
 RectTransform:
   m_ObjectHideFlags: 0
@@ -11719,7 +11677,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &552306669491335276
 RectTransform:
   m_ObjectHideFlags: 0

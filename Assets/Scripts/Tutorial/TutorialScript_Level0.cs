@@ -1,140 +1,316 @@
+using System.Collections;
+using UnityEngine;
 using Unity.Cinemachine;
-using FMODUnity;
-using ShellGame.AI;
 using ShellGame.Core;
 using ShellGame.Gameplay;
-using UnityEngine;
 using Zenject;
 
 namespace ShellGame.Tutorial
 {
-    public sealed class TutorialScript_Level0 : MonoBehaviour
+    public class TutorialScenarioManager : MonoBehaviour
     {
-        [Header("Игровые системы")]
-        [SerializeField] private GameManager _gameManager;
+        [SerializeField] private string _nextSceneName = "Level_2";
 
-        [Header("Камеры")]
-        [SerializeField] private CinemachineCamera _gameplayCamera;
-        [SerializeField] private CinemachineCamera _narratorCamera;
-        [SerializeField] private CinemachineCamera _buttonCamera;
-        [SerializeField] private CinemachineCamera _tableCenterCamera;
-        [SerializeField] private CinemachineCamera _healthBarCamera;
+        [Header("--- CINEMACHINE КАМЕРЫ ---")]
+        [SerializeField] private CinemachineCamera _mainCamera;
+        [SerializeField] private CinemachineCamera _hpCamera;
 
-        [SerializeField] private int _focusPriority = 20;
-        [SerializeField] private EventReference _zoomWhooshSfx;
+        [Header("--- 1. ВСТУПЛЕНИЕ ---")]
+        [SerializeField] private DialogueLine _helloLine;
+        [SerializeField] private DialogueLine _intro1Line;
+        [SerializeField] private DialogueLine _intro2Line;
+        [SerializeField] private DialogueLine _watchCarefullyLine;
 
-        [Header("UI здоровья")]
-        [SerializeField] private GameObject _enemyHealthBarRoot;
-        [SerializeField] private GameObject _playerHealthBarRoot;
-        [SerializeField] private float _pauseBetweenLines = 1.0f;
+        [Header("--- 2. ПРАВИЛА (ДЕМОНСТРАЦИЯ) ---")]
+        [SerializeField] private DialogueLine _hpDemoLine;
+        [SerializeField] private DialogueLine _rulesSimpleLine;
+        [SerializeField] private DialogueLine _markerRevealLine;
+        [SerializeField] private DialogueLine _damageRuleLine;
+        [SerializeField] private DialogueLine _emptyRevealLine;
+        [SerializeField] private DialogueLine _enemyRuleLine;
+        [SerializeField] private DialogueLine _startLine;
 
-        [Header("Реплики по сценам")]
-        [SerializeField] private DialogueLine[] _scene0_WakeUp;
-        [SerializeField] private DialogueLine[] _scene1_BeforeClick;
-        [SerializeField] private DialogueLine _scene1_AfterClick;
+        [Header("--- 3. ИГРОВЫЕ РЕАКЦИИ (ВЫБОР ИГРОКА) ---")]
+        [SerializeField] private DialogueLine[] _playerFoundMarkerLines;
+        [SerializeField] private DialogueLine[] _playerFoundEmptyLines;
 
-        [Header("Сцена 2 (Показ метки)")]
-        [SerializeField] private DialogueLine _scene2_See;
-        [SerializeField] private DialogueLine _scene2_ThereItIs;
-        [SerializeField] private DialogueLine _scene2_Remember;
+        [Header("--- 4. ИГРОВЫЕ РЕАКЦИИ (ВЫБОР ВРАГА) ---")]
+        [SerializeField] private DialogueLine[] _enemyFoundMarkerLines;
+        [SerializeField] private DialogueLine[] _enemyFoundEmptyLines;
 
-        [Header("Сцена 3 (Перемешивание)")]
-        [SerializeField] private DialogueLine _scene3_DontBlink;
-        [SerializeField] private DialogueLine _scene3_WatchIt;
-        [SerializeField] private DialogueLine _scene3_NotTheCups;
-        [SerializeField] private DialogueLine _scene3_OnIt;
+        [Header("--- 5. ФИНАЛ ---")]
+        [SerializeField] private DialogueLine[] _finalLines;
 
-        [Header("Сцена 4 (После перемешивания)")]
-        [SerializeField] private DialogueLine _scene4_Well;
-        [SerializeField] private DialogueLine _scene4_WhereIsIt;
+        private TurnSide _currentTurnSide = TurnSide.Player;
+        private bool _isEnemyDead = false;
 
-        [Header("Сцена 5 (Угадал)")]
-        [SerializeField] private DialogueLine _scene5_Lucky;
-        [SerializeField] private DialogueLine _scene5_Good;
-        [SerializeField] private DialogueLine _scene5_Watch;
+        private const int MainCameraPriority = 10;
+        private const int SecondaryCameraPriority = 0;
 
-        [Header("Сцена 6+ (Здоровье и ход врага)")]
-        [SerializeField] private DialogueLine[] _scene6_Lines;
-        [SerializeField] private DialogueLine _scene7_MyTurn;
-        [SerializeField] private DialogueLine _scene8_Sorry;
-        [SerializeField] private DialogueLine[] _scene9_Lines;
+        /// <summary>Сколько первых ходов озвучиваем реакцией (игрок + враг). Дальше — тишина до смерти врага.</summary>
+        private const int ReactedTurnsCount = 2;
 
-        [Header("Сцена 10 (Конец)")]
-        [SerializeField] private DialogueLine _scene10_YourTurn;
-        [SerializeField] private DialogueLine _scene10_NoHints;
+        private RoundGenerator _roundGenerator;
+        private GameManager _gameManager;
 
-        [SerializeField] private TutorialSequencer _sequencer;
-        private ShuffleSystem _shuffleSystem;
-        private RoundStartButton _roundStartButton;
 
         [Inject]
-        private void InjectDependencies(GameManager gameManager, ShuffleSystem shuffleSystem, RoundStartButton roundStartButton)
+        private void InjectDependencies(GameManager gameManager, RoundGenerator roundGenerator)
         {
             _gameManager = gameManager;
-            _shuffleSystem = shuffleSystem;
-            _roundStartButton = roundStartButton;
+            _roundGenerator = roundGenerator;
         }
 
-        private void Awake()
+        private IEnumerator Start()
         {
-            if (!GameManager.IsTutorialCompleted())
+            GameEvents.ActiveSideChanged += OnSideChanged;
+            GameEvents.SideDied += OnSideDied;
+
+            // На всякий случай устанавливаем начальную камеру.
+            SetMainCamera();
+
+            yield return StartCoroutine(RunTutorialSequence());
+
+            GameEvents.ActiveSideChanged -= OnSideChanged;
+            GameEvents.SideDied -= OnSideDied;
+        }
+
+        private void OnSideChanged(TurnSide side)
+        {
+            _currentTurnSide = side;
+        }
+
+        private void OnSideDied(TurnSide side)
+        {
+            if (side != TurnSide.Player)
+                _isEnemyDead = true;
+        }
+
+        private IEnumerator RunTutorialSequence()
+        {
+            // ==========================================
+            // ЭТАП 1: ВСТУПЛЕНИЕ
+            // ==========================================
+
+            yield return SayWithCameraReset(_helloLine);
+            yield return SayWithCameraReset(_intro1Line);
+            yield return SayWithCameraReset(_intro2Line);
+            yield return SayWithCameraReset(_watchCarefullyLine);
+
+
+            // ==========================================
+            // ЭТАП 2: ОБЪЯСНЕНИЕ ПРАВИЛ
+            // ==========================================
+
+            yield return new Parallel(
+                new Say(_hpDemoLine),
+                new DoAction(() =>
+                {
+                    SetHpCamera();
+                })
+            ).Run(this);
+
+            // Возвращаем обычную камеру.
+            SetMainCamera();
+
+            yield return new WaitCameraReset().Run(this);
+
+
+            yield return new Parallel(
+                new Say(_rulesSimpleLine),
+                new DoAction(() =>
+                {
+                    SpawnCupsOnTable();
+                })
+            ).Run(this);
+
+            yield return new WaitCameraReset().Run(this);
+
+
+            yield return new Parallel(
+                new Say(_markerRevealLine),
+                new DoAction(() =>
+                {
+                    RevealCupWithMarker();
+                })
+            ).Run(this);
+
+            yield return new WaitCameraReset().Run(this);
+
+
+            yield return new Parallel(
+                new Say(_damageRuleLine),
+                new DoAction(() =>
+                {
+                    CloseCup();
+                })
+            ).Run(this);
+
+            yield return new WaitCameraReset().Run(this);
+
+
+            yield return new Parallel(
+                new Say(_emptyRevealLine),
+                new DoAction(() =>
+                {
+                    RevealEmptyCup();
+                })
+            ).Run(this);
+
+            yield return new WaitCameraReset().Run(this);
+
+
+            yield return new Parallel(
+                new Say(_enemyRuleLine),
+                new DoAction(() =>
+                {
+                    CloseCup();
+                })
+            ).Run(this);
+
+            yield return new WaitCameraReset().Run(this);
+
+
+            yield return SayWithCameraReset(_startLine);
+
+
+            // ==========================================
+            // ЗАПУСК ИГРЫ
+            // ==========================================
+
+            if (_gameManager != null)
             {
-                if (_enemyHealthBarRoot != null) _enemyHealthBarRoot.SetActive(false);
-                if (_playerHealthBarRoot != null) _playerHealthBarRoot.SetActive(false);
+                _gameManager.ContinueTutorialShuffle();
+                _gameManager.UnlockTutorialPlayerChoice();
             }
 
-            if (_sequencer == null) _sequencer = gameObject.AddComponent<TutorialSequencer>();
 
-            // ВАЖНО: ShuffleSystem.TutorialStepMode больше НЕ выставляем здесь.
-            // Порядок Awake() между разными компонентами сцены не гарантирован
-            // одинаковым в билде (особенно IL2CPP) так же строго, как в
-            // редакторе (Mono) — там могло годами "случайно" работать за счёт
-            // стабильного порядка объектов в иерархии. В билде FindObjectOfType
-            // здесь либо не находил ShuffleSystem (объект ещё не активен/не
-            // заспавнен), либо этот Awake() отрабатывал позже, чем
-            // GameManager успевал дойти до первого StartShuffling — из-за
-            // этого TutorialStepMode оставался false, и первое перемешивание
-            // шло одним сплошным непрерываемым циклом, как в обычной игре,
-            // вместо пошагового режима для сцены 3.
-            //
-            // Теперь TutorialStepMode выставляется прямо в Play() — в сцене 2,
-            // с большим запасом по времени (пара реплик + ожидание State ==
-            // Shuffle) до того, как GameManager реально вызовет
-            // ShuffleSystem.StartShuffling(). Это убирает гонку полностью,
-            // независимо от порядка Awake() в конкретной сборке.
+            // ==========================================
+            // ЭТАП 3: ПЕРВЫЙ ХОД ИГРОКА И ПЕРВЫЙ ХОД ВРАГА
+            // (озвучиваем только эти два хода — по одному разу на сторону)
+            // ==========================================
+
+            for (int turnNumber = 0; turnNumber < ReactedTurnsCount && !_isEnemyDead; turnNumber++)
+            {
+                // После раскрытия GameManager может сразу переключить активную
+                // сторону, поэтому сохраняем сторону хода заранее.
+                var turnSide = _currentTurnSide;
+                var waitForReveal = new WaitForShellRevealed();
+
+                yield return waitForReveal.Run(this);
+
+                if (_isEnemyDead)
+                    break;
+
+                if (turnSide == TurnSide.Player)
+                {
+                    var lines = waitForReveal.HasMarker ? _playerFoundMarkerLines : _playerFoundEmptyLines;
+                    foreach (var line in lines)
+                        yield return SayWithCameraReset(line);
+                }
+                else
+                {
+                    var lines = waitForReveal.HasMarker ? _enemyFoundMarkerLines : _enemyFoundEmptyLines;
+                    foreach (var line in lines)
+                        yield return SayWithCameraReset(line);
+                }
+            }
+
+
+            // ==========================================
+            // ЭТАП 3.5: ТИШИНА — ИГРА ИДЁТ САМА ДО СМЕРТИ ВРАГА
+            // ==========================================
+
+            while (!_isEnemyDead)
+                yield return null;
+
+
+            // ==========================================
+            // ЭТАП 4: ФИНАЛ
+            // ==========================================
+
+            yield return new WaitSeconds(0.5f).Run(this);
+
+            foreach (var line in _finalLines)
+            {
+                yield return SayWithCameraReset(line);
+            }
+
+            GoToNextLevel();
+            OnTutorialCompleted();
         }
 
-        private void Start()
+
+        // =========================================================
+        // CINEMACHINE
+        // =========================================================
+
+        private void SetMainCamera()
         {
-            if (GameManager.IsTutorialCompleted())
-            {
-                Debug.Log("[TutorialScript_Level0] Обучение уже пройдено, секвенс не запускается.");
+            if (_mainCamera == null || _hpCamera == null)
                 return;
-            }
 
-            _sequencer.Completed += OnTutorialCompleted;
+            _mainCamera.Priority = MainCameraPriority;
+            _hpCamera.Priority = SecondaryCameraPriority;
+        }
 
-            if (SceneLoader.Instance == null)
-            {
-                Play();
+        private void SetHpCamera()
+        {
+            if (_mainCamera == null || _hpCamera == null)
                 return;
-            }
 
-            SceneLoader.SceneRevealCompleted += StartAfterSceneReveal;
+            _mainCamera.Priority = SecondaryCameraPriority;
+            _hpCamera.Priority = MainCameraPriority;
         }
 
-        private void OnDestroy()
-        {
-            if (_sequencer != null)
-                _sequencer.Completed -= OnTutorialCompleted;
 
-            SceneLoader.SceneRevealCompleted -= StartAfterSceneReveal;
+        // =========================================================
+        // DIALOGUE
+        // =========================================================
+
+        private IEnumerator SayWithCameraReset(
+            DialogueLine line,
+            float pauseAfterReset = 0.05f)
+        {
+            if (line == null)
+                yield break;
+
+            yield return new Say(line).Run(this);
+
+            yield return new WaitCameraReset(pauseAfterReset).Run(this);
         }
 
-        private void StartAfterSceneReveal()
+
+        // =========================================================
+        // GAMEPLAY DEMONSTRATION
+        // =========================================================
+
+        private void SpawnCupsOnTable()
         {
-            SceneLoader.SceneRevealCompleted -= StartAfterSceneReveal;
-            Play();
+            GameEvents.RaiseRoundStartConfirmed();
+        }
+
+        private void RevealCupWithMarker()
+        {
+            if (_roundGenerator != null)
+                _roundGenerator.RevealOnlyMarkedShell(2.5f);
+        }
+
+        private void RevealEmptyCup()
+        {
+            if (_roundGenerator != null)
+                _roundGenerator.RevealOnlyEmptyShell(2.5f);
+        }
+
+        private void CloseCup()
+        {
+            // ShellAnimator сам опустит напёрсток.
+        }
+
+
+        private void GoToNextLevel()
+        {
+            SceneLoader.Instance.LoadScene(_nextSceneName);
         }
 
         private void OnTutorialCompleted()
@@ -142,240 +318,6 @@ namespace ShellGame.Tutorial
             PlayerPrefs.SetInt(GameManager.TutorialCompletedPrefKey, 1);
             PlayerPrefs.Save();
             Debug.Log("[TutorialScript_Level0] Обучение завершено и сохранено в PlayerPrefs.");
-        }
-
-        public void Play()
-        {
-            if (GameManager.IsTutorialCompleted())
-            {
-                Debug.Log("[TutorialScript_Level0] Play пропущен: обучение уже пройдено.");
-                return;
-            }
-
-            var builder = TutorialBuilder.Create();
-            int p = _focusPriority;
-
-            // Сцена 0: Пробуждение
-            builder.Wait(new CameraFocus(_narratorCamera, p, 0f)).WaitSeconds(_pauseBetweenLines);
-            SayEach(builder, _scene0_WakeUp);
-
-            // Сцена 1: Кнопка начала
-            p++;
-            builder.Do(() =>
-            {
-                var btn = _roundStartButton;
-                if (btn != null) btn.SetInteractable(false);
-            });
-
-            builder.Wait(new CameraFocus(_buttonCamera, p, 0.8f));
-
-            if (_scene1_BeforeClick != null && _scene1_BeforeClick.Length > 0)
-            {
-                for (int i = 0; i < _scene1_BeforeClick.Length; i++)
-                {
-                    builder.Say(_scene1_BeforeClick[i]);
-                    if (i < _scene1_BeforeClick.Length - 1) builder.WaitSeconds(_pauseBetweenLines);
-                }
-            }
-
-            builder.Do(() =>
-            {
-                var btn = _roundStartButton;
-                if (btn != null) btn.SetInteractable(true);
-            });
-
-            builder.Wait(new WaitForEvent(
-                    h => GameEvents.RoundStartConfirmed += h,
-                    h => GameEvents.RoundStartConfirmed -= h))
-                .Say(_scene1_AfterClick);
-
-            // Сцена 2: Показ метки
-            p++;
-            builder.Wait(new CameraFocus(_tableCenterCamera, p, 0.8f));
-            builder.Say(_scene2_See);
-
-            builder.Do(() =>
-            {
-                if (_gameManager != null)
-                {
-                    _gameManager.LockTutorialPlayerChoice();
-                    _gameManager.ContinueTutorialReveal();
-                }
-
-                // Включаем пошаговый режим шафла ЗАРАНЕЕ, с запасом — раунд
-                // дойдёт до RoundState.Shuffle только через Reveal (пауза
-                // спавна + показ + удержание меток), так что времени на
-                // поиск ShuffleSystem более чем достаточно в любой сборке.
-                if (_shuffleSystem != null)
-                    _shuffleSystem.TutorialStepMode = true;
-                else
-                    Debug.LogError("[TutorialScript_Level0] ShuffleSystem не найден на сцене в сцене 2 — сцена 3 пойдёт непрерывным шафлом вместо пошагового.");
-            });
-
-            builder.WaitSeconds(0.3f);
-            builder.Say(_scene2_ThereItIs);
-
-            builder.WaitUntil(() => _gameManager != null && _gameManager.State == RoundState.Shuffle);
-
-            // Страховка: если ShuffleSystem почему-то не нашёлся выше (сцена
-            // ещё не успела его создать) — пробуем найти ещё раз прямо
-            // перед тем, как он реально понадобится в сцене 3.
-            builder.Do(() =>
-            {
-                if (_shuffleSystem == null)
-                {
-                    Debug.LogError("[TutorialScript_Level0] ShuffleSystem всё ещё не найден перед сценой 3.");
-                    return;
-                }
-
-                _shuffleSystem.TutorialStepMode = true;
-            });
-
-            builder.Say(_scene2_Remember);
-
-            // Сцена 3: 4 контролируемых шага перемешивания
-            builder.Do(() => { if (_shuffleSystem != null) _shuffleSystem.TriggerNextStep(); });
-            builder.WaitSeconds(0.1f);
-            builder.WaitUntil(() => _shuffleSystem != null && _shuffleSystem.IsWaitingForStep);
-            builder.Say(_scene3_DontBlink);
-
-            builder.Do(() => { if (_shuffleSystem != null) _shuffleSystem.TriggerNextStep(); });
-            builder.WaitSeconds(0.1f);
-            builder.WaitUntil(() => _shuffleSystem != null && _shuffleSystem.IsWaitingForStep);
-            builder.Say(_scene3_WatchIt);
-
-            builder.Do(() => { if (_shuffleSystem != null) _shuffleSystem.TriggerNextStep(); });
-            builder.WaitSeconds(0.1f);
-            builder.WaitUntil(() => _shuffleSystem != null && _shuffleSystem.IsWaitingForStep);
-            builder.Say(_scene3_NotTheCups);
-
-            builder.Do(() => { if (_shuffleSystem != null) _shuffleSystem.TriggerNextStep(); });
-            builder.WaitSeconds(0.1f);
-            builder.WaitUntil(() => _shuffleSystem != null && _shuffleSystem.IsWaitingForStep);
-            builder.Say(_scene3_OnIt);
-
-            builder.Do(() =>
-            {
-                if (_shuffleSystem != null)
-                {
-                    _shuffleSystem.TriggerNextStep();
-                    _shuffleSystem.TutorialStepMode = false;
-                }
-            });
-
-            builder.WaitUntil(() => _gameManager != null && _gameManager.State == RoundState.PlayerTurn);
-
-            // Сцена 4: Разрешаем выбор игроку
-            builder
-                .WaitSeconds(_pauseBetweenLines).Say(_scene4_Well)
-                .WaitSeconds(_pauseBetweenLines).Say(_scene4_WhereIsIt);
-
-            builder.Do(() => { if (_gameManager != null) _gameManager.UnlockTutorialPlayerChoice(); });
-            builder.Do(() => { if (_gameManager != null) _gameManager.PauseTutorialBeforeDamage(); });
-
-            builder.Wait(new WaitForShellSelected());
-            builder.WaitSeconds(1.5f);
-
-            // Сцена 5: Игрок угадал
-            p++;
-            builder.Wait(new CameraFocus(_narratorCamera, p, 0.8f));
-            builder.Say(_scene5_Lucky).WaitSeconds(_pauseBetweenLines).Say(_scene5_Good);
-            if (_scene5_Watch != null)
-                builder.WaitSeconds(_pauseBetweenLines).Say(_scene5_Watch);
-
-            // Наносим урон врагу
-            builder.Do(() => { if (_gameManager != null) _gameManager.PauseTutorialAfterDamage(); });
-            builder.Do(() => { if (_gameManager != null) _gameManager.ResumeTutorialBeforeDamage(); });
-            builder.WaitSeconds(0.5f);
-
-            // Сцена 6: Показ здоровья
-            p++;
-            builder.Do(() =>
-            {
-                if (_enemyHealthBarRoot != null) _enemyHealthBarRoot.SetActive(true);
-                if (_playerHealthBarRoot != null) _playerHealthBarRoot.SetActive(true);
-            });
-
-            builder.Parallel(
-                b => b.Wait(new PlaySfx(_zoomWhooshSfx)).Wait(new CameraFocus(_healthBarCamera, p, 0.8f)),
-                b =>
-                {
-                    if (_scene6_Lines != null && _scene6_Lines.Length > 0)
-                        b.Say(_scene6_Lines[0]);
-                    return b;
-                }
-            );
-
-            p++;
-            builder.Wait(new CameraFocus(_narratorCamera, p, 0.8f));
-
-            if (_scene6_Lines != null && _scene6_Lines.Length > 1)
-            {
-                for (int i = 1; i < _scene6_Lines.Length; i++)
-                {
-                    builder.Say(_scene6_Lines[i]);
-                    if (i < _scene6_Lines.Length - 1) builder.WaitSeconds(_pauseBetweenLines);
-                }
-            }
-
-            // Сцена 7: "Теперь я." и фокус на стол
-            builder.Say(_scene7_MyTurn);
-
-            p++;
-            builder.Wait(new CameraFocus(_tableCenterCamera, p, 0.8f));
-
-            // Блокируем урон ДО передачи хода врагу
-            builder.Do(() => { if (_gameManager != null) _gameManager.PauseTutorialBeforeDamage(); });
-
-            // Передаем ход врагу
-            builder.Do(() => { if (_gameManager != null) _gameManager.ResumeTutorialAfterDamage(); });
-
-            // Ждем выбора наперстка врагом
-            builder.Wait(new WaitForShellSelected());
-            builder.WaitSeconds(1.0f); // Даем наперстку подняться
-
-            // Сцена 8: Камера на врага и реплика "Прости"
-            p++;
-            builder.Wait(new CameraFocus(_narratorCamera, p, 0.8f));
-            builder.Say(_scene8_Sorry);
-
-            // Блокируем смену хода после удара (чтобы игра не пошла дальше во время реплик 9 и 10)
-            builder.Do(() => { if (_gameManager != null) _gameManager.PauseTutorialAfterDamage(); });
-
-            // Наносим урон игроку
-            builder.Do(() => { if (_gameManager != null) _gameManager.ResumeTutorialBeforeDamage(); });
-            builder.WaitSeconds(0.6f);
-
-            // Сцена 9: Реплики про боль
-            SayEach(builder, _scene9_Lines);
-
-            // Сцена 10: "Теперь твоя очередь" / "Без подсказок"
-            builder.Say(_scene10_YourTurn).WaitSeconds(_pauseBetweenLines).Say(_scene10_NoHints);
-
-            // Возвращаем камеру на основную и делаем паузу 2 секунды
-            p++;
-            builder.Wait(new CameraFocus(_gameplayCamera, p, 1.0f));
-            builder.WaitSeconds(2.0f);
-
-            // И ТОЛЬКО ТЕПЕРЬ отпускаем игру в стандартный боевой цикл
-            builder.Do(() => { if (_gameManager != null) _gameManager.ResumeTutorialAfterDamage(); });
-
-            _sequencer.Play(builder.Build());
-        }
-
-        private TutorialBuilder SayEach(TutorialBuilder builder, DialogueLine[] lines)
-        {
-            if (lines == null) return builder;
-            for (int i = 0; i < lines.Length; i++)
-            {
-                if (lines[i] == null) continue;
-                builder.Say(lines[i]);
-                bool hasMoreAfter = false;
-                for (int j = i + 1; j < lines.Length; j++)
-                    if (lines[j] != null) { hasMoreAfter = true; break; }
-                if (hasMoreAfter) builder.WaitSeconds(_pauseBetweenLines);
-            }
-            return builder;
         }
     }
 }

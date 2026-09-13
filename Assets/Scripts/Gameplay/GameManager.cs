@@ -23,6 +23,9 @@ namespace ShellGame.Gameplay
     {
         public const string TutorialCompletedPrefKey = "ShellGame.TutorialCompleted";
 
+        /// <summary>Игрок хотя бы раз загрузился на втором уровне (levelIndex >= 2) — с этого момента на первом уровне должны появляться предметы.</summary>
+        public const string FirstLevelItemsUnlockedPrefKey = "ShellGame.FirstLevelItemsUnlocked";
+
         [HideInInspector] private RoundGenerator _roundGenerator;
         [HideInInspector] private RoundInputSystem _inputSystem;
         [HideInInspector] private ShuffleSystem _shuffleSystem;
@@ -136,8 +139,23 @@ namespace ShellGame.Gameplay
                 || currentSceneName.Contains("Level_0", System.StringComparison.OrdinalIgnoreCase);
         }
 
+        private bool IsTutorialActive() => IsTutorialScene() && !IsTutorialCompleted();
+
         public static bool IsTutorialCompleted() =>
             PlayerPrefs.GetInt(TutorialCompletedPrefKey, 0) == 1;
+
+        /// <summary>Игрок хотя бы раз загрузился на втором уровне — первый уровень больше не "пустой" и предметы на нём должны спавниться.</summary>
+        public static bool AreFirstLevelItemsUnlocked() =>
+            PlayerPrefs.GetInt(FirstLevelItemsUnlockedPrefKey, 0) == 1;
+
+        private static void MarkFirstLevelItemsUnlocked()
+        {
+            if (AreFirstLevelItemsUnlocked())
+                return;
+
+            PlayerPrefs.SetInt(FirstLevelItemsUnlockedPrefKey, 1);
+            PlayerPrefs.Save();
+        }
 
         public void Initialize(
             RoundGenerator roundGenerator,
@@ -237,6 +255,19 @@ namespace ShellGame.Gameplay
 
             _tutorialRevealPaused = false;
             _turnIndicator?.SetImmediate(_activeSide);
+
+            // НОВОЕ: если мы загрузились на втором (или дальше) уровне — фиксируем
+            // это навсегда (PlayerPrefs), чтобы первый уровень больше не был "пустым".
+            // Если же мы сейчас как раз на первом уровне (не туториал, levelIndex == 1)
+            // и флаг уже стоит — включаем предметы через ItemSpawner.
+            if (_levelIndex >= 2)
+            {
+                MarkFirstLevelItemsUnlocked();
+            }
+            else if (_levelIndex == 1 && !IsTutorialScene() && AreFirstLevelItemsUnlocked())
+            {
+                _itemSpawner?.SetItemsAvailable(true);
+            }
 
             if (_roundStartButton == null) _roundStartButton = GetComponentInChildren<RoundStartButton>(true);
             if (_roundStartButton != null) _roundStartButton.Hide();
@@ -578,17 +609,30 @@ namespace ShellGame.Gameplay
                         while (_state == RoundState.WaitForTutorialReveal) yield return null;
                         break;
 
-                    case RoundState.WaitForStart:
-                        if (_itemSpawner != null)
-                            yield return _itemSpawner.SpawnItems();
+                case RoundState.WaitForStart:
+                    if (_itemSpawner != null)
+                        yield return _itemSpawner.SpawnItems();
 
+                    // Проверяем, проходим ли мы обучение прямо сейчас
+                    bool isTutorialActive = IsTutorialActive();
+
+                    // Если это НЕ обучение — показываем кнопку и включаем ввод
+                    if (!isTutorialActive)
+                    {
                         if (_roundStartButton != null) _roundStartButton.Show();
                         if (_inputSystem != null) _inputSystem.SetEnabled(true);
-                        while (_state == RoundState.WaitForStart) yield return null;
+                    }
+
+                    // Ждем. В обычной игре это ожидание снимет клик по кнопке, 
+                    // а в туториале — наш метод SpawnCupsOnTable() через GameEvents.
+                    while (_state == RoundState.WaitForStart) yield return null;
+
+                    if (!isTutorialActive)
+                    {
                         if (_roundStartButton != null) _roundStartButton.Hide();
                         if (_inputSystem != null) _inputSystem.SetEnabled(false);
-                        break;
-
+                    }
+                    break;
                     case RoundState.Reveal:
                         if (_roundGenerator == null) yield break;
                         yield return new WaitForSeconds(Mathf.Max(0f, _spawnPauseDuration));
@@ -603,24 +647,26 @@ namespace ShellGame.Gameplay
                         _state = RoundState.Shuffle;
                         break;
 
-                    case RoundState.Shuffle:
-                        if (_inputSystem == null || _shuffleSystem == null || _roundGenerator == null) yield break;
-                        _inputSystem.SetEnabled(false);
-                        yield return new WaitForSeconds(_shuffleDelay);
-                        if (_activeSide == TurnSide.Enemy && _enemyAI != null) _enemyAI.EnterTrackShuffle();
-                        _shuffleSystem.SetMoveDurationMultiplier(ConsumeNextShuffleDurationMultiplier(_activeSide));
-                        _shuffleSystem.StartShuffling(
-                            _roundGenerator.GetShellsInPlayOrder(),
-                            () =>
-                            {
-                                _shuffleSystem.ResetMoveDurationMultiplier();
-                                _state = RoundState.PlayerTurn;
-                            },
-                            _levelIndex,
-                            _roundIndex,
-                            _currentParameters.DifficultyIndex);
-                        while (_state == RoundState.Shuffle) yield return null;
-                        break;
+                case RoundState.Shuffle:
+                    if (_inputSystem == null || _shuffleSystem == null || _roundGenerator == null) yield break;
+                    _inputSystem.SetEnabled(false);
+                    yield return new WaitForSeconds(_shuffleDelay);
+                    if (_activeSide == TurnSide.Enemy && _enemyAI != null) _enemyAI.EnterTrackShuffle();
+                    _shuffleSystem.SetMoveDurationMultiplier(ConsumeNextShuffleDurationMultiplier(_activeSide));
+                    _shuffleSystem.StartShuffling(
+                        _roundGenerator.GetShellsInPlayOrder(),
+                        () =>
+                        {
+                            _shuffleSystem.ResetMoveDurationMultiplier();
+                            _state = RoundState.PlayerTurn;
+                        },
+                        _levelIndex,
+                        _roundIndex,
+                        _currentParameters.DifficultyIndex,
+                        _activeSide == TurnSide.Enemy,
+                        _roundGenerator.ShellConfig);
+                    while (_state == RoundState.Shuffle) yield return null;
+                    break;
 
                     case RoundState.PlayerTurn:
                         if (_inputSystem == null) yield break;
@@ -628,8 +674,8 @@ namespace ShellGame.Gameplay
                         if (_extraTurnCooldown[_activeSide] > 0)
                             _extraTurnCooldown[_activeSide]--;
 
-                        if (_activeSide == TurnSide.Player && IsTutorialScene()
-                            && _completedRoundsInSession == 0 && _tutorialPlayerChoiceLocked)
+                        if (_activeSide == TurnSide.Player && IsTutorialActive()
+                            && _tutorialPlayerChoiceLocked)
                         {
                             while (_tutorialPlayerChoiceLocked) yield return null;
                         }
@@ -680,10 +726,6 @@ namespace ShellGame.Gameplay
 
                             if (_enemyAI != null && _roundGenerator != null)
                             {
-                                bool shouldForceTutorialChoice = IsTutorialScene() && _completedRoundsInSession == 0;
-                                Debug.Log($"[GameManager] Enemy turn: scene={SceneManager.GetActiveScene().name} level={_levelIndex} round={_roundIndex} completedRounds={_completedRoundsInSession} state={_state} shouldForceTutorialChoice={shouldForceTutorialChoice}");
-                                if (shouldForceTutorialChoice)
-                                    _enemyAI.ForceCorrectChoice();
 
                                 if (_healthController != null)
                                     _enemyAI.SetHealthFraction(1f - _healthController.GetDoseFraction(TurnSide.Enemy));
@@ -707,8 +749,7 @@ namespace ShellGame.Gameplay
                         _selectedShell.RevealResult();
                         yield return new WaitForSeconds(Mathf.Max(_roundEndDelay, _roundGenerator.GetRevealDuration()));
 
-                        if (IsTutorialScene()
-                            && _completedRoundsInSession == 0 && _tutorialBeforeDamagePaused)
+                        if (IsTutorialActive() && _tutorialBeforeDamagePaused)
                         {
                             while (_tutorialBeforeDamagePaused) yield return null;
                         }
@@ -730,8 +771,7 @@ namespace ShellGame.Gameplay
                             }
                         }
 
-                        if (IsTutorialScene()
-                            && _completedRoundsInSession == 0 && _tutorialAfterDamagePaused)
+                        if (IsTutorialActive() && _tutorialAfterDamagePaused)
                         {
                             while (_tutorialAfterDamagePaused) yield return null;
                         }
@@ -838,8 +878,9 @@ namespace ShellGame.Gameplay
         {
             if (_state != RoundState.PlayerTurn) return;
 
-            if (_activeSide == TurnSide.Player && IsTutorialScene()
-                && _completedRoundsInSession == 0 && _tutorialPlayerChoiceLocked) return;
+            if (_activeSide == TurnSide.Player && IsTutorialActive()
+                && _tutorialPlayerChoiceLocked) return;
+
 
             bool isTutorialForcedRound = IsTutorialScene() && _completedRoundsInSession == 0;
             if (!isTutorialForcedRound)
@@ -868,9 +909,14 @@ namespace ShellGame.Gameplay
         }
 
         public void ContinueTutorialReveal() => _state = _state == RoundState.WaitForTutorialReveal ? RoundState.Reveal : _state;
+        public void ContinueTutorialShuffle() => _state = _state == RoundState.WaitForTutorialReveal ? RoundState.Shuffle : _state;
 
         public void LockTutorialPlayerChoice() => _tutorialPlayerChoiceLocked = true;
         public void UnlockTutorialPlayerChoice() => _tutorialPlayerChoiceLocked = false;
+        // Kept as harmless compatibility calls for older tutorial sequences.
+        public void RequireTutorialPlayerChoice(bool hasMarker) { }
+        public void ClearTutorialPlayerChoiceRequirement() { }
+        public void RequireTutorialEnemyChoice(bool hasMarker) { }
 
         public void PauseTutorialBeforeDamage() => _tutorialBeforeDamagePaused = true;
         public void ResumeTutorialBeforeDamage() => _tutorialBeforeDamagePaused = false;

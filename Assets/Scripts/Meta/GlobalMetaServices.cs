@@ -105,8 +105,14 @@ namespace ShellGame.Meta
             foreach (var entry in _config.Entries)
             {
                 if (entry.Item == item)
-                    return entry.UnlockedByDefault || CheckCondition(entry);
+                {
+                    // Если стоит галочка по умолчанию - открыт всегда
+                    if (entry.UnlockedByDefault) return true;
+                    // Иначе проверяем условие
+                    return CheckCondition(entry);
+                }
             }
+            // Если предмета нет в конфиге - считаем, что открыт
             return true;
         }
 

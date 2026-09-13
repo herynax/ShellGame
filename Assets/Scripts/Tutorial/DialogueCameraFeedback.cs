@@ -19,6 +19,11 @@ namespace ShellGame.Tutorial
         private float _originalFov;
         private Tween _fovTween;
 
+        /// <summary>
+        /// Показывает, идёт ли сейчас анимация зума или камера находится в зуме.
+        /// </summary>
+        public static bool IsZoomActive { get; private set; }
+
         private void Awake()
         {
             _impulseSource = GetComponent<CinemachineImpulseSource>();
@@ -31,7 +36,7 @@ namespace ShellGame.Tutorial
         private void OnDisable() 
         {
             DialogueView.OnDialogueActive -= HandleDialogue;
-            _fovTween?.Kill(); // Убиваем твин при выключении, чтобы избежать утечек
+            _fovTween?.Kill();
         }
 
         private void HandleDialogue(bool isActive)
@@ -40,17 +45,21 @@ namespace ShellGame.Tutorial
 
             if (isActive)
             {
-                _fovTween?.Kill(); // Останавливаем прошлый отъезд/наезд, если он ещё идёт
+                IsZoomActive = true;
+                _fovTween?.Kill();
 
                 _currentActiveCam = _brain.ActiveVirtualCamera as CinemachineCamera;
                 if (_currentActiveCam != null)
                 {
-                    _originalFov = _currentActiveCam.Lens.FieldOfView;
+                    // Если исходный FOV ещё не сохранен — сохраняем текущий
+                    if (_originalFov <= 0f)
+                        _originalFov = _currentActiveCam.Lens.FieldOfView;
                     
-                    // Плавно зумим
-                    _fovTween = DOVirtual.Float(_originalFov, _originalFov - zoomAmount, zoomDuration, fov =>
+                    float targetFov = _originalFov - zoomAmount;
+
+                    _fovTween = DOVirtual.Float(_currentActiveCam.Lens.FieldOfView, targetFov, zoomDuration, fov =>
                     {
-                        if (_currentActiveCam == null) return; // Защита от NullReference
+                        if (_currentActiveCam == null) return;
                         var lens = _currentActiveCam.Lens;
                         lens.FieldOfView = fov;
                         _currentActiveCam.Lens = lens;
@@ -62,28 +71,28 @@ namespace ShellGame.Tutorial
             }
             else
             {
-                // Возвращаем FOV обратно
+                // Реплика закончилась — плавно возвращаем FOV в дефолтное состояние
                 if (_currentActiveCam != null)
                 {
                     _fovTween?.Kill();
-                    
-                    // Запоминаем камеру локально, чтобы твин работал с ней, 
-                    // даже если фокус сменится во время анимации.
                     var camToRestore = _currentActiveCam;
                     
                     _fovTween = DOVirtual.Float(camToRestore.Lens.FieldOfView, _originalFov, zoomDuration, fov =>
                     {
-                        if (camToRestore == null) return; // Защита от NullReference
+                        if (camToRestore == null) return;
                         var lens = camToRestore.Lens;
                         lens.FieldOfView = fov;
                         camToRestore.Lens = lens;
                     })
                     .OnComplete(() => 
                     {
-                        // Очищаем ссылку только когда отъезд полностью закончен
-                        if (_currentActiveCam == camToRestore) 
-                            _currentActiveCam = null;
+                        IsZoomActive = false; // Камера полностью вернулась в норму
+                        _originalFov = 0f;    // Сбрасываем для следующего замера
                     });
+                }
+                else
+                {
+                    IsZoomActive = false;
                 }
             }
         }

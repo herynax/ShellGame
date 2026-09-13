@@ -25,6 +25,16 @@ namespace ShellGame.Gameplay
         public IReadOnlyList<Shell> ActiveShells => _activeShells;
         public float LayoutTransitionDuration { get; private set; }
 
+        /// <summary>
+        /// Публичный доступ к ShellConfig этого раунд-генератора — источник
+        /// истины по таймингам наперстков. Используется GameManager'ом, чтобы
+        /// явно передать тот же самый конфиг в ShuffleSystem при запуске
+        /// перемешивания (StartShuffling), а не полагаться на то, что у
+        /// ShuffleSystem в инспекторе назначен свой собственный, возможно
+        /// другой или вовсе пустой, ShellConfig.
+        /// </summary>
+        public ShellConfig ShellConfig => _shellConfig;
+
         public void SetSide(TurnSide side)
         {
             foreach (var shell in _activeShells)
@@ -374,6 +384,30 @@ namespace ShellGame.Gameplay
             {
                 _activeShells.Remove(shell);
                 shell.gameObject.SetActive(false); // Прячем до конца раунда
+            }
+        }
+
+        public void RevealOnlyMarkedShell(float holdDuration)
+        {
+            foreach (var shell in _activeShells)
+            {
+                if (shell.HasMarker) 
+                {
+                    shell.RevealMarker(holdDuration);
+                    break;
+                }
+            }
+        }
+
+        public void RevealOnlyEmptyShell(float holdDuration)
+        {
+            foreach (var shell in _activeShells)
+            {
+                if (!shell.HasMarker) 
+                {
+                    shell.RevealMarker(holdDuration);
+                    break; // Поднимаем только один пустой
+                }
             }
         }
     }
