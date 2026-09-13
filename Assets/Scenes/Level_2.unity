@@ -561,24 +561,6 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 1af5593e793d8884998e80f4b7b52259, type: 3}
---- !u!114 &1726132955 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 1291078403557956507, guid: 1af5593e793d8884998e80f4b7b52259,
-    type: 3}
-  m_PrefabInstance: {fileID: 1726132954}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0da06d6766b6e934d85e144fcd2a2b12, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ShellGame.Gameplay.GameManager
---- !u!225 &1832830945 stripped
-CanvasGroup:
-  m_CorrespondingSourceObject: {fileID: 2417778202677995397, guid: e227562570c26f7428a3c01b27c2bdb4,
-    type: 3}
-  m_PrefabInstance: {fileID: 2073325895}
-  m_PrefabAsset: {fileID: 0}
 --- !u!114 &2030092150 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 2169588370702564104, guid: e227562570c26f7428a3c01b27c2bdb4,
@@ -619,11 +601,6 @@ PrefabInstance:
       propertyPath: cameraController
       value: 
       objectReference: {fileID: 2126395178}
-    - target: {fileID: 33476950058274648, guid: e227562570c26f7428a3c01b27c2bdb4,
-        type: 3}
-      propertyPath: crosshairCanvasGroup
-      value: 
-      objectReference: {fileID: 1832830945}
     - target: {fileID: 164489159260477016, guid: e227562570c26f7428a3c01b27c2bdb4,
         type: 3}
       propertyPath: m_LocalPosition.x
@@ -676,64 +653,14 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 385955227594480064, guid: e227562570c26f7428a3c01b27c2bdb4,
         type: 3}
-      propertyPath: _gameManager
-      value: 
-      objectReference: {fileID: 1726132955}
-    - target: {fileID: 385955227594480064, guid: e227562570c26f7428a3c01b27c2bdb4,
-        type: 3}
-      propertyPath: _inputSystem
-      value: 
-      objectReference: {fileID: 330585549}
-    - target: {fileID: 385955227594480064, guid: e227562570c26f7428a3c01b27c2bdb4,
-        type: 3}
       propertyPath: _interactionCamera
       value: 
       objectReference: {fileID: 330585545}
-    - target: {fileID: 1205248672526062228, guid: e227562570c26f7428a3c01b27c2bdb4,
-        type: 3}
-      propertyPath: mainCamera
-      value: 
-      objectReference: {fileID: 2126395180}
-    - target: {fileID: 1205248672526062228, guid: e227562570c26f7428a3c01b27c2bdb4,
-        type: 3}
-      propertyPath: pauseCamera
-      value: 
-      objectReference: {fileID: 2126395179}
-    - target: {fileID: 1205248672526062228, guid: e227562570c26f7428a3c01b27c2bdb4,
-        type: 3}
-      propertyPath: cameraController
-      value: 
-      objectReference: {fileID: 2126395178}
-    - target: {fileID: 1810576775033457872, guid: e227562570c26f7428a3c01b27c2bdb4,
-        type: 3}
-      propertyPath: 'm_Materials.Array.data[0]'
-      value: 
-      objectReference: {fileID: 2100000, guid: 7c297e42ad755054fa37ad55c7610ff6, type: 2}
-    - target: {fileID: 1941776987065198608, guid: e227562570c26f7428a3c01b27c2bdb4,
-        type: 3}
-      propertyPath: m_AnchorMax.y
-      value: 0
-      objectReference: {fileID: 0}
     - target: {fileID: 1984938839250446428, guid: e227562570c26f7428a3c01b27c2bdb4,
         type: 3}
       propertyPath: m_Camera
       value: 
       objectReference: {fileID: 2126395181}
-    - target: {fileID: 4255571625743621548, guid: e227562570c26f7428a3c01b27c2bdb4,
-        type: 3}
-      propertyPath: m_AnchorMax.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4480473206751209955, guid: e227562570c26f7428a3c01b27c2bdb4,
-        type: 3}
-      propertyPath: m_AnchorMax.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5261090268544841081, guid: e227562570c26f7428a3c01b27c2bdb4,
-        type: 3}
-      propertyPath: m_AnchorMax.y
-      value: 0
-      objectReference: {fileID: 0}
     - target: {fileID: 7166478861396673457, guid: e227562570c26f7428a3c01b27c2bdb4,
         type: 3}
       propertyPath: _playerTarget
@@ -744,20 +671,10 @@ PrefabInstance:
       propertyPath: m_Camera
       value: 
       objectReference: {fileID: 330585545}
-    - target: {fileID: 8061474489862093023, guid: e227562570c26f7428a3c01b27c2bdb4,
-        type: 3}
-      propertyPath: m_AnchorMax.y
-      value: 0
-      objectReference: {fileID: 0}
     - target: {fileID: 8502106992822704666, guid: e227562570c26f7428a3c01b27c2bdb4,
         type: 3}
       propertyPath: m_Name
       value: ===Environment
-      objectReference: {fileID: 0}
-    - target: {fileID: 8545395593649309480, guid: e227562570c26f7428a3c01b27c2bdb4,
-        type: 3}
-      propertyPath: m_AnchorMax.y
-      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

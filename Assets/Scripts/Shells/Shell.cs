@@ -2,6 +2,7 @@
 using System;
 using FMOD.Studio;
 using FMODUnity;
+using Lean.Pool;
 using ShellGame.Audio;
 using ShellGame.Core;
 using ShellGame.Pooling;
@@ -30,6 +31,7 @@ namespace ShellGame.Shells
         private EventInstance _revealStartInstance;
         private MaterialPropertyBlock _sidePropertyBlock;
         private Tween _sideTween;
+        private GameObject _hoverAuraInstance;
         private static readonly int SidePropertyId = Shader.PropertyToID("_Side");
 
         private Action<Shell> _pendingKnifeCallback;
@@ -149,6 +151,19 @@ namespace ShellGame.Shells
             _animator.PlayHover(true);
             _audio?.PlayOneShot(_config.AudioEvents.Hover, transform.position);
             GameEvents.RaiseShellHoverEnter(this);
+
+            // Spawn hover aura
+            if (_config.HoverAuraPrefab != null && _hoverAuraInstance == null)
+            {
+                _hoverAuraInstance = LeanPool.Spawn(_config.HoverAuraPrefab, transform.position, Quaternion.identity);
+                // Ensure aura follows shell horizontally but stays on surface
+                _hoverAuraInstance.transform.SetParent(transform, true);
+                _hoverAuraInstance.transform.localPosition = Vector3.zero;
+            }
+            else if (_hoverAuraInstance != null)
+            {
+                _hoverAuraInstance.SetActive(true);
+            }
         }
 
         public void OnHoverExit()
@@ -156,6 +171,13 @@ namespace ShellGame.Shells
             if (State != ShellState.Idle) return;
             _animator.PlayHover(false);
             GameEvents.RaiseShellHoverExit(this);
+
+            // Hide hover aura
+            if (_hoverAuraInstance != null)
+            {
+                LeanPool.Despawn(_hoverAuraInstance);
+                _hoverAuraInstance = null;
+            }
         }
 
         public void Select()
@@ -200,6 +222,14 @@ namespace ShellGame.Shells
             // ивент: игровой цикл туториала, статистика ходов и т.д.
             State = ShellState.Selected;
             SetInteractable(false);
+
+            // Hide hover aura on select
+            if (_hoverAuraInstance != null)
+            {
+                LeanPool.Despawn(_hoverAuraInstance);
+                _hoverAuraInstance = null;
+            }
+
             _audio?.PlayOneShot(_config.AudioEvents.Select, transform.position);
             GameEvents.RaiseShellSelected(this);
         }
@@ -210,6 +240,13 @@ namespace ShellGame.Shells
             {
                 onComplete?.Invoke();
                 return;
+            }
+
+            // Hide hover aura if shell starts shuffling
+            if (_hoverAuraInstance != null)
+            {
+                LeanPool.Despawn(_hoverAuraInstance);
+                _hoverAuraInstance = null;
             }
 
             State = ShellState.Shuffling;
@@ -312,6 +349,7 @@ namespace ShellGame.Shells
             AssignedSlot = null;
             _marker = null;
             _pendingKnifeCallback = null;
+            _hoverAuraInstance = null;
             SetInteractable(true);
             if (_markerVisualAnchor != null) _markerVisualAnchor.gameObject.SetActive(false);
             if (_animator != null)
@@ -331,6 +369,12 @@ namespace ShellGame.Shells
             State = ShellState.PooledInactive;
             SetInteractable(false);
             if (_marker != null) { _marker.Hide(); _marker = null; }
+            // Cleanup hover aura
+            if (_hoverAuraInstance != null)
+            {
+                LeanPool.Despawn(_hoverAuraInstance);
+                _hoverAuraInstance = null;
+            }
         }
 
         private void OnDestroy()
@@ -338,6 +382,11 @@ namespace ShellGame.Shells
             transform.DOKill();
             if (_animator != null) _animator.Kill();
             StopRevealStartSound();
+            if (_hoverAuraInstance != null)
+            {
+                LeanPool.Despawn(_hoverAuraInstance);
+                _hoverAuraInstance = null;
+            }
         }
     }
 }
