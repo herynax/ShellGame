@@ -2,7 +2,7 @@
 <objects serializationModel="Studio.02.03.00">
 	<object class="Event" id="{a368b519-f67f-4f6e-97c8-ae67a04a3243}">
 		<property name="name">
-			<value>e_Death</value>
+			<value>e_TakeDagame</value>
 		</property>
 		<property name="outputFormat">
 			<value>2</value>
@@ -131,14 +131,14 @@
 	</object>
 	<object class="MixerBusPanner" id="{673fda92-55df-40d7-9cf3-09588adec323}" />
 	<object class="MultiSound" id="{ab1a5ea1-5663-4458-9665-a94aa0e96386}">
+		<property name="startOffset">
+			<value>10</value>
+		</property>
 		<property name="pitch">
 			<value>-1.60000002</value>
 		</property>
 		<relationship name="sounds">
 			<destination>{c8902cb6-4b51-4fe4-b76c-d5adaca33d0b}</destination>
-			<destination>{6dda6789-4f3c-4fb5-980c-626cbf10caca}</destination>
-			<destination>{b7f54c83-2dda-434e-8db3-c88b2aa04d62}</destination>
-			<destination>{df2ac48d-5e8f-4039-b0ad-d8c018be2b3d}</destination>
 			<destination>{dc822b6b-2763-45e7-8515-8aa39551c9e2}</destination>
 			<destination>{064d3bdf-8ec3-4f2f-9a17-80b056926f0b}</destination>
 		</relationship>
@@ -149,21 +149,6 @@
 	<object class="SingleSound" id="{c8902cb6-4b51-4fe4-b76c-d5adaca33d0b}">
 		<relationship name="audioFile">
 			<destination>{491e8138-3135-469f-aa02-a2b9b628c118}</destination>
-		</relationship>
-	</object>
-	<object class="SingleSound" id="{6dda6789-4f3c-4fb5-980c-626cbf10caca}">
-		<relationship name="audioFile">
-			<destination>{ade8d66d-215f-487b-82a1-85c3fee100d1}</destination>
-		</relationship>
-	</object>
-	<object class="SingleSound" id="{b7f54c83-2dda-434e-8db3-c88b2aa04d62}">
-		<relationship name="audioFile">
-			<destination>{3fbb5a02-1de4-4767-a549-4786b6cec4a6}</destination>
-		</relationship>
-	</object>
-	<object class="SingleSound" id="{df2ac48d-5e8f-4039-b0ad-d8c018be2b3d}">
-		<relationship name="audioFile">
-			<destination>{4e0b05a9-53a6-4803-9498-170c3763bb74}</destination>
 		</relationship>
 	</object>
 	<object class="SingleSound" id="{dc822b6b-2763-45e7-8515-8aa39551c9e2}">
