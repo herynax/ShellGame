@@ -7625,7 +7625,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: -876546973899608171, guid: d43c57c2f7647ac46bb0887458fb67fe, type: 3}
+  - {fileID: 2100000, guid: ebf6c513c0942b708a31b3f5917640f3, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -9802,7 +9802,7 @@ Transform:
   m_Children:
   - {fileID: 4928974817957687926}
   m_Father: {fileID: 7988692699145673171}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: -65.45303, y: -69.292274, z: 80.39171}
 --- !u!33 &6385136971802972921
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -11036,7 +11036,7 @@ Transform:
   m_Children:
   - {fileID: 7869567167511991926}
   m_Father: {fileID: 4796190522527755624}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: -22.41696, y: 34.471058, z: 8.481135}
 --- !u!33 &8390050153430172280
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -11133,6 +11133,37 @@ Transform:
   - {fileID: 5233556642536855254}
   - {fileID: 4528732242648602550}
   m_Father: {fileID: 1800697339130883296}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &6903674374770394096
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3421371324592051488}
+  m_Layer: 0
+  m_Name: InjectPoint
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &3421371324592051488
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6903674374770394096}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.463, y: 1.092, z: 1.202}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 5101442905882138627}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &7011481819148831398
 GameObject:
@@ -12523,7 +12554,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: -876546973899608171, guid: d43c57c2f7647ac46bb0887458fb67fe, type: 3}
+  - {fileID: 2100000, guid: ebf6c513c0942b708a31b3f5917640f3, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -13260,6 +13291,7 @@ GameObject:
   - component: {fileID: 5101442905882138627}
   - component: {fileID: 5797615028216664643}
   - component: {fileID: 8922421390057380140}
+  - component: {fileID: 682113271827845835}
   m_Layer: 0
   m_Name: Enemie
   m_TagString: Untagged
@@ -13281,6 +13313,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 6016297722575083516}
+  - {fileID: 3421371324592051488}
   m_Father: {fileID: 8693319260197764052}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &5797615028216664643
@@ -13309,10 +13342,30 @@ MonoBehaviour:
   _flashColor: {r: 1, g: 0, b: 0, a: 1}
   _flashDuration: 0.4
   _colorPropertyName: _Color
+  _injectionPoint: {fileID: 3421371324592051488}
+  _bloodSplashParticlesPrefab: {fileID: 2226710916107464663, guid: 2eb8b7b2e5c8cd346a365782dda23d4a,
+    type: 3}
   _animator: {fileID: 7165072357232656800}
   _damageTriggerName: Damage
   _returnAnimationName: Return
   _returnAnimDuration: 0.6
+  _deathBloodBurstParticlesPrefab: {fileID: 4055846304957825616, guid: e855d12d7bfdb464b94ef1f1d20cf814,
+    type: 3}
+  _deathImpulseSource: {fileID: 682113271827845835}
+  _deathImpulseForce: 1.5
+  _convulsionDuration: 0.7
+  _convulsionStrength: 0.35
+  _convulsionVibrato: 35
+  _convulsionScalePunch: {x: 0.1, y: -0.1, z: 0.1}
+  _deathTintColor: {r: 0.35, g: 0.35, b: 0.35, a: 1}
+  _deathFallDuration: 0.5
+  _deathFallRotation: {x: 0, y: 0, z: 85}
+  _deathFallEase: 5
+  _deathSinkDuration: 0.6
+  _deathSinkDistance: 0.35
+  _dissolvePropertyName: _DissolveAmount
+  _deathDissolveDuration: 1.2
+  _dissolveStartDelay: 0.2
   _soundConfig: {fileID: 11400000, guid: 1f558948670c0c192858b168decfd93b, type: 2}
 --- !u!114 &8922421390057380140
 MonoBehaviour:
@@ -13336,6 +13389,59 @@ MonoBehaviour:
   _settleDuration: 0.45
   _lookEase: 4
   _maxGlances: 2
+--- !u!114 &682113271827845835
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8939503329691172477}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 180ecf9b41d478f468eb3e9083753217, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.Cinemachine::Unity.Cinemachine.CinemachineImpulseSource
+  ImpulseDefinition:
+    ImpulseChannel: 1
+    ImpulseShape: 2
+    CustomImpulseShape:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    ImpulseDuration: 0.2
+    ImpulseType: 0
+    DissipationRate: 0.25
+    RawSignal: {fileID: 0}
+    AmplitudeGain: 1
+    FrequencyGain: 1
+    RepeatMode: 0
+    Randomize: 1
+    TimeEnvelope:
+      AttackShape:
+        serializedVersion: 2
+        m_Curve: []
+        m_PreInfinity: 2
+        m_PostInfinity: 2
+        m_RotationOrder: 4
+      DecayShape:
+        serializedVersion: 2
+        m_Curve: []
+        m_PreInfinity: 2
+        m_PostInfinity: 2
+        m_RotationOrder: 4
+      AttackTime: 0
+      SustainTime: 0.2
+      DecayTime: 0.7
+      ScaleWithImpact: 1
+      HoldForever: 0
+    ImpactRadius: 100
+    DirectionMode: 0
+    DissipationMode: 2
+    DissipationDistance: 100
+    PropagationSpeed: 343
+  DefaultVelocity: {x: 0, y: -1, z: 0}
 --- !u!1 &8962377427460535811
 GameObject:
   m_ObjectHideFlags: 0
