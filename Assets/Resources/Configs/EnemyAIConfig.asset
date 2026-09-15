@@ -15,10 +15,18 @@ MonoBehaviour:
   TrackingPbase: 0.3
   TrackingPmin: 0.1
   TrackingK: 0.01
-  DecisionErrorPbase: 0.45
-  DecisionErrorPmin: 0.1
-  DecisionErrorK: 0.01
-  DecisionErrorHealthBoost: 0.25
-  DecisionDelayBase: 1.2
-  DecisionDelayMin: 0.3
+  MinCorrectChance: 0.3
+  MaxCorrectChance: 0.75
+  DifficultyForMaxCorrect: 5
+  DecisionDelayBase: 0.4
+  DecisionDelayMin: 0.1
   DecisionDelayK: 0.08
+  ItemUseThinkingDuration: 0.5
+  HealthPenaltyStartLostFraction: 0.5
+  HealthPenaltyMaxReduction: 0.4
+  HealthPenaltyCurvePower: 2
+  MinCorrectChanceFloor: 0.05
+  FirstLevelCorrectChanceMultiplier: 0.5
+  ItemUseDesireThresholdEasy: 0.5
+  ItemUseDesireThresholdHard: 0.2
+  ItemUseDesireThresholdForHardAtDifficulty: 8

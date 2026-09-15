@@ -21,9 +21,11 @@ MonoBehaviour:
   ShuffleRoundReduction: 0.07
   ShuffleLevelReduction: 0.05
   ShuffleEase: 4
-  EnemyShuffleSpeedMultiplier: 0.05
+  EnemyShuffleSpeedMultiplier: 0.55
   HoverScale: 1.5
   HoverTweenDuration: 0.12
+  HoverAuraPrefab: {fileID: 5413855323393444088, guid: e467137adbcdd8d95a6a89adb0eca75a,
+    type: 3}
   SpawnScaleDuration: 0.25
   SpawnEase: 27
   AudioEvents: {fileID: 11400000, guid: 31e3f4f1b9c82c048bbf46c6e062ed09, type: 2}

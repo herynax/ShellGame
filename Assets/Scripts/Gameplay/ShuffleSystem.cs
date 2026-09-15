@@ -61,6 +61,10 @@ namespace ShellGame.Gameplay
             _currentDifficultyIndex = difficultyIndex;
             _isEnemyTurn = isEnemyTurn;
 
+            Debug.Log($"[ShuffleSystem] START isEnemy={_isEnemyTurn}, swapCount={_swapCount}, " +
+                      $"baseDuration={_shellConfig?.ShuffleMoveDurationBase}, minDuration={_shellConfig?.ShuffleMoveDurationMin}, " +
+                      $"enemyMult={_shellConfig?.EnemyShuffleSpeedMultiplier}");
+
             GameEvents.RaiseRoundShuffleStarted();
 
             // Первый обмен запускаем сразу даже в режиме обучения. В режиме
@@ -141,9 +145,19 @@ namespace ShellGame.Gameplay
             float duration = reducedDuration * _moveDurationMultiplier;
 
             if (_isEnemyTurn)
+            {
+                // Для врага минимум НЕ применяем — скорость полностью определяется множителем
                 duration *= Mathf.Clamp(_shellConfig.EnemyShuffleSpeedMultiplier, 0.05f, 1f);
+                Debug.Log($"[ShuffleSystem] ENEMY base={_shellConfig.ShuffleMoveDurationBase}, " +
+                          $"afterMult={duration:F3} (min ignored)");
+                return duration;
+            }
 
-            return Mathf.Max(_shellConfig.ShuffleMoveDurationMin, duration);
+            float finalDuration = Mathf.Max(_shellConfig.ShuffleMoveDurationMin, duration);
+            Debug.Log($"[ShuffleSystem] PLAYER base={_shellConfig.ShuffleMoveDurationBase}, " +
+                      $"reduced={reducedDuration:F3}, afterMult={duration:F3}, min={_shellConfig.ShuffleMoveDurationMin}, " +
+                      $"FINAL={finalDuration:F3}");
+            return finalDuration;
         }
 
         public void SetMoveDurationMultiplier(float multiplier)

@@ -36,6 +36,8 @@ namespace ShellGame.Shells
         [Header("Наведение курсора")]
         public float HoverScale = 1.05f;
         public float HoverTweenDuration = 0.12f;
+        [Tooltip("Префаб ауры, который появляется под наперстком при наведении курсора.")]
+        public GameObject HoverAuraPrefab;
 
         [Header("Спавн из пула")]
         public float SpawnScaleDuration = 0.25f;

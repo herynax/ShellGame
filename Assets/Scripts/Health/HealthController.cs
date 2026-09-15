@@ -77,7 +77,7 @@ namespace ShellGame.Health
 
             // При смертельном попадании обычные звуки урона не запускаем:
             // death-звук должен быть единственным звуком этого попадания.
-            if (!overdosed)
+            if (!overdosed && side == TurnSide.Player)
             {
                 PlayDamageSounds(side);
             }

@@ -1,5 +1,6 @@
 using DG.Tweening;
 using ShellGame.Core;
+using System.Collections;
 using Unity.Cinemachine;
 using UnityEngine;
 
@@ -12,6 +13,13 @@ namespace ShellGame.Feedback
     /// </summary>
     public sealed class PlayerDamageFeedback : DamageFeedbackBase
     {
+        [Header("Animator (Damage/Return)")]
+        [SerializeField] private Animator _animator;
+        [SerializeField] private string _damageTriggerName = "Damage";
+        [SerializeField] private string _returnAnimationName = "Return";
+        [SerializeField] private float _damageAnimDuration = 0.21f;
+        [SerializeField] private float _returnAnimDuration = 0.6f;
+
         [Header("Настройки камеры (Cinemachine)")]
         [Tooltip("Источник импульса, висящий на этом же объекте или камере")]
         [SerializeField] private CinemachineImpulseSource _impulseSource;
@@ -26,6 +34,7 @@ namespace ShellGame.Feedback
 
         private Tween _cameraShakeTween;
         private Sequence _vignetteSequence;
+        private Coroutine _animationCoroutine;
 
         protected override TurnSide WatchedSide => TurnSide.Player;
 
@@ -36,14 +45,40 @@ namespace ShellGame.Feedback
 
         protected override void PlayFeedback(int amount, int currentHealth, int maxHealth, bool died)
         {
+            if (_animationCoroutine != null)
+                StopCoroutine(_animationCoroutine);
+
+            _animationCoroutine = StartCoroutine(PlayDamageSequenceCoroutine());
+        }
+
+        private IEnumerator PlayDamageSequenceCoroutine()
+        {
+            // 1. Укол иглой
+            if (_animator != null)
+                _animator.SetTrigger(_damageTriggerName);
+
+            yield return new WaitForSeconds(_damageAnimDuration);
+
+            // 2. Инъекция сделана — реакция игрока (тряска камеры + виньетка)
             ShakeCamera();
             FlashVignette();
+
+            float reactionDuration = _vignetteFadeInDuration + _vignetteFadeOutDuration;
+            yield return new WaitForSeconds(reactionDuration);
+
+            // 3. Возврат иглы в исходное положение
+            if (_animator != null)
+                _animator.SetTrigger(_returnAnimationName);
+
+            yield return new WaitForSeconds(_returnAnimDuration);
+
+            _animationCoroutine = null;
         }
 
         private void ShakeCamera()
         {
             if (_impulseSource == null) return;
-            
+
             // Чтобы тряска каждый раз была разной, генерируем случайный вектор направления
             Vector3 randomDirection = new Vector3(Random.Range(-1f, 1f), Random.Range(-1f, 1f), 0f).normalized;
 
@@ -71,6 +106,12 @@ namespace ShellGame.Feedback
             base.OnDisable();
             _cameraShakeTween?.Kill();
             _vignetteSequence?.Kill();
+
+            if (_animationCoroutine != null)
+            {
+                StopCoroutine(_animationCoroutine);
+                _animationCoroutine = null;
+            }
         }
     }
 }

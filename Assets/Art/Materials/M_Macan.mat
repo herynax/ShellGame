@@ -21,7 +21,7 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: M_Macan
-  m_Shader: {fileID: -6465566751694194690, guid: d43c57c2f7647ac46bb0887458fb67fe,
+  m_Shader: {fileID: -6465566751694194690, guid: 6b3cbdf161c53b98782b266286176fa7,
     type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
@@ -57,11 +57,15 @@ Material:
     m_Ints: []
     m_Floats:
     - _CellSize: 0.015
+    - _DisolveAmount: 0
+    - _EdgeWidth: 0.1
     - _Metalic: 0
     - _QueueControl: 0
     - _QueueOffset: 0
+    - _SellSize: 0.03
     - _Smoothness: 0
     m_Colors:
     - _Color: {r: 1, g: 1, b: 1, a: 1}
+    - _EdgeColor: {r: 0.9999999, g: 0, b: 0, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

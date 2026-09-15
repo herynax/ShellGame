@@ -271,6 +271,7 @@ public class SceneLoader : MonoBehaviour
     {
         isLoading = true;
         SetPauseBlocked(true);
+        fadeCanvasGroup.blocksRaycasts = true;
         if (blockInputDuringLoad && fadeCanvasGroup != null) fadeCanvasGroup.blocksRaycasts = true;
 
         ScreenGoingBlack?.Invoke(fadeDuration);
