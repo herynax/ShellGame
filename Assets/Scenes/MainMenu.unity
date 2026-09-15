@@ -2439,6 +2439,7 @@ MonoBehaviour:
   newRunConfirmationPanel: {fileID: 7054186}
   fadeDuration: 0.3
   firstGameplaySceneName: Tutorial
+  tutorialSceneName: Tutorial
 --- !u!114 &1556675244
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4197,7 +4198,7 @@ PrefabInstance:
     - target: {fileID: 4907945856193713443, guid: 54dee66043a15464698234d2f06c67f4,
         type: 3}
       propertyPath: m_IsActive
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5238214365952731439, guid: 54dee66043a15464698234d2f06c67f4,
         type: 3}
