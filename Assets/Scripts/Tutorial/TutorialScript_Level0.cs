@@ -202,6 +202,12 @@ namespace ShellGame.Tutorial
                 if (_isEnemyDead)
                     break;
 
+                // Пока звучат реплики реакции на выбор, раунд-луп держим на
+                // паузе (не Time.timeScale) и блокируем игроку выбор следующего
+                // напёрстка. Возобновление — только после всех реплик этого хода.
+                if (_gameManager != null)
+                    _gameManager.PauseTutorialGameplay();
+
                 if (turnSide == TurnSide.Player)
                 {
                     var lines = waitForReveal.HasMarker ? _playerFoundMarkerLines : _playerFoundEmptyLines;
@@ -214,6 +220,9 @@ namespace ShellGame.Tutorial
                     foreach (var line in lines)
                         yield return SayWithCameraReset(line);
                 }
+
+                if (_gameManager != null)
+                    _gameManager.ResumeTutorialGameplay();
             }
 
 

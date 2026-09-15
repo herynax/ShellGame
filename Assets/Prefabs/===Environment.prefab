@@ -638,7 +638,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a621b81fb782a4145a860f1bb0733c0b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ShellGame.Items.ItemSpawner
-  _itemsAvailable: 0
+  _itemsAvailable: 1
   _fallbackAvailableItems: []
   _spawnPoints:
   - {fileID: 8524527050246170955}

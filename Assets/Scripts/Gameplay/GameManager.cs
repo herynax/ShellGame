@@ -84,6 +84,7 @@ namespace ShellGame.Gameplay
 
         private bool _tutorialBeforeDamagePaused;
         private bool _tutorialAfterDamagePaused;
+        private bool _tutorialGameplayPaused;
         private bool _initiativeAnimationPending;
 
         private float _activeGameSpeedMultiplier = 1f;
@@ -529,6 +530,15 @@ namespace ShellGame.Gameplay
         {
             while (true)
             {
+                if (IsTutorialActive())
+                {
+                    while (_tutorialGameplayPaused)
+                    {
+                        _inputSystem?.SetEnabled(false);
+                        yield return null;
+                    }
+                }
+
                 switch (_state)
                 {
                     case RoundState.Generate:
@@ -776,6 +786,11 @@ namespace ShellGame.Gameplay
                             while (_tutorialAfterDamagePaused) yield return null;
                         }
 
+                        if (IsTutorialActive())
+                        {
+                            while (_tutorialGameplayPaused) yield return null;
+                        }
+
                         if (_extraTurnRequested[_activeSide])
                         {
                             _extraTurnRequested[_activeSide] = false;
@@ -923,6 +938,9 @@ namespace ShellGame.Gameplay
 
         public void PauseTutorialAfterDamage() => _tutorialAfterDamagePaused = true;
         public void ResumeTutorialAfterDamage() => _tutorialAfterDamagePaused = false;
+
+        public void PauseTutorialGameplay() => _tutorialGameplayPaused = true;
+        public void ResumeTutorialGameplay() => _tutorialGameplayPaused = false;
 
         private void OnShuffleCompleted()
         {

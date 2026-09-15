@@ -34,6 +34,20 @@ public class SoundSettingsManager : MonoBehaviour, ISettingsModule
         DontDestroyOnLoad(gameObject);
     }
 
+    /// <summary>
+    /// Гарантирует существование персистентного менеджера звука. Создаёт его как
+    /// DontDestroyOnLoad-объект, если его нет (см. SettingsServicesBootstrap).
+    /// </summary>
+    public static SoundSettingsManager EnsureExists()
+    {
+        if (Instance != null)
+            return Instance;
+
+        var go = new GameObject("SoundSettingsManager");
+        DontDestroyOnLoad(go);
+        return go.AddComponent<SoundSettingsManager>();
+    }
+
     private IEnumerator Start()
     {
         while (!RuntimeManager.IsInitialized) yield return null;
@@ -46,7 +60,7 @@ public class SoundSettingsManager : MonoBehaviour, ISettingsModule
         IsReady = true;
 
         LoadAndApply();
-        SettingsSaveController.Instance?.RegisterModule(this);
+        SettingsSaveController.EnsureExists().RegisterModule(this);
     }
 
     public void LoadAndApply()

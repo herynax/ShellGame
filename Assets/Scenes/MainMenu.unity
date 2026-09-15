@@ -4278,6 +4278,21 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 343387468, guid: 1b1ef45bee85d3246b463925c57f4288,
         type: 3}
+    - target: {fileID: 3466211004259370406, guid: 54dee66043a15464698234d2f06c67f4,
+        type: 3}
+      propertyPath: confirmSaveButton
+      value: 
+      objectReference: {fileID: 1145948603}
+    - target: {fileID: 3466211004259370406, guid: 54dee66043a15464698234d2f06c67f4,
+        type: 3}
+      propertyPath: unsavedChangesPanel
+      value: 
+      objectReference: {fileID: 56375808}
+    - target: {fileID: 3466211004259370406, guid: 54dee66043a15464698234d2f06c67f4,
+        type: 3}
+      propertyPath: confirmDiscardButton
+      value: 
+      objectReference: {fileID: 1768497218}
     - target: {fileID: 3601163111260206134, guid: 54dee66043a15464698234d2f06c67f4,
         type: 3}
       propertyPath: m_AnchorMax.y

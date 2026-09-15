@@ -24,6 +24,20 @@ public class SettingsSaveController : MonoBehaviour
         DontDestroyOnLoad(gameObject);
     }
 
+    /// <summary>
+    /// Гарантирует существование персистентного контроллера настроек.
+    /// Создаёт его как DontDestroyOnLoad-объект, если его нет.
+    /// </summary>
+    public static SettingsSaveController EnsureExists()
+    {
+        if (Instance != null)
+            return Instance;
+
+        var go = new GameObject("SettingsSaveController");
+        DontDestroyOnLoad(go);
+        return go.AddComponent<SettingsSaveController>();
+    }
+
     private void Start()
     {
         LoadAndApplyAll();
@@ -79,5 +93,23 @@ public class SettingsSaveController : MonoBehaviour
 
         IsDirty = false;
         Debug.Log("[Settings] Несохранённые изменения отменены.");
+    }
+}
+
+/// <summary>
+/// Создаёт персистентные сервисы настроек с самого старта игры.
+///
+/// Раньше SettingsSaveController и SoundSettingsManager нигде не были прицеплены
+/// к сценам/префабам, поэтому их Instance были null и вся система "сохранить /
+/// отменить изменения" молча не работала: SaveAll()/MarkDirty() были no-op, а
+/// SoundSettingsUI уходил по раннему return — слайдеры звука не реагировали вовсе.
+/// </summary>
+public static class SettingsServicesBootstrap
+{
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+    private static void EnsureCoreSettingsServices()
+    {
+        SettingsSaveController.EnsureExists();
+        SoundSettingsManager.EnsureExists();
     }
 }
