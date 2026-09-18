@@ -58,6 +58,7 @@ Material:
     m_Floats:
     - _CellSize: 0.015
     - _DisolveAmount: 0
+    - _DissolveAmount: 0
     - _EdgeWidth: 0.1
     - _Metalic: 0
     - _QueueControl: 0

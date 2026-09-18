@@ -1182,6 +1182,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6973405641497471373, guid: c9addad12bab62f499835aa0cad73c8a,
         type: 3}
+      propertyPath: _animator
+      value: 
+      objectReference: {fileID: 4559351252908071673}
+    - target: {fileID: 6973405641497471373, guid: c9addad12bab62f499835aa0cad73c8a,
+        type: 3}
       propertyPath: _vignetteImage
       value: 
       objectReference: {fileID: 1489905970}
@@ -1410,11 +1415,6 @@ PrefabInstance:
       propertyPath: m_AnchoredPosition.y
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 1799605746946624359, guid: e227562570c26f7428a3c01b27c2bdb4,
-        type: 3}
-      propertyPath: _itemsAvailable
-      value: 0
-      objectReference: {fileID: 0}
     - target: {fileID: 1810576775033457872, guid: e227562570c26f7428a3c01b27c2bdb4,
         type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
@@ -1493,6 +1493,12 @@ PrefabInstance:
 --- !u!4 &4559351252908071672 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 5101442905882138627, guid: e227562570c26f7428a3c01b27c2bdb4,
+    type: 3}
+  m_PrefabInstance: {fileID: 4559351252908071671}
+  m_PrefabAsset: {fileID: 0}
+--- !u!95 &4559351252908071673 stripped
+Animator:
+  m_CorrespondingSourceObject: {fileID: 7165072357232656800, guid: e227562570c26f7428a3c01b27c2bdb4,
     type: 3}
   m_PrefabInstance: {fileID: 4559351252908071671}
   m_PrefabAsset: {fileID: 0}

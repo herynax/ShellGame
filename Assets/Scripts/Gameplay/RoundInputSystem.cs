@@ -23,6 +23,7 @@ namespace ShellGame.Gameplay
 
         private bool _isEnabled;
         private IRoundInputTarget _hoveredTarget;
+        private ItemPickupView _hoveredItem;
         private RoundStartButton _roundStartButton;
 
         private bool _hasSmoothedRay;
@@ -51,6 +52,9 @@ namespace ShellGame.Gameplay
             _isEnabled = enabled;
             if (!enabled)
             {
+                if (_hoveredItem != null)
+                    _hoveredItem.SetHovered(false);
+                _hoveredItem = null;
                 _hoveredTarget?.OnHoverExit();
                 _hoveredTarget = null;
                 _hasSmoothedRay = false;
@@ -89,6 +93,7 @@ namespace ShellGame.Gameplay
             var ray = SmoothAimRay(rawRay);
 
             IRoundInputTarget targetUnderCursor = null;
+            ItemPickupView itemUnderCursor = null;
             bool buttonHit = false;
             
             // 1. Проверяем кнопку старта
@@ -108,15 +113,19 @@ namespace ShellGame.Gameplay
                 }
             }
 
-            // 2. БЛОКИРОВКА АИМ-АССИСТА: Проверяем, не смотрим ли мы прямо на предмет
+            // 2. БЛОКИРОВКА АИМ-АССИСТА: Проверяем, не смотрим ли мы прямо на предмет.
+            // Тот же самый рей определяет и ховер предмета — один источник истины для
+            // прицела и ховера, чтобы предмет не "молчал", когда прицел прямо на нём.
             bool itemHit = false;
             if (!buttonHit)
             {
                 if (Physics.Raycast(ray, out RaycastHit directHit, 100f, Physics.AllLayers, QueryTriggerInteraction.Collide))
                 {
-                    if (directHit.collider.GetComponentInParent<ItemPickupView>() != null)
+                    var item = directHit.collider.GetComponentInParent<ItemPickupView>();
+                    if (item != null)
                     {
                         itemHit = true; // Мы смотрим прямо на предмет, магнит наперстков отключается!
+                        itemUnderCursor = item;
                     }
                 }
             }
@@ -127,12 +136,31 @@ namespace ShellGame.Gameplay
                 targetUnderCursor = FindShellUnderAim(ray);
             }
 
+            UpdateItemHover(itemUnderCursor);
+
             if (targetUnderCursor == _hoveredTarget)
                 return;
 
             _hoveredTarget?.OnHoverExit();
             _hoveredTarget = targetUnderCursor;
             _hoveredTarget?.OnHoverEnter();
+        }
+
+        private void UpdateItemHover(ItemPickupView itemUnderCursor)
+        {
+            ItemPickupView previous = _hoveredItem != null ? _hoveredItem : null;
+            ItemPickupView next = itemUnderCursor != null ? itemUnderCursor : null;
+
+            if (previous == next)
+                return;
+
+            if (previous != null)
+                previous.SetHovered(false);
+
+            _hoveredItem = next;
+
+            if (next != null && next.IsInteractive)
+                next.SetHovered(true);
         }
 
         private Ray SmoothAimRay(Ray rawRay)
@@ -196,6 +224,13 @@ namespace ShellGame.Gameplay
 
             if (!mouse.leftButton.wasPressedThisFrame)
                 return;
+
+            // Сначала предмет, если смотрим прямо на него, иначе — наперсток/кнопка.
+            if (_hoveredItem != null && _hoveredItem.IsInteractive)
+            {
+                _hoveredItem.TryUse();
+                return;
+            }
 
             _hoveredTarget?.Select();
         }

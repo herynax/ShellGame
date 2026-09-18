@@ -74,3 +74,10 @@ MonoBehaviour:
       Data3: 1022261438
       Data4: -75938839
     Path: event:/SFX/Items/Hamer/I_HamerHitFace
+  HammerFlightSound:
+    Guid:
+      Data1: -1366810335
+      Data2: 1234388751
+      Data3: 1055168958
+      Data4: 576765403
+    Path: event:/SFX/Items/Knife/I_KnifeThrow

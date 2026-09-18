@@ -7,16 +7,23 @@ using UnityEngine;
 namespace ShellGame.Feedback
 {
     /// <summary>
-    /// Плейсхолдер-фидбек на попадание по игроку: тряска камеры + красная
-    /// виньетка на весь экран. Когда появится полноценный арт (постпроцесс
-    /// виньетки, экранные эффекты) — меняется только PlayFeedback.
+    /// Фидбек на попадание по игроку: сначала доигрывает анимация укола иглой
+    /// (Needle_Player), и только после неё применяется урон и идёт реакция
+    /// (тряска камеры + красная виньетка). Разделение на два шага нужно, чтобы
+    /// GameManager мог ждать окончания анимации укола ДО списания здоровья —
+    /// см. GameManager.RevealResult.
     /// </summary>
     public sealed class PlayerDamageFeedback : DamageFeedbackBase
     {
-        [Header("Animator (Damage/Return)")]
+        [Header("Animator (Damage/Return) — игла, которая колет игрока")]
+        [Tooltip("Аниматор иглы. Обычно это объект Needle_Player (===Environment.prefab). " +
+                 "Если не задан в инспекторе — ищется по имени объекта автоматически.")]
         [SerializeField] private Animator _animator;
+        [Tooltip("Имя объекта с аниматором иглы — запасной вариант, если _animator не задан вручную")]
+        [SerializeField] private string _needleAnimatorObjectName = "Needle_Player";
         [SerializeField] private string _damageTriggerName = "Damage";
         [SerializeField] private string _returnAnimationName = "Return";
+        [Tooltip("Длительность анимации укола (до момента фактического введения иглы)")]
         [SerializeField] private float _damageAnimDuration = 0.21f;
         [SerializeField] private float _returnAnimDuration = 0.6f;
 
@@ -32,15 +39,86 @@ namespace ShellGame.Feedback
         [SerializeField] private float _vignetteFadeInDuration = 0.08f;
         [SerializeField] private float _vignetteFadeOutDuration = 0.5f;
 
+        [Header("Отладка")]
+        [Tooltip("Логировать в консоль, когда игла реально укалывает игрока и когда урон обрабатывается только реакцией (виньетка/тряска). Удобно проверять, что игла играет ТОЛЬКО при уроне дозой (после поднятия наперстка с меткой).")]
+        [SerializeField] private bool _logDamageFlow = true;
+
         private Tween _cameraShakeTween;
         private Sequence _vignetteSequence;
         private Coroutine _animationCoroutine;
+        private bool _needleSearchWarned;
+        private bool _needleInjectionInProgress;
 
         protected override TurnSide WatchedSide => TurnSide.Player;
 
         protected override void Awake()
         {
             base.Awake();
+            TryEnsureNeedleAnimator();
+        }
+
+        /// <summary>
+        /// Если аниматор не назначен в инспекторе — ищем объект иглы по имени
+        /// (лениво, при каждом вызове, т.к. Needle_Player может спавниться позже
+        /// этого компонента). Найденный результат кэшируем; при неудаче
+        /// предупреждаем в консоль один раз.
+        /// </summary>
+        private void TryEnsureNeedleAnimator()
+        {
+            if (_animator != null || string.IsNullOrEmpty(_needleAnimatorObjectName))
+                return;
+
+            var needleObject = GameObject.Find(_needleAnimatorObjectName);
+            _animator = needleObject != null ? needleObject.GetComponent<Animator>() : null;
+
+            if (_animator == null && !_needleSearchWarned)
+            {
+                Debug.LogWarning($"[PlayerDamageFeedback] Игла '{_needleAnimatorObjectName}' не найдена в сцене — анимация укола по игроку не проиграется, но урон всё равно применится.", this);
+                _needleSearchWarned = true;
+            }
+        }
+
+        /// <summary>
+        /// Проигрывает анимацию укола иглой по игроку от начала до конца
+        /// (укол → возврат иглы). Вызывается GameManager'ом ПЕРЕД нанесением
+        /// урона: корутина — это и есть вся длительность анимации, по её
+        /// завершению урон можно безопасно списывать.
+        ///
+        /// Игла — анимация УРОНА ДОЗОЙ (наперсток с меткой поднят), а не реакция
+        /// на любой урон: урон от ножа (или любой другой урон не-дозой) НЕ должен
+        /// запускать эту анимацию. GameManager вызывает её только из RevealResult.
+        /// </summary>
+        public IEnumerator PlayNeedleInjectionRoutine()
+        {
+            if (_needleInjectionInProgress)
+            {
+                Debug.LogWarning("[PlayerDamageFeedback] Попытка проиграть укол иглой, пока предыдущий ещё не закончился — " +
+                                 "пропускаем повторную анимацию (иначе она сломается и проиграется дважды).", this);
+                yield break;
+            }
+
+            _needleInjectionInProgress = true;
+            try
+            {
+                TryEnsureNeedleAnimator();
+
+                if (_logDamageFlow)
+                    Debug.Log("[PlayerDamageFeedback] ИГЛА (урон дозой): укол → возврат", this);
+
+                if (_animator != null)
+                    _animator.SetTrigger(_damageTriggerName);
+
+                yield return new WaitForSeconds(_damageAnimDuration);
+
+                if (_animator != null)
+                    _animator.SetTrigger(_returnAnimationName);
+
+                yield return new WaitForSeconds(_returnAnimDuration);
+            }
+            finally
+            {
+                _needleInjectionInProgress = false;
+            }
         }
 
         protected override void PlayFeedback(int amount, int currentHealth, int maxHealth, bool died)
@@ -48,29 +126,21 @@ namespace ShellGame.Feedback
             if (_animationCoroutine != null)
                 StopCoroutine(_animationCoroutine);
 
-            _animationCoroutine = StartCoroutine(PlayDamageSequenceCoroutine());
+            _animationCoroutine = StartCoroutine(PlayDamageReactionCoroutine());
         }
 
-        private IEnumerator PlayDamageSequenceCoroutine()
+        private IEnumerator PlayDamageReactionCoroutine()
         {
-            // 1. Укол иглой
-            if (_animator != null)
-                _animator.SetTrigger(_damageTriggerName);
+            if (_logDamageFlow)
+                Debug.Log("[PlayerDamageFeedback] РЕАКЦИЯ БЕЗ ИГЛЫ (напр. урон от ножа): виньетка + тряска", this);
 
-            yield return new WaitForSeconds(_damageAnimDuration);
-
-            // 2. Инъекция сделана — реакция игрока (тряска камеры + виньетка)
+            // Укол иглой уже отыграл заранее (PlayNeedleInjectionRoutine),
+            // урон уже списан — здесь только реакция на попадание.
             ShakeCamera();
             FlashVignette();
 
             float reactionDuration = _vignetteFadeInDuration + _vignetteFadeOutDuration;
             yield return new WaitForSeconds(reactionDuration);
-
-            // 3. Возврат иглы в исходное положение
-            if (_animator != null)
-                _animator.SetTrigger(_returnAnimationName);
-
-            yield return new WaitForSeconds(_returnAnimDuration);
 
             _animationCoroutine = null;
         }

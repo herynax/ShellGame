@@ -60,7 +60,6 @@ MonoBehaviour:
   _revealHoldDuration: 1.4
   _roundEndDelay: 0.5
   _shuffleDelay: 0.15
-  _damageToPlayerDelay: 0.5
 --- !u!114 &2090439264675354120
 MonoBehaviour:
   m_ObjectHideFlags: 0

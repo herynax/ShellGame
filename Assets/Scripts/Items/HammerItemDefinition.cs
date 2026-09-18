@@ -59,7 +59,7 @@ namespace ShellGame.Items
                     
                     if (activeHammer != null)
                     {
-                        activeHammer.FlyToFace(facePos, () =>
+                        activeHammer.FlyToFace(HammerFlightSound, facePos, () =>
                         {
                             if (!HitFaceSound.IsNull) RuntimeManager.PlayOneShot(HitFaceSound, facePos);
                             if (HitParticlesPrefab != null)
@@ -77,8 +77,7 @@ namespace ShellGame.Items
                     // Успех: наперсток пустой! Разбиваем его прямо на столе (без поднятия).
                     if (activeHammer != null)
                     {
-                        activeHammer.StartFlightSound(HammerFlightSound);
-                        activeHammer.Strike(targetShell.transform.position, () => 
+                        activeHammer.Strike(HammerFlightSound, targetShell.transform.position, () =>
                         {
                             SmashShell(context, targetShell);
                         });

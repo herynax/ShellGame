@@ -6,6 +6,7 @@ using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using DG.Tweening;
 using ShellGame.Core;
+using ShellGame.Feedback;
 using ShellGame.Gameplay;
 using ShellGame.Health;
 using ShellGame.Meta; // Добавлено для анлоков
@@ -39,6 +40,8 @@ public class SceneLoader : MonoBehaviour
     public string firstSceneOnPlayerDeath = "Tutorial";
     public string roomLightTag = "RoomLight";
     public float roomDarkenDuration = 1.5f;
+    [Tooltip("Не начинать затемнение/загрузку, пока не завершится анимация смерти врага. Таймаут — защита от зависания (0 = без таймаута).")]
+    public float enemyDeathWaitTimeout = 10f;
 
     [Header("Победа (Смерть Босса)")]
     [Tooltip("Если включено, смерть врага на этом уровне считается победой в игре.")]
@@ -147,6 +150,12 @@ public class SceneLoader : MonoBehaviour
         SetPauseBlocked(true);
 
         if (fadeCanvasGroup == null) yield break;
+
+        // Экран загрузки (затемнение) начинается только после того, как анимация
+        // смерти врага полностью закончилась — судороги, падение и растворение.
+        if (deadSide == TurnSide.Enemy)
+            yield return WaitForEnemyDeathAnimation();
+
         if (blockInputDuringLoad) fadeCanvasGroup.blocksRaycasts = true;
 
         // Определяем исход
@@ -237,6 +246,17 @@ public class SceneLoader : MonoBehaviour
         fadeCanvasGroup.blocksRaycasts = false;
         isLoading = false;
         SetPauseBlocked(false);
+    }
+
+    private IEnumerator WaitForEnemyDeathAnimation()
+    {
+        float elapsed = 0f;
+        while (EnemyDamageFeedback.IsEnemyDeathAnimationPlaying)
+        {
+            if (enemyDeathWaitTimeout > 0f && elapsed >= enemyDeathWaitTimeout) break;
+            elapsed += Time.unscaledDeltaTime;
+            yield return null;
+        }
     }
 
     private RunStatsSnapshot BuildStatsSnapshot()

@@ -32,6 +32,10 @@ namespace ShellGame.Items
         public ItemDefinition Item => _item;
         public TurnSide Owner => _owner;
 
+        /// <summary>Может ли игрок взаимодействовать с предметом (ховер и использование).</summary>
+        public bool IsInteractive => _owner == TurnSide.Player;
+        public bool IsHovered => _isHovered;
+
         public event Action<ItemPickupView> Used;
 
         private void Awake()
@@ -63,40 +67,46 @@ namespace ShellGame.Items
             ItemTooltipView.Instance?.Hide(this);
         }
 
-        private bool IsInteractive => _owner == TurnSide.Player;
-
-        private void OnMouseEnter()
+        /// <summary>
+        /// Внешнее управление ховером из RoundInputSystem. Не используем legacy
+        /// OnMouseEnter/OnMouseExit: они водятся от физики окна и требуют камеры
+        /// с тегом MainCamera, а у нас её нет, поэтому ховер "иногда" не стартует.
+        /// </summary>
+        public void SetHovered(bool hovered)
         {
-            if (!IsInteractive || _isHovered) return;
-            _isHovered = true;
-            if (_item != null)
-                PlayHoverSound(_item.HoverEnterSound);
-            _hoverAnimator.PlayHoverEnter();
-            StartTooltipTimer();
+            if (hovered == _isHovered) return;
+            if (hovered && !IsInteractive) return;
+
+            _isHovered = hovered;
+
+            if (hovered)
+            {
+                PlayHoverSound(_item != null ? _item.HoverEnterSound : default);
+                _hoverAnimator.PlayHoverEnter();
+                StartTooltipTimer();
+            }
+            else
+            {
+                _hoverAnimator.PlayHoverExit();
+                if (_item != null)
+                    PlayHoverSound(_item.HoverExitSound);
+                StopTooltipTimer();
+                ItemTooltipView.Instance?.Hide(this);
+            }
         }
 
-        private void OnMouseExit()
-        {
-            if (!IsInteractive || !_isHovered) return;
-            _isHovered = false;
-            _hoverAnimator.PlayHoverExit();
-            if (_item != null)
-                PlayHoverSound(_item.HoverExitSound);
-            StopTooltipTimer();
-            ItemTooltipView.Instance?.Hide(this);
-        }
-
-        private void PlayHoverSound(FMODUnity.EventReference sound)
-        {
-            Audio?.PlayOneShot(sound, transform.position);
-        }
-
-        private void OnMouseDown()
+        public void TryUse()
         {
             if (!IsInteractive) return;
             StopTooltipTimer();
             ItemTooltipView.Instance?.Hide(this);
             Used?.Invoke(this);
+        }
+
+        private void PlayHoverSound(FMODUnity.EventReference sound)
+        {
+            if (sound.IsNull) return;
+            Audio?.PlayOneShot(sound, transform.position);
         }
 
         private void StartTooltipTimer()

@@ -32,3 +32,5 @@ MonoBehaviour:
     PlayerMaxHealth: 6
     EnemyMaxHealth: 6
   DamagePerHit: 1
+  DamageToPlayerDelay: 0.5
+  TurnReturnDelayAfterPlayerDamage: 0.35

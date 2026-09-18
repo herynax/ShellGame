@@ -10,6 +10,13 @@ namespace ShellGame.Feedback
 {
     public sealed class EnemyDamageFeedback : DamageFeedbackBase
     {
+        /// <summary>
+        /// True пока идёт анимация смерти врага (укол → реакция → судороги →
+        /// падение → растворение). SceneLoader ждёт сброса этого флага, прежде
+        /// чем начать затемнение и загрузку.
+        /// </summary>
+        public static bool IsEnemyDeathAnimationPlaying { get; private set; }
+
         [Header("Анимация укола (Damage-триггер)")]
         [SerializeField] private float _damageAnimDuration = 0.21f;
 
@@ -79,6 +86,12 @@ namespace ShellGame.Feedback
         [Header("Звук урона")]
         [SerializeField] private EnemySoundConfig _soundConfig;
 
+        [Header("Отладка")]
+        [Tooltip("Логировать в консоль, когда игла реально укалывает врага (урон дозой) — укол играет ТОЛЬКО при поднятии наперстка с меткой, а не от ножа.")]
+        [SerializeField] private bool _logDamageFlow = true;
+
+        private bool _needleInjectionInProgress;
+
         private Vector3 _modelBasePosition;
         private Vector3 _modelBaseScale;
         private Renderer[] _enemyRenderers;
@@ -136,15 +149,48 @@ namespace ShellGame.Feedback
                 : PlayDamageSequenceCoroutine());
         }
 
+        /// <summary>
+        /// Анимация укола иглой (нужна только для УРОНА ДОЗОЙ — после поднятия
+        /// наперстка с меткой). Независима от реакции: реакцию (звук, кровь,
+        /// тряска) на любой урон запускает PlayFeedback, а эту корутину вызывает
+        /// GameManager.RevealResult ПЕРЕД списанием урона дозой. Урон от ножа
+        /// иглу НЕ запускает.
+        /// </summary>
+        public IEnumerator PlayNeedleInjectionRoutine()
+        {
+            if (_needleInjectionInProgress)
+            {
+                Debug.LogWarning("[EnemyDamageFeedback] Попытка проиграть укол иглой, пока предыдущий ещё не закончился — " +
+                                 "пропускаем повторную анимацию (иначе она сломается и проиграется дважды).", this);
+                yield break;
+            }
+
+            _needleInjectionInProgress = true;
+            try
+            {
+                if (_logDamageFlow)
+                    Debug.Log("[EnemyDamageFeedback] ИГЛА (урон дозой): укол → возврат", this);
+
+                if (_animator != null)
+                    _animator.SetTrigger(_damageTriggerName);
+
+                yield return new WaitForSeconds(_damageAnimDuration);
+
+                if (_animator != null)
+                    _animator.SetTrigger(_returnAnimationName);
+
+                yield return new WaitForSeconds(_returnAnimDuration);
+            }
+            finally
+            {
+                _needleInjectionInProgress = false;
+            }
+        }
+
         private IEnumerator PlayDamageSequenceCoroutine()
         {
-            // 1. Укол иглой
-            if (_animator != null)
-                _animator.SetTrigger(_damageTriggerName);
-
-            yield return new WaitForSeconds(_damageAnimDuration);
-
-            // 2. Инъекция сделана — звук + кровь + реакция стартуют параллельно
+            // Только реакция на урон (нож, доза): укол иглой играется заранее
+            // отдельной корутиной PlayNeedleInjectionRoutine — только для дозы.
             PlayEnemyDamageSound();
             SpawnBloodSplash();
             ShakeModel(_reactionDuration);
@@ -154,41 +200,38 @@ namespace ShellGame.Feedback
             _painPulseCoroutine = StartCoroutine(PainPulseCoroutine());
 
             yield return new WaitForSeconds(_reactionDuration);
-
-            // 3. Возврат в исходную позу
-            if (_animator != null)
-                _animator.SetTrigger(_returnAnimationName);
-
-            yield return new WaitForSeconds(_returnAnimDuration);
 
             _animationCoroutine = null;
         }
 
         private IEnumerator PlayDeathSequenceCoroutine()
         {
-            // 1. Укол иглой — последняя, смертельная инъекция
-            if (_animator != null)
-                _animator.SetTrigger(_damageTriggerName);
+            IsEnemyDeathAnimationPlaying = true;
+            try
+            {
+                // Болевой отклик стартует сразу: укол иглой уже был отыгран
+                // заранее (PlayNeedleInjectionRoutine — только для урона дозой).
+                PlayEnemyDamageSound();
+                SpawnBloodSplash();
+                ShakeModel(_reactionDuration);
 
-            yield return new WaitForSeconds(_damageAnimDuration);
+                if (_painPulseCoroutine != null)
+                    StopCoroutine(_painPulseCoroutine);
+                _painPulseCoroutine = StartCoroutine(PainPulseCoroutine());
 
-            // 2. Тот же болевой отклик, что и на обычном хите
-            PlayEnemyDamageSound();
-            SpawnBloodSplash();
-            ShakeModel(_reactionDuration);
+                yield return new WaitForSeconds(_reactionDuration);
 
-            if (_painPulseCoroutine != null)
-                StopCoroutine(_painPulseCoroutine);
-            _painPulseCoroutine = StartCoroutine(PainPulseCoroutine());
+                // Передоз накрывает: судороги → тело обмякает и падает → растворяется
+                SpawnDeathBloodBurst();
+                ShakeCameraOnDeath();
 
-            yield return new WaitForSeconds(_reactionDuration);
-
-            // 3. Передоз накрывает: судороги → тело обмякает и падает → растворяется
-            SpawnDeathBloodBurst();
-            ShakeCameraOnDeath();
-
-            float totalDuration = PlayOverdoseDeathTweens();
-            yield return new WaitForSeconds(totalDuration);
+                float totalDuration = PlayOverdoseDeathTweens();
+                yield return new WaitForSeconds(totalDuration);
+            }
+            finally
+            {
+                IsEnemyDeathAnimationPlaying = false;
+            }
 
             _animationCoroutine = null;
         }
@@ -418,6 +461,11 @@ namespace ShellGame.Feedback
                 StopCoroutine(_dissolveCoroutine);
                 _dissolveCoroutine = null;
             }
+
+            // Если корутина смерти была принудительно остановлена (объект выключили
+            // посреди анимации), не даём флагу «зависнуть» — иначе SceneLoader
+            // никогда не дождётся его сброса.
+            IsEnemyDeathAnimationPlaying = false;
         }
     }
 }

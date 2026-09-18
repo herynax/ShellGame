@@ -64,7 +64,7 @@ Material:
     - _Metalic: 0
     - _QueueControl: 0
     - _QueueOffset: 0
-    - _SellSize: 0.0005
+    - _SellSize: 0.005
     - _Side: 0
     - _Smoothness: 0
     m_Colors:

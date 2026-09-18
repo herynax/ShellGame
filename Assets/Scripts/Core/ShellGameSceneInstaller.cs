@@ -19,7 +19,7 @@ namespace ShellGame.Core
 
         public override void InstallBindings()
         {
-            // --- Мета и Сервисы ---
+            // --- пїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ ---
             var unlocksConfig = _unlocksConfig != null ? _unlocksConfig : ResolveUnlocksConfigFallback();
             Container.BindInstance(unlocksConfig).IfNotBound();
             Container.BindInterfacesTo<ShellGame.Meta.GlobalProgressService>().AsSingle();
@@ -30,7 +30,7 @@ namespace ShellGame.Core
                 .AsSingle()
                 .IfNotBound();
 
-            // --- Игровые компоненты (Scene Components) ---
+            // --- пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ (Scene Components) ---
             BindSceneComponent<GameManager>();
             BindSceneComponent<RoundGenerator>();
             BindSceneComponent<RoundInputSystem>();
@@ -41,12 +41,14 @@ namespace ShellGame.Core
             BindSceneComponent<TurnIndicatorController>();
             BindSceneComponent<ItemSpawner>();
             BindSceneComponent<TurnSpotlightController>();
+            BindSceneComponent<ShellGame.Feedback.PlayerDamageFeedback>();
+            BindSceneComponent<ShellGame.Feedback.EnemyDamageFeedback>();
 
-            // --- Инъекция статических инстансов ---
+            // --- пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ ---
             if (SceneLoader.Instance != null)
                 Container.Inject(SceneLoader.Instance);
 
-            // --- Cinemachine и Render Pipeline ---
+            // --- Cinemachine пїЅ Render Pipeline ---
             Container.Bind<CinemachineBrain>().FromComponentInHierarchy().AsSingle().IfNotBound();
             Container.Bind<CinemachineCamera>().FromComponentsInHierarchy().AsTransient().IfNotBound();
             Container.Bind<CinemachineVirtualCameraBase>().FromComponentsInHierarchy().AsTransient().IfNotBound();
@@ -58,23 +60,23 @@ namespace ShellGame.Core
 
         private void BindSceneComponent<T>() where T : Component
         {
-            // .IfNotBound() критически важен, чтобы избежать ошибки дублирования
+            // .IfNotBound() пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
             Container.Bind<T>().FromComponentInHierarchy().AsSingle().IfNotBound();
         }
 
         /// <summary>
-        /// _unlocksConfig как [SerializeField] всегда пуст в реальной игре:
-        /// ShellGameZenjectBootstrap создаёт этот инсталлер динамически через
-        /// AddComponent (не из префаба/объекта сцены), так что сериализованные
-        /// поля никогда не получают значение из инспектора. Поэтому конфиг
-        /// грузится напрямую из Resources — положи ассет по пути
+        /// _unlocksConfig пїЅпїЅпїЅ [SerializeField] пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ:
+        /// ShellGameZenjectBootstrap пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ
+        /// AddComponent (пїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ/пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ), пїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
+        /// пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ. пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
+        /// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ Resources пїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅ
         /// Assets/Resources/Configs/UnlocksConfig.asset.
         /// </summary>
         private static ShellGame.Items.UnlocksConfig ResolveUnlocksConfigFallback()
         {
             var config = Resources.Load<ShellGame.Items.UnlocksConfig>("Configs/UnlocksConfig");
             if (config == null)
-                Debug.LogError("[ShellGameSceneInstaller] UnlocksConfig не найден по пути Resources/Configs/UnlocksConfig — анлоки работать не будут.");
+                Debug.LogError("[ShellGameSceneInstaller] UnlocksConfig пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅ Resources/Configs/UnlocksConfig пїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅ.");
             return config;
         }
     }
@@ -93,7 +95,7 @@ namespace ShellGame.Core
             {
                 var progressionObject = new GameObject("GameSessionProgression");
                 progressionObject.AddComponent<GameSessionProgression>();
-                Object.DontDestroyOnLoad(progressionObject); // Важно для DontDestroyOnLoad объектов
+                Object.DontDestroyOnLoad(progressionObject); // пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ DontDestroyOnLoad пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
             }
 
             var contextObject = new GameObject("ShellGame SceneContext");

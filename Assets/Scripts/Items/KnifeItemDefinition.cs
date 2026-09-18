@@ -1,9 +1,6 @@
 // START OF FILE KnifeItemDefinition.cs
-using DG.Tweening;
-using FMOD.Studio;
 using FMODUnity;
 using ShellGame.Core;
-using ShellGame.Health;
 using ShellGame.Shells;
 using UnityEngine;
 
@@ -41,33 +38,24 @@ namespace ShellGame.Items
         {
             if (!CanUse(context)) return false;
 
-            GameObject activeKnife = null;
-            Tween bobTween = null;
-            Tween shakeTween = null;
+            KnifeVisual activeKnife = null;
 
-            // 1. ПАРИМ НАД СТОЛОМ (Замах)
+            // 1. ПАРИМ НАД СТОЛОМ (Замах): тряска как у молотка, звук броска НЕ играет
             if (KnifeProjectilePrefab != null)
             {
                 Vector3 anchorPos = context.ItemWorldPosition + Vector3.up * 1f;
-                Quaternion anchorRot = Quaternion.identity;
 
                 if (ItemVisualAnchors.Instance != null)
                 {
-                    Transform anchor = context.UserSide == TurnSide.Player 
-                        ? ItemVisualAnchors.Instance.PlayerKnifeHoverPoint 
+                    Transform anchor = context.UserSide == TurnSide.Player
+                        ? ItemVisualAnchors.Instance.PlayerKnifeHoverPoint
                         : ItemVisualAnchors.Instance.EnemyKnifeHoverPoint;
-                    if (anchor != null) { anchorPos = anchor.position; anchorRot = anchor.rotation; }
+                    if (anchor != null) anchorPos = anchor.position;
                 }
 
-                activeKnife = Instantiate(KnifeProjectilePrefab, context.ItemWorldPosition, Quaternion.identity);
-                activeKnife.transform.DOMove(anchorPos, 0.4f).SetEase(Ease.OutBack);
-                activeKnife.transform.DORotateQuaternion(anchorRot, 0.4f).SetEase(Ease.OutQuad);
-
-                if (context.UserSide == TurnSide.Player)
-                {
-                    bobTween = activeKnife.transform.DOMoveY(anchorPos.y + 0.05f, 1f).SetEase(Ease.InOutSine).SetLoops(-1, LoopType.Yoyo).SetDelay(0.4f);
-                    shakeTween = activeKnife.transform.DOShakeRotation(1f, new Vector3(3f, 3f, 3f), 10, 90f).SetLoops(-1, LoopType.Restart).SetDelay(0.4f);
-                }
+                GameObject knifeObj = Instantiate(KnifeProjectilePrefab, context.ItemWorldPosition, Quaternion.identity);
+                activeKnife = knifeObj.AddComponent<KnifeVisual>();
+                activeKnife.SetAnchor(anchorPos);
             }
 
             // 2. ЛОГИКА ВЫБОРА
@@ -78,7 +66,6 @@ namespace ShellGame.Items
 
                 context.BeginKnifeAttack(RevealDuration, targetShell =>
                 {
-                    bobTween?.Kill(); shakeTween?.Kill();
                     TurnSide targetSide = targetShell.HasMarker ? Opposite(context.UserSide) : context.UserSide;
                     ExecuteStrike(context, activeKnife, targetSide, targetShell.HasMarker ? DamageToEnemy : DamageToPlayer);
                 });
@@ -88,7 +75,6 @@ namespace ShellGame.Items
 
             context.BeginKnifeAttack(RevealDuration, targetShell =>
             {
-                bobTween?.Kill(); shakeTween?.Kill();
                 TurnSide targetSide = targetShell.HasMarker ? Opposite(context.UserSide) : context.UserSide;
                 ExecuteStrike(context, activeKnife, targetSide, targetShell.HasMarker ? DamageToEnemy : DamageToPlayer);
             });
@@ -96,7 +82,7 @@ namespace ShellGame.Items
             return true;
         }
 
-        private void ExecuteStrike(ItemEffectContext context, GameObject knife, TurnSide targetSide, int damage)
+        private void ExecuteStrike(ItemEffectContext context, KnifeVisual knife, TurnSide targetSide, int damage)
         {
             if (knife == null)
             {
@@ -104,37 +90,19 @@ namespace ShellGame.Items
                 return;
             }
 
-            // ЗВУК ПОЛЕТА: запускаем только при броске
-            EventInstance flightInstance = !KnifeFlightSound.IsNull ? RuntimeManager.CreateInstance(KnifeFlightSound) : default;
-            if (flightInstance.isValid())
-            {
-                RuntimeManager.AttachInstanceToGameObject(flightInstance, knife.transform);
-                flightInstance.start();
-            }
-
-            Vector3 endPos = (ItemVisualAnchors.Instance != null) 
+            Vector3 endPos = (ItemVisualAnchors.Instance != null)
                 ? (targetSide == TurnSide.Player ? ItemVisualAnchors.Instance.PlayerHitPoint.position : ItemVisualAnchors.Instance.EnemyHitPoint.position)
                 : knife.transform.position + Vector3.forward * 2f;
 
-            knife.transform.DOKill(); 
-            knife.transform.LookAt(endPos); 
+            // Звук полёта (привязан к ножу) и трейл включаются в момент полёта
+            // в цель (ThrowAttackAt), после попадания звук останавливается.
+            knife.ThrowAttackAt(KnifeFlightSound, endPos, KnifeFlightDuration, SpinKnife, () =>
+            {
+                if (!ImpactSound.IsNull) RuntimeManager.PlayOneShot(ImpactSound, endPos);
+                if (HitParticlesPrefab != null) Instantiate(HitParticlesPrefab, endPos, Quaternion.identity);
 
-            if (SpinKnife)
-                knife.transform.DORotate(new Vector3(360f * 3f, 0, 0), KnifeFlightDuration, RotateMode.LocalAxisAdd).SetEase(Ease.Linear);
-
-            knife.transform.DOMove(endPos, KnifeFlightDuration)
-                .SetEase(Ease.InCubic) 
-                .OnComplete(() =>
-                {
-                    // Останавливаем звук полёта
-                    if (flightInstance.isValid()) { flightInstance.stop(FMOD.Studio.STOP_MODE.ALLOWFADEOUT); flightInstance.release(); }
-
-                    if (!ImpactSound.IsNull) RuntimeManager.PlayOneShot(ImpactSound, endPos);
-                    if (HitParticlesPrefab != null) Instantiate(HitParticlesPrefab, endPos, Quaternion.identity);
-                    
-                    Destroy(knife);
-                    context.Health.ApplyDamage(targetSide, damage);
-                });
+                context.Health.ApplyDamage(targetSide, damage);
+            });
         }
     }
 }

@@ -45,8 +45,14 @@ namespace ShellGame.Gameplay
         [SerializeField] private float _shuffleDelay = 0.15f;
 
         [Header("Урон игроку")]
-        [Tooltip("Задержка перед нанесением урона игроку (когда враг поднял наперсток с меткой) — даёт анимации подъёма наперстка доиграть до конца.")]
-        [SerializeField] private float _damageToPlayerDelay = 0.5f;
+        [Tooltip("Задержки для урона игроку настраиваются в HealthProgressionConfig " +
+                 "(DamageToPlayerDelay, TurnReturnDelayAfterPlayerDamage).")]
+        [HideInInspector] private PlayerDamageFeedback _playerDamageFeedback;
+
+        [Tooltip("Реакции на урон врагу. Укол иглой (урон дозой) проигрывается " +
+                 "из RevealResult отдельной корутиной PlayNeedleInjectionRoutine; " +
+                 "урон от ножа иглы не запускает.")]
+        [HideInInspector] private EnemyDamageFeedback _enemyDamageFeedback;
 
         private RoundState _state = RoundState.Idle;
         private RoundParameters _currentParameters;
@@ -108,12 +114,16 @@ namespace ShellGame.Gameplay
             RoundStartButton roundStartButton,
             TurnIndicatorController turnIndicator,
             ItemSpawner itemSpawner,
-            GameSessionProgression sessionProgression)
+            GameSessionProgression sessionProgression,
+            PlayerDamageFeedback playerDamageFeedback,
+            EnemyDamageFeedback enemyDamageFeedback)
         {
             Initialize(roundGenerator, inputSystem, shuffleSystem, healthController, enemyAI,
                 roundStartButton, _healthProgressionConfig, _startingSide, turnIndicator);
             _itemSpawner = itemSpawner;
             _sessionProgression = sessionProgression;
+            _playerDamageFeedback = playerDamageFeedback;
+            _enemyDamageFeedback = enemyDamageFeedback;
         }
 
         private readonly Dictionary<TurnSide, int> _nextHitMultiplier = new Dictionary<TurnSide, int>
@@ -767,8 +777,22 @@ namespace ShellGame.Gameplay
                         if (_selectedShell.HasMarker)
                         {
                             var damagedSide = Opposite(_activeSide);
-                            if (damagedSide == TurnSide.Player && _damageToPlayerDelay > 0f)
-                                yield return new WaitForSeconds(_damageToPlayerDelay);
+
+                            // 1. Кому нанесён урон дозой (поднят наперсток с меткой) — сначала
+                            // полностью доигрывает анимация укола иглой, только потом
+                            // списывается урон. Урон от ножа/молотка иглу не запускает:
+                            // он идёт напрямую в HealthController и даёт только реакцию.
+                            if (damagedSide == TurnSide.Player && _playerDamageFeedback != null)
+                                yield return _playerDamageFeedback.PlayNeedleInjectionRoutine();
+                            else if (damagedSide == TurnSide.Enemy && _enemyDamageFeedback != null)
+                                yield return _enemyDamageFeedback.PlayNeedleInjectionRoutine();
+
+                            // 2. Дополнительная задержка перед самим списанием урона
+                            // (даёт подъёму наперстка/уколу окончательно "осесть").
+                            float damageToPlayerDelay = _healthProgressionConfig != null
+                                ? _healthProgressionConfig.DamageToPlayerDelay : 0f;
+                            if (damagedSide == TurnSide.Player && damageToPlayerDelay > 0f)
+                                yield return new WaitForSeconds(damageToPlayerDelay);
 
                             int baseDamage = _healthProgressionConfig != null ? _healthProgressionConfig.DamagePerHit : 1;
                             int multiplier = ConsumeDamageMultiplier(_activeSide);
@@ -779,6 +803,13 @@ namespace ShellGame.Gameplay
                                 _state = RoundState.GameOver;
                                 break;
                             }
+
+                            // 3. Ход возвращается игроку с задержкой — пауза после списания
+                            // урона, чтобы реакция (виньетка, тряска) успела прочитаться.
+                            float turnReturnDelay = _healthProgressionConfig != null
+                                ? _healthProgressionConfig.TurnReturnDelayAfterPlayerDamage : 0f;
+                            if (damagedSide == TurnSide.Player && turnReturnDelay > 0f)
+                                yield return new WaitForSeconds(turnReturnDelay);
                         }
 
                         if (IsTutorialActive() && _tutorialAfterDamagePaused)

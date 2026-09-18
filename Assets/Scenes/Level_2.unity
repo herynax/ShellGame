@@ -143,6 +143,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 469c136019cf82f41b02414bd3bcd96c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ShellGame.Gameplay.RoundInputSystem
+--- !u!95 &348784099 stripped
+Animator:
+  m_CorrespondingSourceObject: {fileID: 8709938589117236677, guid: e227562570c26f7428a3c01b27c2bdb4,
+    type: 3}
+  m_PrefabInstance: {fileID: 2073325895}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &564045621
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -953,26 +959,11 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 2334401988772712449, guid: c9addad12bab62f499835aa0cad73c8a,
+    - target: {fileID: 6973405641497471373, guid: c9addad12bab62f499835aa0cad73c8a,
         type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 2334401988772712449, guid: c9addad12bab62f499835aa0cad73c8a,
-        type: 3}
-      propertyPath: m_LocalRotation.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2334401988772712449, guid: c9addad12bab62f499835aa0cad73c8a,
-        type: 3}
-      propertyPath: m_LocalRotation.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2334401988772712449, guid: c9addad12bab62f499835aa0cad73c8a,
-        type: 3}
-      propertyPath: m_LocalRotation.z
-      value: 0
-      objectReference: {fileID: 0}
+      propertyPath: _animator
+      value: 
+      objectReference: {fileID: 348784099}
     - target: {fileID: 6973405641497471373, guid: c9addad12bab62f499835aa0cad73c8a,
         type: 3}
       propertyPath: _vignetteCanvasGroup
