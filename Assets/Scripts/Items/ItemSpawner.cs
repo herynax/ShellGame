@@ -5,6 +5,7 @@ using DG.Tweening;
 using FMODUnity;
 using ShellGame.Audio;
 using ShellGame.Core;
+using ShellGame.Dialogue;
 using ShellGame.Gameplay;
 using ShellGame.Meta;
 using ShellGame.Shells;
@@ -524,6 +525,10 @@ namespace ShellGame.Items
                 bestItem.PlayUseFeedback(bestContext, _audio, worldPosition);
                 _enemyUseMessage?.ShowMessage(bestItem.GetEnemyUseAnnouncement());
                 result.ExtraDelaySeconds += Mathf.Max(0f, bestContext.ConsumedExtraDelay);
+
+                // Реакция врага на этот предмет (реплика). Пока враг не договорил,
+                // следующий предмет в этом ходу не используем.
+                yield return EnemyReactionGate.WaitWhileBusy();
 
                 if (itemSkippedTurn)
                 {

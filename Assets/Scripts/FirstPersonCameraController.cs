@@ -23,6 +23,7 @@ public class CinemachineStationaryLook : MonoBehaviour
     private float yawVelocity;
     private float pitchVelocity;
     private Quaternion startRotation;
+    
     void Start()
     {
         if (cameraTransform == null) cameraTransform = transform;
@@ -30,7 +31,6 @@ public class CinemachineStationaryLook : MonoBehaviour
     }
     void Update()
     {
-        // Курсор лочим централизованно (чтобы скрипты не дрались)
         if (Cursor.lockState != CursorLockMode.Locked)
         {
             Cursor.lockState = CursorLockMode.Locked;
@@ -38,6 +38,7 @@ public class CinemachineStationaryLook : MonoBehaviour
         }
         HandleLook();
     }
+
     private void HandleLook()
     {
         if (Mouse.current == null || cameraTransform == null) return;

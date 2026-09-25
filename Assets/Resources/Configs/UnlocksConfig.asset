@@ -14,11 +14,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ShellGame.Items.UnlocksConfig
   UnknownIcon: {fileID: 21300000, guid: bc519b7afbc03f44b82b7754db8c7c29, type: 3}
   Entries:
-  - Item: {fileID: 11400000, guid: 13d9c5a3ad4687d49be5927c4492a51a, type: 2}
-    UnlockedByDefault: 1
-    ConditionType: 0
-    RequiredAmount: 0
-    LockedHintText: 
   - Item: {fileID: 11400000, guid: 801e684fcbf0b414eb097544d4373b11, type: 2}
     UnlockedByDefault: 1
     ConditionType: 0
@@ -35,6 +30,13 @@ MonoBehaviour:
     RequiredAmount: 0
     LockedHintText: 
   - Item: {fileID: 11400000, guid: 13f0cb5dc8c4b4f4eb23b6edad940b30, type: 2}
+    UnlockedByDefault: 1
+    ConditionType: 1
+    RequiredAmount: 1
+    LockedHintText: "\u041F\u0440\u043E\u0439\u0434\u0438\u0442\u0435 \u0438\u0433\u0440\u0443
+      \u043E\u0434\u0438\u043D \u0440\u0430\u0437 \u0447\u0442\u043E\u0431\u044B
+      \u043E\u0442\u043A\u0440\u044B\u0442\u044C"
+  - Item: {fileID: 11400000, guid: 13d9c5a3ad4687d49be5927c4492a51a, type: 2}
     UnlockedByDefault: 0
     ConditionType: 1
     RequiredAmount: 1
@@ -48,8 +50,8 @@ MonoBehaviour:
     LockedHintText: "\u0423\u043C\u0440\u0438\u0442\u0435 3 \u0440\u0430\u0437\u0430
       \u0447\u0442\u043E\u0431\u044B \u043E\u0442\u043A\u0440\u044B\u0442\u044C"
   - Item: {fileID: 11400000, guid: cf73e36396a33ce47841e09feac7050d, type: 2}
-    UnlockedByDefault: 1
-    ConditionType: 1
-    RequiredAmount: 3
-    LockedHintText: "\u041F\u0440\u043E\u0439\u0434\u0438\u0442\u0435 \u0438\u0433\u0440\u0443
-      3 \u0440\u0430\u0437\u0430 \u0447\u0442\u043E\u0431\u044B \u043E\u0442\u043A\u0440\u044B\u0442\u044C"
+    UnlockedByDefault: 0
+    ConditionType: 0
+    RequiredAmount: 10
+    LockedHintText: "\u0423\u043C\u0440\u0438\u0442\u0435 10 \u0440\u0430\u0437 \u0447\u0442\u043E\u0431\u044B
+      \u043E\u0442\u043A\u0440\u044B\u0442\u044C"

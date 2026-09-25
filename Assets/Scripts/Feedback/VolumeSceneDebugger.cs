@@ -11,7 +11,7 @@ namespace ShellGame.Feedback
         {
             try
             {
-                var volumes = Object.FindObjectsOfType<Volume>(true);
+                var volumes = Object.FindObjectsByType<Volume>(FindObjectsInactive.Include, FindObjectsSortMode.None);
                 Debug.Log($"VolumeSceneDebugger: found {volumes.Length} Volume objects in scene.");
                 foreach (var v in volumes)
                 {

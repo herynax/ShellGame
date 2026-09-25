@@ -122,9 +122,6 @@
 		<property name="startOffset">
 			<value>31</value>
 		</property>
-		<property name="volume">
-			<value>10</value>
-		</property>
 		<property name="pitch">
 			<value>3.60000014</value>
 		</property>
@@ -139,7 +136,7 @@
 	<object class="SpatialiserEffect" id="{1bc9bbf9-9408-48d0-96eb-b780d8b5b14b}" />
 	<object class="LowpassSimpleEffect" id="{b62660f5-d6e4-40e5-b6a8-2717c42e99a7}">
 		<property name="cutoff">
-			<value>11000</value>
+			<value>950</value>
 		</property>
 	</object>
 	<object class="SingleSound" id="{65d7c4a4-d70f-46be-82a3-7a5db94090d3}">

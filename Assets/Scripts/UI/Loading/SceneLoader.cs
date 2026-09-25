@@ -37,7 +37,10 @@ public class SceneLoader : MonoBehaviour
     [Header("Смерть и Переход")]
     public bool loadNextSceneByName = true; 
     public string nextSceneOnEnemyDeath;
-    public string firstSceneOnPlayerDeath = "Tutorial";
+    [Tooltip("Сцена, с которой начинается новая попытка после поражения, если обучение уже пройдено.")]
+    public string firstSceneOnPlayerDeath = "Level_1";
+    [Tooltip("Сцена, с которой начинается новая попытка после поражения, пока обучение не пройдено.")]
+    public string tutorialSceneName = "Tutorial";
     public string roomLightTag = "RoomLight";
     public float roomDarkenDuration = 1.5f;
     [Tooltip("Не начинать затемнение/загрузку, пока не завершится анимация смерти врага. Таймаут — защита от зависания (0 = без таймаута).")]
@@ -121,10 +124,15 @@ public class SceneLoader : MonoBehaviour
         if (side == TurnSide.Enemy && TutorialSceneTransitionGate.HoldEnemyDeathTransition)
             return;
 
+        // Враг ещё не договорил (смерть = переход на следующий уровень).
+        // EnemyReactionDirector освободит холд сам и вызовет Continue.
+        if (SceneTransitionGate.IsHeld)
+            return;
+
         if (side == TurnSide.Player && _globalProgress is ShellGame.Meta.GlobalProgressService concreteProgress)
             concreteProgress.EnsureDeathCounted();
 
-        ReleaseCursorAfterDeath();
+        StopCameraLookOnTransition();
         StartCoroutine(UnifiedDeathRoutine(side));
     }
 
@@ -134,20 +142,45 @@ public class SceneLoader : MonoBehaviour
         StartCoroutine(UnifiedDeathRoutine(TurnSide.Enemy));
     }
 
-    private void ReleaseCursorAfterDeath()
+    /// <summary>
+    /// Продолжает отложенный переход: вызывается тем, кто держал
+    /// SceneTransitionGate (реакции врага дерут его, чтобы финальные реплики
+    /// прозвучали до затемнения).
+    /// </summary>
+    public void ContinueAfterHeldSceneTransition(TurnSide deadSide)
+    {
+        if (isLoading) return;
+
+        if (deadSide == TurnSide.Player && _globalProgress is ShellGame.Meta.GlobalProgressService concreteProgress)
+            concreteProgress.EnsureDeathCounted();
+
+        StopCameraLookOnTransition();
+        StartCoroutine(UnifiedDeathRoutine(deadSide));
+    }
+
+    private void StopCameraLookOnTransition()
     {
         var lookControllers = FindObjectsOfType<CinemachineStationaryLook>(true);
         foreach (var lookController in lookControllers)
             if (lookController != null) lookController.enabled = false;
+    }
 
-        Cursor.lockState = CursorLockMode.None;
-        Cursor.visible = true;
+    /// <summary>
+    /// Курсор в игре заперт и скрыт — в том числе на всей загрузке уровня.
+    /// Показывать его могут только экраны, которым он нужен для клика
+    /// (статистика забега и анлоки): они включают его сами на время показа.
+    /// </summary>
+    private static void HideCursorForLoading()
+    {
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
     }
 
     private IEnumerator UnifiedDeathRoutine(TurnSide deadSide)
     {
         isLoading = true;
         SetPauseBlocked(true);
+        HideCursorForLoading();
 
         if (fadeCanvasGroup == null) yield break;
 
@@ -192,7 +225,7 @@ public class SceneLoader : MonoBehaviour
         if (isWin || isLoss)
         {
             // 3.1 Статистика
-            RunStatsTracker.Instance?.StopClock();
+            RunStatsTracker.Instance?.EndRun();
             if (runStatsScreen != null)
                 yield return runStatsScreen.ShowAndWaitForContinue(BuildStatsSnapshot());
 
@@ -209,7 +242,16 @@ public class SceneLoader : MonoBehaviour
                 }
             }
 
-            string targetScene = isWin ? mainMenuSceneName : firstSceneOnPlayerDeath;
+            // После поражения начинаем новую попытку: обучение пройдено — с
+            // первого игрового уровня, не пройдено — с обучения (иначе игрок
+            // потеряет его по пути и попадёт в игру необученным).
+            string targetScene = isWin
+                ? mainMenuSceneName
+                : GameManager.GetNewRunSceneName(tutorialSceneName, firstSceneOnPlayerDeath);
+
+            Debug.Log($"[SceneLoader] Переход после {(isWin ? "победы" : "поражения")} на сцену '{targetScene}' " +
+                      $"(обучение пройдено: {GameManager.IsTutorialCompleted()}).");
+
             asyncLoad = SceneManager.LoadSceneAsync(targetScene);
         }
         else
@@ -226,6 +268,10 @@ public class SceneLoader : MonoBehaviour
                 asyncLoad = SceneManager.LoadSceneAsync(nextIndex >= SceneManager.sceneCountInBuildSettings ? 0 : nextIndex);
             }
         }
+
+        // Экраны статистики/анлоков могли оставить курсор на себя — на
+        // загрузке уровня он уже не нужен.
+        HideCursorForLoading();
 
         LoadingScreenShown?.Invoke();
         LoadProgressChanged?.Invoke(0f);
@@ -388,6 +434,7 @@ public class SceneLoader : MonoBehaviour
         loadNextSceneByName = sceneLoader.loadNextSceneByName;
         nextSceneOnEnemyDeath = sceneLoader.nextSceneOnEnemyDeath;
         firstSceneOnPlayerDeath = sceneLoader.firstSceneOnPlayerDeath;
+        tutorialSceneName = sceneLoader.tutorialSceneName;
         mainMenuSceneName = sceneLoader.mainMenuSceneName;
     }
 }

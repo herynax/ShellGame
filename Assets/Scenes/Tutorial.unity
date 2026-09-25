@@ -442,7 +442,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 965b8ab3ba919cc44b86d7112b35e5bc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ShellGame.Tutorial.TutorialScript_Level0
-  _nextSceneName: Level_2
+  _nextSceneName: Level_1
   _mainCamera: {fileID: 1188626732}
   _hpCamera: {fileID: 1782051816}
   _helloLine: {fileID: 11400000, guid: add03e46a3814284ab0d5cf5e1bf3773, type: 2}
@@ -571,7 +571,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DialogueCameraFeedback
   zoomAmount: 3
-  zoomDuration: 0.1
+  zoomDuration: 0.3
 --- !u!1 &820259960
 GameObject:
   m_ObjectHideFlags: 0
@@ -1415,6 +1415,11 @@ PrefabInstance:
       propertyPath: m_AnchoredPosition.y
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 1799605746946624359, guid: e227562570c26f7428a3c01b27c2bdb4,
+        type: 3}
+      propertyPath: _itemsAvailable
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 1810576775033457872, guid: e227562570c26f7428a3c01b27c2bdb4,
         type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
@@ -1498,7 +1503,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
 --- !u!95 &4559351252908071673 stripped
 Animator:
-  m_CorrespondingSourceObject: {fileID: 7165072357232656800, guid: e227562570c26f7428a3c01b27c2bdb4,
+  m_CorrespondingSourceObject: {fileID: 8709938589117236677, guid: e227562570c26f7428a3c01b27c2bdb4,
     type: 3}
   m_PrefabInstance: {fileID: 4559351252908071671}
   m_PrefabAsset: {fileID: 0}

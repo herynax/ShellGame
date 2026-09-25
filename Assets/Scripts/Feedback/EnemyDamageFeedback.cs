@@ -82,6 +82,7 @@ namespace ShellGame.Feedback
         [SerializeField] private float _deathDissolveDuration = 1.2f;
         [Tooltip("Через сколько секунд после начала конвульсий стартует растворение")]
         [SerializeField] private float _dissolveStartDelay = 0.2f;
+        [SerializeField] private bool _tutorEnemie = false;
 
         [Header("Звук урона")]
         [SerializeField] private EnemySoundConfig _soundConfig;
@@ -109,6 +110,8 @@ namespace ShellGame.Feedback
         private Coroutine _dissolveCoroutine;
 
         protected override TurnSide WatchedSide => TurnSide.Enemy;
+
+        public override bool CanPlayNeedleInjection => _animator != null;
 
         protected override void Awake()
         {
@@ -144,19 +147,30 @@ namespace ShellGame.Feedback
             if (_animationCoroutine != null)
                 StopCoroutine(_animationCoroutine);
 
-            _animationCoroutine = StartCoroutine(died
-                ? PlayDeathSequenceCoroutine()
-                : PlayDamageSequenceCoroutine());
+            if (died && _tutorEnemie == false)
+            {
+                _animationCoroutine = StartCoroutine(PlayDeathSequenceCoroutine());
+            }
+            else
+            {
+                _animationCoroutine = StartCoroutine(PlayDamageSequenceCoroutine());
+            }
         }
 
         /// <summary>
-        /// Анимация укола иглой (нужна только для УРОНА ДОЗОЙ — после поднятия
-        /// наперстка с меткой). Независима от реакции: реакцию (звук, кровь,
-        /// тряска) на любой урон запускает PlayFeedback, а эту корутину вызывает
-        /// GameManager.RevealResult ПЕРЕД списанием урона дозой. Урон от ножа
-        /// иглу НЕ запускает.
+        /// Укол иглой (нужен только для УРОНА ДОЗОЙ — после поднятия наперстка
+        /// с меткой). Независим от реакции: реакцию (звук, кровь, тряска) на
+        /// любой урон запускает PlayFeedback, а этот укол запускает
+        /// HealthController.ApplyDamage(needNeedleAnim: true) ДО списания урона.
+        /// Урон от ножа иглу НЕ запускает.
+        ///
+        /// Сам урон здесь не применяется: его списывает событие анимации на
+        /// объекте иглы (NeedleMetalSqueak.ApplyDamage) в момент входа иглы в
+        /// тело, то есть внутри первой половины укола. Возвращать иглу
+        /// (Return) можно сразу после первой половины — урон к этому моменту
+        /// уже списан.
         /// </summary>
-        public IEnumerator PlayNeedleInjectionRoutine()
+        public override IEnumerator PlayNeedleInjection()
         {
             if (_needleInjectionInProgress)
             {
@@ -170,6 +184,11 @@ namespace ShellGame.Feedback
             {
                 if (_logDamageFlow)
                     Debug.Log("[EnemyDamageFeedback] ИГЛА (урон дозой): укол → возврат", this);
+
+                // Урон спишет событие анимации в момент входа иглы в тело —
+                // сначала "вооружаем" иглу, чтобы страховка тоже считала отсчёт
+                // от начала укола.
+                ArmNeedleDamage(_animator);
 
                 if (_animator != null)
                     _animator.SetTrigger(_damageTriggerName);
@@ -189,8 +208,8 @@ namespace ShellGame.Feedback
 
         private IEnumerator PlayDamageSequenceCoroutine()
         {
-            // Только реакция на урон (нож, доза): укол иглой играется заранее
-            // отдельной корутиной PlayNeedleInjectionRoutine — только для дозы.
+            // Только реакция на урон (нож, доза): сам укол иглой к этому моменту
+            // уже отыгран HealthController'ом — и только для урона дозой.
             PlayEnemyDamageSound();
             SpawnBloodSplash();
             ShakeModel(_reactionDuration);
@@ -210,7 +229,7 @@ namespace ShellGame.Feedback
             try
             {
                 // Болевой отклик стартует сразу: укол иглой уже был отыгран
-                // заранее (PlayNeedleInjectionRoutine — только для урона дозой).
+                // раньше (HealthController запускает его до списания урона).
                 PlayEnemyDamageSound();
                 SpawnBloodSplash();
                 ShakeModel(_reactionDuration);

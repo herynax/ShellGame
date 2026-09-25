@@ -30,11 +30,11 @@ public class ResolutionSettingsManager : MonoBehaviour, ISettingsModule
 
     private void Awake()
     {
+        // Копия с префаба меню настроек просто отступает: работает экземпляр,
+        // созданный бутстрапом SettingsServicesBootstrap. Destroy(gameObject) здесь
+        // был бы фатален — на префабе меню висят ещё и кнопки/лейблы.
         if (Instance != null && Instance != this)
-        {
-            Destroy(gameObject);
             return;
-        }
 
         Instance = this;
         DontDestroyOnLoad(gameObject);
@@ -42,8 +42,26 @@ public class ResolutionSettingsManager : MonoBehaviour, ISettingsModule
         BuildResolutionList();
     }
 
+    /// <summary>
+    /// Гарантирует существование персистентного менеджера разрешения. Раньше он
+    /// жил только на неактивном префабе меню настроек, поэтому на первом запуске
+    /// настройки не применялись, а UI вкладки "Дисплей" могла уйти по раннему
+    /// return до его Awake.
+    /// </summary>
+    public static ResolutionSettingsManager EnsureExists()
+    {
+        if (Instance != null)
+            return Instance;
+
+        var go = new GameObject("ResolutionSettingsManager");
+        DontDestroyOnLoad(go);
+        return go.AddComponent<ResolutionSettingsManager>();
+    }
+
     private void Start()
     {
+        if (Instance != this) return;
+
         LoadAndApply();
         SettingsSaveController.Instance?.RegisterModule(this);
     }
@@ -58,22 +76,40 @@ public class ResolutionSettingsManager : MonoBehaviour, ISettingsModule
         _resolutionIndex = FindResolutionIndex(savedWidth, savedHeight);
 
         int savedModeIndex = System.Array.IndexOf(ScreenModes, Screen.fullScreenMode);
-        _screenModeIndex = PlayerPrefs.GetInt(SCREEN_MODE_KEY, savedModeIndex >= 0 ? savedModeIndex : 0);
+        int defaultModeIndex = savedModeIndex >= 0 ? savedModeIndex : DefaultScreenModeIndex();
+        _screenModeIndex = PlayerPrefs.GetInt(SCREEN_MODE_KEY, defaultModeIndex);
         _screenModeIndex = Mathf.Clamp(_screenModeIndex, 0, ScreenModes.Length - 1);
 
         Apply();
     }
 
+    /// <summary>
+    /// Режим окна по умолчанию — «без рамки», как в Player Settings проекта
+    /// (fullscreenMode: 1). Раньше дефолтом был индекс 0, то есть «Полноэкранный».
+    /// </summary>
+    private static int DefaultScreenModeIndex()
+    {
+        int index = System.Array.IndexOf(ScreenModes, FullScreenMode.FullScreenWindow);
+        return index >= 0 ? index : 0;
+    }
+
     private void BuildResolutionList()
     {
-        _resolutions = Screen.resolutions
+        var current = Screen.currentResolution;
+        var modes = Screen.resolutions
             .GroupBy(r => new { r.width, r.height })
             .Select(g => g.OrderByDescending(r => r.refreshRateRatio.value).First())
             .OrderBy(r => r.width * r.height)
-            .ToArray();
+            .ToList();
 
-        if (_resolutions.Length == 0)
-            _resolutions = new[] { Screen.currentResolution };
+        // Текущий (нативный) режим может отсутствовать в Screen.resolutions — например
+        // при HiDPI-масштабировании. Без него дефолт уезжал на самый большой режим
+        // списка, и окно меняло размер на первом же запуске.
+        if (!modes.Any(r => r.width == current.width && r.height == current.height))
+            modes.Add(current);
+
+        modes.Sort((a, b) => (a.width * a.height).CompareTo(b.width * b.height));
+        _resolutions = modes.ToArray();
     }
 
     private int FindResolutionIndex(int width, int height)
@@ -82,7 +118,22 @@ public class ResolutionSettingsManager : MonoBehaviour, ISettingsModule
             if (_resolutions[i].width == width && _resolutions[i].height == height)
                 return i;
 
-        return _resolutions.Length - 1;
+        // Сюда попадаем только при сохранённом из прошлой конфигурации значении
+        // (например, сменили монитор): берём ближайший по числу пикселей, а не
+        // самый большой режим.
+        int bestIndex = 0;
+        int bestDelta = int.MaxValue;
+        for (int i = 0; i < _resolutions.Length; i++)
+        {
+            int delta = Mathf.Abs(_resolutions[i].width * _resolutions[i].height - width * height);
+            if (delta < bestDelta)
+            {
+                bestDelta = delta;
+                bestIndex = i;
+            }
+        }
+
+        return bestIndex;
     }
 
     public void SelectNextResolution() => SetResolutionIndex((_resolutionIndex + 1) % _resolutions.Length);
@@ -118,6 +169,13 @@ public class ResolutionSettingsManager : MonoBehaviour, ISettingsModule
     {
         var res = _resolutions[_resolutionIndex];
         var mode = ScreenModes[_screenModeIndex];
+
+        // На старте запрошенные параметры обычно уже совпадают с текущими
+        // (нативное разрешение + режим из Player Settings); лишний SetResolution
+        // там приводит к ресайзу/мерцанию окна на первом кадре.
+        if (res.width == Screen.width && res.height == Screen.height && mode == Screen.fullScreenMode)
+            return;
+
         Screen.SetResolution(res.width, res.height, mode);
     }
 

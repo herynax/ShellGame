@@ -66,6 +66,12 @@ namespace ShellGame.Tutorial
             GameEvents.ActiveSideChanged += OnSideChanged;
             GameEvents.SideDied += OnSideDied;
 
+            // Переход на следующий уровень после смерти врага в обучении
+            // запускаем МЫ (в конце сценария, после предсмертной речи), а не
+            // SceneLoader по событию смерти. Иначе загрузка стартует в тот же
+            // кадр и реплики врага не успевают договорить.
+            TutorialSceneTransitionGate.HoldEnemyDeathTransition = true;
+
             // На всякий случай устанавливаем начальную камеру.
             SetMainCamera();
 
@@ -73,6 +79,13 @@ namespace ShellGame.Tutorial
 
             GameEvents.ActiveSideChanged -= OnSideChanged;
             GameEvents.SideDied -= OnSideDied;
+        }
+
+        private void OnDestroy()
+        {
+            // Статик переживает смену сцены — обязательно снимаем холд,
+            // иначе на обычных уровнях переход после смерти врага не случится.
+            TutorialSceneTransitionGate.HoldEnemyDeathTransition = false;
         }
 
         private void OnSideChanged(TurnSide side)
@@ -319,6 +332,10 @@ namespace ShellGame.Tutorial
 
         private void GoToNextLevel()
         {
+            // Реплики предсмертной речи уже произнесены — холд нам больше не
+            // нужен, а снимаем его до загрузки, чтобы статик не уехал в
+            // следующую сцену.
+            TutorialSceneTransitionGate.HoldEnemyDeathTransition = false;
             SceneLoader.Instance.LoadScene(_nextSceneName);
         }
 

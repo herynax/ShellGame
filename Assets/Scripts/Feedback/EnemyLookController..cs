@@ -103,14 +103,35 @@ namespace ShellGame.Feedback
                 .SetEase(_lookEase);
         }
 
+        /// <summary>
+        /// Поворачивает голову в произвольную мировую точку. Вызов НЕблокирующий:
+        /// тween доедет сам, вызывающему не нужно ждать (например, в конце хода
+        /// враг просто поворачивает голову на игрока, пока игра идёт дальше).
+        /// </summary>
+        public void LookAtPoint(Vector3 worldPosition, float duration = -1f)
+        {
+            StartLookTween(worldPosition, duration >= 0f ? duration : _settleDuration);
+        }
+
         private IEnumerator LookAt(Vector3 worldPosition, float duration)
         {
+            bool done = false;
+            if (!StartLookTween(worldPosition, duration, () => done = true))
+                yield break;
+
+            while (!done)
+                yield return null;
+        }
+
+        /// <summary>Запускает доворот головы в точку. Возвращает false, если смотреть некуда.</summary>
+        private bool StartLookTween(Vector3 worldPosition, float duration, System.Action onComplete = null)
+        {
             var lookTransform = LookTransform;
-            if (lookTransform == null) yield break;
+            if (lookTransform == null) return false;
 
             var direction = worldPosition - LookOrigin.position;
             if (direction.sqrMagnitude < 0.0001f)
-                yield break;
+                return false;
 
             direction.Normalize();
             // Совмещаем исходную линию взгляда с предметом напрямую. Так
@@ -119,13 +140,14 @@ namespace ShellGame.Feedback
             Quaternion targetRotation = faceDelta * _baseRotation;
 
             _lookTween?.Kill();
-            bool done = false;
-            _lookTween = lookTransform.DORotateQuaternion(targetRotation, Mathf.Max(0.01f, duration))
-                .SetEase(_lookEase)
-                .OnComplete(() => done = true);
+            var tween = lookTransform.DORotateQuaternion(targetRotation, Mathf.Max(0.01f, duration))
+                .SetEase(_lookEase);
 
-            while (!done)
-                yield return null;
+            if (onComplete != null)
+                tween.OnComplete(() => onComplete());
+
+            _lookTween = tween;
+            return true;
         }
 
         private void StartBreathing()

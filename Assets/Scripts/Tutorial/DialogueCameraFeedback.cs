@@ -20,27 +20,63 @@ namespace ShellGame.Tutorial
         private Tween _fovTween;
 
         /// <summary>
+        /// Активный экземпляр. Компонент может лежать и в префабе окружения, и
+        /// в сцене (в обучении он свой) — работает только один, чтобы FOV не
+        /// двигали два твина одновременно.
+        /// </summary>
+        private static DialogueCameraFeedback _active;
+
+        /// <summary>
         /// Показывает, идёт ли сейчас анимация зума или камера находится в зуме.
         /// </summary>
         public static bool IsZoomActive { get; private set; }
 
         private void Awake()
         {
-            _impulseSource = GetComponent<CinemachineImpulseSource>();
-            if (Camera.main != null)
-                _brain = Camera.main.GetComponent<CinemachineBrain>();
+            if (_impulseSource == null)
+                _impulseSource = GetComponent<CinemachineImpulseSource>();
+            ResolveBrain();
         }
 
-        private void OnEnable() => DialogueView.OnDialogueActive += HandleDialogue;
-        
+        private void ResolveBrain()
+        {
+            if (_brain != null)
+                return;
+
+            if (Camera.main != null)
+                _brain = Camera.main.GetComponent<CinemachineBrain>();
+
+            // Камера могла не иметь тега MainCamera на момент Awake.
+            if (_brain == null)
+                _brain = FindFirstObjectByType<CinemachineBrain>();
+        }
+
+        private void OnEnable()
+        {
+            if (_active != null && _active != this)
+                return;
+
+            _active = this;
+            DialogueView.OnDialogueActive += HandleDialogue;
+        }
+
         private void OnDisable() 
         {
+            if (_active != this)
+                return;
+
+            _active = null;
             DialogueView.OnDialogueActive -= HandleDialogue;
             _fovTween?.Kill();
+            _fovTween = null;
+            _currentActiveCam = null;
+            _originalFov = 0f;
+            IsZoomActive = false;
         }
 
         private void HandleDialogue(bool isActive)
         {
+            ResolveBrain();
             if (_brain == null) return;
 
             if (isActive)
@@ -72,7 +108,7 @@ namespace ShellGame.Tutorial
             else
             {
                 // Реплика закончилась — плавно возвращаем FOV в дефолтное состояние
-                if (_currentActiveCam != null)
+                if (_currentActiveCam != null && _originalFov > 0f)
                 {
                     _fovTween?.Kill();
                     var camToRestore = _currentActiveCam;
@@ -93,6 +129,8 @@ namespace ShellGame.Tutorial
                 else
                 {
                     IsZoomActive = false;
+                    _originalFov = 0f;
+                    _currentActiveCam = null;
                 }
             }
         }

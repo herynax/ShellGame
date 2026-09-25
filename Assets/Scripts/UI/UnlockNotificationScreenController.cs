@@ -51,7 +51,12 @@ namespace ShellGame.UI
         public IEnumerator ShowSequence(List<ItemDefinition> unlockedItems, IUnlockManager unlockManager)
         {
             gameObject.SetActive(true);
-            
+
+            // Экран ждёт клика по кнопке — курсор нужен на всё время показа.
+            // Прячет его вызывающий (SceneLoader) перед загрузкой следующего уровня.
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+
             if (_panelGroup != null)
             {
                 _panelGroup.blocksRaycasts = true;

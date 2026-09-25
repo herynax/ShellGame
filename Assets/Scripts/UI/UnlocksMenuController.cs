@@ -99,6 +99,10 @@ namespace ShellGame.UI
             if (GameSessionProgression.Instance != null)
                 GameSessionProgression.Instance.Reset();
 
+            // Сброс прогресса = новая попытка с обучения: статистика и плейтайм
+            // прошлого забега не должны в неё попасть.
+            RunStatsTracker.Instance?.EndRun();
+
             if (SceneLoader.Instance != null)
                 SceneLoader.Instance.LoadScene(_tutorialSceneName);
             else

@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using ShellGame.AI;
 using ShellGame.Core;
+using ShellGame.Dialogue;
 using ShellGame.Feedback;
 using ShellGame.Health;
 using ShellGame.Items;
@@ -32,9 +33,15 @@ namespace ShellGame.Gameplay
         [HideInInspector] private HealthController _healthController;
         [HideInInspector] private EnemyAIController _enemyAI;
         [HideInInspector] private RoundStartButton _roundStartButton;
+        [Header("Урон")]
+        [Tooltip("Урон дозой (поднят наперсток с меткой) всегда идёт через укол иглой: " +
+                 "анимацию запускает HealthController, а урон внутри неё списывает " +
+                 "событие анимации. Нож и молоток иглу не запускают. " +
+                 "Задержка возврата хода — в HealthProgressionConfig.")]
         [SerializeField] private HealthProgressionConfig _healthProgressionConfig;
         [HideInInspector] private TurnIndicatorController _turnIndicator;
         [HideInInspector] private ItemSpawner _itemSpawner;
+        [HideInInspector] private EnemyLookController _enemyLookController;
         [SerializeField] private TurnSide _startingSide = TurnSide.Player;
 
         [SerializeField] private int _levelIndex = 0;
@@ -44,15 +51,6 @@ namespace ShellGame.Gameplay
         [SerializeField] private float _roundEndDelay = 0.5f;
         [SerializeField] private float _shuffleDelay = 0.15f;
 
-        [Header("Урон игроку")]
-        [Tooltip("Задержки для урона игроку настраиваются в HealthProgressionConfig " +
-                 "(DamageToPlayerDelay, TurnReturnDelayAfterPlayerDamage).")]
-        [HideInInspector] private PlayerDamageFeedback _playerDamageFeedback;
-
-        [Tooltip("Реакции на урон врагу. Укол иглой (урон дозой) проигрывается " +
-                 "из RevealResult отдельной корутиной PlayNeedleInjectionRoutine; " +
-                 "урон от ножа иглы не запускает.")]
-        [HideInInspector] private EnemyDamageFeedback _enemyDamageFeedback;
 
         private RoundState _state = RoundState.Idle;
         private RoundParameters _currentParameters;
@@ -114,16 +112,12 @@ namespace ShellGame.Gameplay
             RoundStartButton roundStartButton,
             TurnIndicatorController turnIndicator,
             ItemSpawner itemSpawner,
-            GameSessionProgression sessionProgression,
-            PlayerDamageFeedback playerDamageFeedback,
-            EnemyDamageFeedback enemyDamageFeedback)
+            GameSessionProgression sessionProgression)
         {
             Initialize(roundGenerator, inputSystem, shuffleSystem, healthController, enemyAI,
                 roundStartButton, _healthProgressionConfig, _startingSide, turnIndicator);
             _itemSpawner = itemSpawner;
             _sessionProgression = sessionProgression;
-            _playerDamageFeedback = playerDamageFeedback;
-            _enemyDamageFeedback = enemyDamageFeedback;
         }
 
         private readonly Dictionary<TurnSide, int> _nextHitMultiplier = new Dictionary<TurnSide, int>
@@ -154,6 +148,27 @@ namespace ShellGame.Gameplay
 
         public static bool IsTutorialCompleted() =>
             PlayerPrefs.GetInt(TutorialCompletedPrefKey, 0) == 1;
+
+        public const string TutorialSceneName = "Tutorial";
+        public const string FirstGameplaySceneName = "Level_1";
+
+        /// <summary>
+        /// Сцена, с которой должна начинаться новая попытка или рестарт:
+        /// обучение пройдено — первый игровой уровень, не пройдено — обучение.
+        /// Единая точка для MainMenuController, PauseController и SceneLoader,
+        /// чтобы «новая попытка» и «рестарт» не разъезжались.
+        /// Имена сцен проверяются на загрузочность: пустая/битая/переименованная
+        /// строка откатывается на встроенный дефолт, а не грузит «никуда».
+        /// </summary>
+        public static string GetNewRunSceneName(string tutorialScene = null, string firstGameplayScene = null)
+        {
+            string tutorial = IsLoadableSceneName(tutorialScene) ? tutorialScene : TutorialSceneName;
+            string firstGameplay = IsLoadableSceneName(firstGameplayScene) ? firstGameplayScene : FirstGameplaySceneName;
+            return IsTutorialCompleted() ? firstGameplay : tutorial;
+        }
+
+        private static bool IsLoadableSceneName(string sceneName) =>
+            !string.IsNullOrEmpty(sceneName) && Application.CanStreamedLevelBeLoaded(sceneName);
 
         /// <summary>Игрок хотя бы раз загрузился на втором уровне — первый уровень больше не "пустой" и предметы на нём должны спавниться.</summary>
         public static bool AreFirstLevelItemsUnlocked() =>
@@ -200,6 +215,14 @@ namespace ShellGame.Gameplay
 
             RunStatsTracker.EnsureExists();
 
+            // Забег живёт между уровнями, поэтому старт статистики здесь
+            // идемпотентный: новая попытка (обучение или Level_1 после него) —
+            // счёт с нуля, а переход на следующий уровень внутри того же забега
+            // ничего не обнуляет. Раньше сброс жил только в ветке Tutorial,
+            // из-за чего забег, начавшийся с Level_1, показывал статистику
+            // и время ПРЕДЫДУЩЕЙ попытки.
+            RunStatsTracker.Instance?.EnsureRunStarted();
+
             // Одноразовый флаг — потребляем немедленно, чтобы случайная
             // повторная загрузка этой же сцены (например, обычный переход
             // между уровнями внутри забега) никогда не попыталась
@@ -243,7 +266,6 @@ namespace ShellGame.Gameplay
                     _completedRoundsInSession = 0;
                     _levelIndex = 0;
                     _roundIndex = 0;
-                    RunStatsTracker.Instance.StartRun();
 
                     if (!IsTutorialCompleted())
                     {
@@ -636,10 +658,26 @@ namespace ShellGame.Gameplay
                     // Проверяем, проходим ли мы обучение прямо сейчас
                     bool isTutorialActive = IsTutorialActive();
 
-                    // Если это НЕ обучение — показываем кнопку и включаем ввод
+                    if (!isTutorialActive && _roundStartButton != null)
+                    {
+                        // Кнопка появляется на столе сразу вместе с предметами,
+                        // но остаётся некликабельной: враг ещё не договорил
+                        // вступление, и трогать её раньше времени нельзя.
+                        _roundStartButton.SetInteractable(false);
+                        _roundStartButton.Show();
+                    }
+
+                    // Враг может встречать игрока репликами на входе — не даём
+                    // начать раунд, пока он не договорит. Кадр ждём, чтобы
+                    // директор реакций (он поднимается по смене активной сцены)
+                    // успел занять гейт.
+                    yield return new WaitForEndOfFrame();
+                    yield return EnemyReactionGate.WaitWhileBusy();
+
+                    // Если это НЕ обучение — включаем ввод и кнопку
                     if (!isTutorialActive)
                     {
-                        if (_roundStartButton != null) _roundStartButton.Show();
+                        if (_roundStartButton != null) _roundStartButton.SetInteractable(true);
                         if (_inputSystem != null) _inputSystem.SetEnabled(true);
                     }
 
@@ -703,6 +741,7 @@ namespace ShellGame.Gameplay
                         _selectedShell = null;
                         if (_activeSide == TurnSide.Player)
                         {
+                            yield return WaitForGameplayGate();
                             _inputSystem.SetEnabled(true);
                         }
                         else
@@ -774,37 +813,32 @@ namespace ShellGame.Gameplay
                             while (_tutorialBeforeDamagePaused) yield return null;
                         }
 
-                        if (_selectedShell.HasMarker)
+                        if (_selectedShell.HasMarker && _healthController != null)
                         {
                             var damagedSide = Opposite(_activeSide);
 
-                            // 1. Кому нанесён урон дозой (поднят наперсток с меткой) — сначала
-                            // полностью доигрывает анимация укола иглой, только потом
-                            // списывается урон. Урон от ножа/молотка иглу не запускает:
-                            // он идёт напрямую в HealthController и даёт только реакцию.
-                            if (damagedSide == TurnSide.Player && _playerDamageFeedback != null)
-                                yield return _playerDamageFeedback.PlayNeedleInjectionRoutine();
-                            else if (damagedSide == TurnSide.Enemy && _enemyDamageFeedback != null)
-                                yield return _enemyDamageFeedback.PlayNeedleInjectionRoutine();
-
-                            // 2. Дополнительная задержка перед самим списанием урона
-                            // (даёт подъёму наперстка/уколу окончательно "осесть").
-                            float damageToPlayerDelay = _healthProgressionConfig != null
-                                ? _healthProgressionConfig.DamageToPlayerDelay : 0f;
-                            if (damagedSide == TurnSide.Player && damageToPlayerDelay > 0f)
-                                yield return new WaitForSeconds(damageToPlayerDelay);
-
+                            // Урон дозой всегда идёт через укол иглой: анимацию
+                            // запускает сам HealthController, а урон внутри укола
+                            // списывает событие анимации на объекте иглы
+                            // (NeedleMetalSqueak.ApplyDamage) в момент входа иглы
+                            // в тело. Нож и молоток иглу не запускают — они бьют
+                            // через ApplyDamage без needNeedleAnim.
                             int baseDamage = _healthProgressionConfig != null ? _healthProgressionConfig.DamagePerHit : 1;
                             int multiplier = ConsumeDamageMultiplier(_activeSide);
                             int damage = baseDamage * multiplier;
-                            bool died = _healthController != null && _healthController.ApplyDamage(damagedSide, damage);
-                            if (died)
+
+                            // Возвращаемое значение здесь игнорируется: урон
+                            // отложен, поэтому смерть читаем после укола.
+                            _healthController.ApplyDamage(damagedSide, damage, needNeedleAnim: true);
+                            yield return _healthController.WaitForNeedleInjection();
+
+                            if (_healthController.IsDead(damagedSide))
                             {
                                 _state = RoundState.GameOver;
                                 break;
                             }
 
-                            // 3. Ход возвращается игроку с задержкой — пауза после списания
+                            // Ход возвращается игроку с задержкой — пауза после списания
                             // урона, чтобы реакция (виньетка, тряска) успела прочитаться.
                             float turnReturnDelay = _healthProgressionConfig != null
                                 ? _healthProgressionConfig.TurnReturnDelayAfterPlayerDamage : 0f;
@@ -822,6 +856,11 @@ namespace ShellGame.Gameplay
                             while (_tutorialGameplayPaused) yield return null;
                         }
 
+                        // Реакция врага на открытый напёрток: держим геймплей, пока
+                        // он не договорит. Финальные реплики уровня держат сцену
+                        // сами (SceneTransitionGate), урон к этому моменту уже списан.
+                        yield return WaitForGameplayGate();
+
                         if (_extraTurnRequested[_activeSide])
                         {
                             _extraTurnRequested[_activeSide] = false;
@@ -831,6 +870,11 @@ namespace ShellGame.Gameplay
                             _state = RoundState.InitiativeAnimation;
                             break;
                         }
+
+                        // В конце хода враг поворачивает голову на игрока: наперсток
+                        // уже выбран, урон списан — пусть смотрит на жертву.
+                        if (_activeSide == TurnSide.Enemy)
+                            LookEnemyAtPlayer();
 
                         _activeSide = Opposite(_activeSide);
                         GameEvents.RaiseActiveSideChanged(_activeSide);
@@ -954,6 +998,26 @@ namespace ShellGame.Gameplay
             _state = RoundState.Generate;
         }
 
+        /// <summary>
+        /// Доводит голову врага до игрока. Цель — позиция камеры игрока: в игре
+        /// от первого лица именно она соответствует тому, где стоит игрок.
+        /// Вызов неблокирующий, геймплей при этом не встаёт.
+        /// </summary>
+        private void LookEnemyAtPlayer()
+        {
+            if (_enemyLookController == null)
+                _enemyLookController = FindFirstObjectByType<EnemyLookController>();
+
+            if (_enemyLookController == null)
+                return;
+
+            var playerCamera = Camera.main;
+            if (playerCamera == null)
+                return;
+
+            _enemyLookController.LookAtPoint(playerCamera.transform.position);
+        }
+
         public void ContinueTutorialReveal() => _state = _state == RoundState.WaitForTutorialReveal ? RoundState.Reveal : _state;
         public void ContinueTutorialShuffle() => _state = _state == RoundState.WaitForTutorialReveal ? RoundState.Shuffle : _state;
 
@@ -977,6 +1041,16 @@ namespace ShellGame.Gameplay
         {
             if (_activeSide == TurnSide.Enemy && _enemyAI != null) _enemyAI.ExitTrackShuffle();
             if (_state == RoundState.Shuffle) _state = RoundState.PlayerTurn;
+        }
+
+        /// <summary>
+        /// Ждёт, пока враг договорит (реакции держат GameplayGate). Таймаут
+        /// внутри гейта страхует от зависшего хода, если реплику нечем закрыть.
+        /// </summary>
+        private static IEnumerator WaitForGameplayGate()
+        {
+            if (GameplayGate.IsBlocked)
+                yield return GameplayGate.WaitUntilUnblocked();
         }
     }
 }

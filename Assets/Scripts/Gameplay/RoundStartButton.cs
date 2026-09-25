@@ -22,6 +22,9 @@ namespace ShellGame.Gameplay
         private Tween _clickTween;
         private bool _isInteractable = true;
 
+        /// <summary>Кнопка уже появилась на столе (но ещё может быть не кликабельной).</summary>
+        public bool IsShown => gameObject.activeInHierarchy;
+
         private Vector3 GetSafeBaseScale()
         {
             if (_baseScale.x <= 0.001f && _baseScale.y <= 0.001f && _baseScale.z <= 0.001f)

@@ -316,6 +316,7 @@ public class PauseController : MonoBehaviour
     private IEnumerator PauseRoutine()
     {
         IsPaused = true;
+        RunStatsTracker.Instance?.SuspendClock();
 
         _timeScaleBeforePause = Time.timeScale;
         Time.timeScale = 0f;
@@ -404,6 +405,7 @@ public class PauseController : MonoBehaviour
             if (look != null) look.enabled = true;
 
         IsPaused = false;
+        RunStatsTracker.Instance?.ResumeClock();
         _pausedFromCamera = null;
 
         OnResumed?.Invoke();
@@ -417,6 +419,10 @@ public class PauseController : MonoBehaviour
 
         Time.timeScale = 1f;
         IsPaused = false;
+
+        // Забег не закончился — игрок ушёл в меню, значит время в меню не
+        // должно попасть в плейтайм. "Продолжить попытку" вернёт секундомер.
+        RunStatsTracker.Instance?.SuspendClock();
 
         if (SceneLoader.Instance != null)
             SceneLoader.Instance.LoadScene(mainMenuSceneName);
@@ -463,10 +469,18 @@ public class PauseController : MonoBehaviour
         if (GameSessionProgression.Instance != null)
             GameSessionProgression.Instance.Reset();
 
+        // Рестарт = новая попытка, статистика предыдущей больше неактуальна.
+        RunStatsTracker.Instance?.EndRun();
+
+        // Рестарт не должен отправлять обучившегося игрока в обучение заново:
+        // обучение пройдено — начинаем с Level_1, иначе — с Tutorial.
+        string targetScene = GameManager.GetNewRunSceneName();
+        Debug.Log($"[PauseController] Рестарт попытки со сцены '{targetScene}' (обучение пройдено: {GameManager.IsTutorialCompleted()}).");
+
         if (SceneLoader.Instance != null)
-            SceneLoader.Instance.LoadScene("Tutorial"); 
+            SceneLoader.Instance.LoadScene(targetScene);
         else
-            UnityEngine.SceneManagement.SceneManager.LoadScene("Tutorial");
+            UnityEngine.SceneManagement.SceneManager.LoadScene(targetScene);
     }
 
     private void OnDestroy()

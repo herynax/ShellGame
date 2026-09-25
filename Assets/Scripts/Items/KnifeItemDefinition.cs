@@ -84,6 +84,10 @@ namespace ShellGame.Items
 
         private void ExecuteStrike(ItemEffectContext context, KnifeVisual knife, TurnSide targetSide, int damage)
         {
+            // Промах: удар пришёлся по самому себе (по пустому напёртку).
+            if (targetSide == context.UserSide)
+                ItemUseEvents.RaiseItemSelfHit(context.UserSide);
+
             if (knife == null)
             {
                 context.Health.ApplyDamage(targetSide, damage);

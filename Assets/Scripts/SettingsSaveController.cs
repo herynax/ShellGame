@@ -103,6 +103,11 @@ public class SettingsSaveController : MonoBehaviour
 /// к сценам/префабам, поэтому их Instance были null и вся система "сохранить /
 /// отменить изменения" молча не работала: SaveAll()/MarkDirty() были no-op, а
 /// SoundSettingsUI уходил по раннему return — слайдеры звука не реагировали вовсе.
+///
+/// С тем же дефектом были графические настройки: DisplaySettingsManager и
+/// FpsCounterManager не лежали ни в одной сцене/префабе (тумблер VSync, стрелки
+/// лимита FPS и счётчик были мертвы, а из PlayerPrefs ничего не применялось), а
+/// ResolutionSettingsManager жил только на неактивном префабе меню настроек.
 /// </summary>
 public static class SettingsServicesBootstrap
 {
@@ -111,5 +116,8 @@ public static class SettingsServicesBootstrap
     {
         SettingsSaveController.EnsureExists();
         SoundSettingsManager.EnsureExists();
+        DisplaySettingsManager.EnsureExists();
+        ResolutionSettingsManager.EnsureExists();
+        FpsCounterManager.EnsureExists();
     }
 }

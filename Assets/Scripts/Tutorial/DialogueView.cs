@@ -37,6 +37,14 @@ namespace ShellGame.Tutorial
 
             Show(line);
 
+            // Клик, которым игрок закрыл ПРЕДЫДУЩУЮ реплику, не должен закрывать
+            // и эту: без защиты новая реплика получала clicked = true в том же
+            // кадре, когда только появилась, и тут же уходила по своему таймеру
+            // (выглядело как «автоскип» сразу после скипа игрока). Ввод в кадре
+            // показа игнорируем — таймер реплики стартует заново, и чтобы её
+            // закрыть, нужен свой клик.
+            int shownFrame = Time.frameCount;
+
             float timer = 0f;
             bool clicked = false;
 
@@ -47,26 +55,26 @@ namespace ShellGame.Tutorial
                 bool inputTriggered = false;
 
 #if ENABLE_INPUT_SYSTEM
-                // �������� ������ ����� ������ ���� (���)
+                // �������� ������ ����� ������ ���� (���)
                 if (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
                     inputTriggered = true;
 
-                // �������� ������ ������ � Enter
+                // �������� ������ ������ � Enter
                 if (Keyboard.current != null && (Keyboard.current.spaceKey.wasPressedThisFrame || Keyboard.current.enterKey.wasPressedThisFrame))
                     inputTriggered = true;
 
-                // ��� �� ������ (�������������� � ��� ��� �������/���������)
+                // ��� �� ������ (�������������� � ��� ��� �������/���������)
                 if (Touchscreen.current != null && Touchscreen.current.primaryTouch.press.wasPressedThisFrame)
                     inputTriggered = true;
 #endif
 
 #if ENABLE_LEGACY_INPUT_MANAGER
-                // ������ ������� �����: ������ ���(0), ������ � Enter/Return
+                // ������ ������� �����: ������ ���(0), ������ � Enter/Return
                 if (Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Return))
                     inputTriggered = true;
 #endif
 
-                if (inputTriggered)
+                if (inputTriggered && Time.frameCount > shownFrame)
                     clicked = true;
 
                 bool minTimePassed = timer >= line.MinDisplayDuration;

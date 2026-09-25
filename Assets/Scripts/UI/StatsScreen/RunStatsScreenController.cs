@@ -85,6 +85,11 @@ namespace ShellGame.UI
             _previousCursorVisible = Cursor.visible;
             DisableLookControllers();
 
+            // Экран ждёт клика по кнопке — курсор нужен с самого его появления.
+            // Обратно его вернёт вызывающий (SceneLoader прячет перед загрузкой).
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+
             gameObject.SetActive(true);
             _continueRequested = false;
             if (_continueButton != null)
@@ -136,10 +141,6 @@ namespace ShellGame.UI
                 _continueButton.gameObject.SetActive(true);
                 _continueButton.interactable = true;
             }
-
-            // Курсор нужен игроку только после завершения показа статистики.
-            Cursor.lockState = CursorLockMode.None;
-            Cursor.visible = true;
 
             while (!_continueRequested) yield return null;
 

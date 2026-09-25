@@ -26,14 +26,11 @@ namespace ShellGame.Health
         public int DamagePerHit = 1;
 
         [Header("Задержки урона игроку (раньше лежали в инспекторе GameManager)")]
-        [Tooltip("Задержка перед фактическим нанесением урона игроку после вскрытия " +
-                 "наперстка с меткой — даёт анимации укола иглой и подъёма наперстка " +
-                 "доиграть до конца, прежде чем спишется здоровье.")]
-        public float DamageToPlayerDelay = 0.5f;
-
         [Tooltip("Пауза после урона игроку, прежде чем ход вернётся к нему " +
                  "(идёт после отыгрыша анимации укола, реакции и списания урона). " +
-                 "0 — без дополнительной паузы.")]
+                 "0 — без дополнительной паузы. Задержка ДО списания урона игроку " +
+                 "больше не нужна: её задаёт момент входа иглы в тело, то есть " +
+                 "событие анимации (NeedleMetalSqueak.ApplyDamage).")]
         public float TurnReturnDelayAfterPlayerDamage = 0.35f;
 
         public (int playerMax, int enemyMax) GetHealthForLevel(int levelIndex)

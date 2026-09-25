@@ -22,6 +22,7 @@ MonoBehaviour:
   ShuffleLevelReduction: 0.05
   ShuffleEase: 4
   EnemyShuffleSpeedMultiplier: 0.55
+  EnemyShuffleMoveDurationMin: 0.18
   HoverScale: 1.2
   HoverTweenDuration: 0.12
   HoverAuraPrefab: {fileID: 5413855323393444088, guid: 6e4ca1a29bae0d74f9862336019269c2,

@@ -1,0 +1,1615 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a7d49291d1132b817af9513097eb7558, type: 3}
+  m_Name: GnevReactions
+  m_EditorClassIdentifier: Assembly-CSharp::ShellGame.Dialogue.EnemyReactionConfig
+  Scenes:
+  - Level_1
+  EnemyId: Gnev
+  LineChance: 0.55
+  MinSecondsBetweenLines: 5
+  MaxLinesPerTurn: 1
+  PlayerThinkingWarningSeconds: 4
+  FirstLineDelaySeconds: 0.6
+  Rules:
+  - Context: 0
+    Priority: 100
+    AlwaysShow: 1
+    CooldownSeconds: 0
+    MinTurn: 1
+    MaxTurn: 0
+    Conditions: []
+    Groups:
+    - Name: "\u0432\u0441\u0442\u0443\u043F\u043B\u0435\u043D\u0438\u0435"
+      Lines:
+      - Text: "\u041D\u0443 \u0437\u0434\u0440\u0430\u0432\u0441\u0442\u0432\u0443\u0439"
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+      - Text: "\u0417\u043D\u0430\u043A\u043E\u043C\u0438\u0442\u044C\u0441\u044F
+          \u043D\u0435 \u0445\u043E\u0447\u0443, \u0431\u043E\u043B\u0442\u0430\u0442\u044C
+          \u0442\u043E\u0436\u0435"
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+      - Text: "\u041D\u0430\u0434\u0435\u044E\u0441\u044C, \u0445\u043E\u0442\u044F
+          \u0431\u044B \u0442\u044F\u043D\u0443\u0442\u044C \u0432\u0440\u0435\u043C\u044F
+          \u043D\u0435 \u0431\u0443\u0434\u0435\u0448\u044C, \u0430 \u0442\u043E
+          \u0442\u0435\u0440\u043F\u0435\u043D\u0438\u044F \u0443 \u043C\u0435\u043D\u044F
+          \u043C\u0430\u043B\u043E"
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+      - Text: "\u0414\u0430\u0432\u0430\u0439 \u043D\u0430\u0447\u0438\u043D\u0430\u0442\u044C,
+          \u043D\u0435 \u0445\u043E\u0447\u0443 \u0441 \u0442\u043E\u0431\u043E\u0439
+          \u0434\u043E\u043B\u0433\u043E \u0432\u043E\u0437\u0438\u0442\u044C\u0441\u044F"
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+  - Context: 8
+    Priority: 200
+    AlwaysShow: 1
+    CooldownSeconds: 0
+    MinTurn: 1
+    MaxTurn: 1
+    Conditions: []
+    Groups:
+    - Name: "\u0440\u0430\u0437\u043E\u0447\u0430\u0440\u043E\u0432\u0430\u043D\u0438\u0435"
+      Lines:
+      - Text: "\u0421\u043A\u043E\u0442\u0438\u043D\u0430\u2026"
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+      - Text: "\u0412\u0441\u0442\u0440\u0435\u0442\u0438\u043C\u0441\u044F, \u043A\u043E\u0433\u0434\u0430
+          \u0442\u0435\u0431\u044F \u043E\u043F\u044F\u0442\u044C \u043F\u043E \u043A\u0440\u0443\u0433\u0443
+          \u043F\u0443\u0441\u0442\u044F\u0442."
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+    - Name: "\u0437\u043B\u043E\u0441\u0442\u044C"
+      Lines:
+      - Text: "\u0414\u0430 \u0447\u0442\u043E\u0431 \u0442\u0435\u0431\u044F\u2026"
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+      - Text: "\u042F \u044D\u0442\u0443 \u0434\u0440\u044F\u043D\u044C \u0434\u043E
+          \u0441\u0438\u0445 \u043F\u043E\u0440 \u0447\u0443\u0432\u0441\u0442\u0432\u0443\u044E"
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+      - Text: "\u0418 \u043F\u043E\u0441\u043B\u0435 \u044D\u0442\u043E\u0433\u043E
+          \u0442\u044B \u0435\u0449\u0451 \u0432\u044B\u0438\u0433\u0440\u044B\u0432\u0430\u043B"
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+      - Text: "\u0412\u043E\u0442 \u044D\u0442\u043E \u044F \u0442\u0435\u0431\u0435
+          \u043D\u0435 \u0437\u0430\u0431\u0443\u0434\u0443."
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+  - Context: 4
+    Priority: 200
+    AlwaysShow: 1
+    CooldownSeconds: 0
+    MinTurn: 1
+    MaxTurn: 1
+    Conditions:
+    - Type: 2
+      Item: {fileID: 0}
+      User: 0
+      Amount: 0
+      Seconds: 0
+      Fraction: 0
+    Groups:
+    - Name: "\u043F\u0440\u0435\u0437\u0440\u0435\u043D\u0438\u0435"
+      Lines:
+      - Text: "\u041C\u0440\u0430\u0437\u044C\u2026"
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+      - Text: "\u041F\u043E\u0437\u043E\u0440\u043D\u043E \u043F\u0440\u043E\u0438\u0433\u0440\u044B\u0432\u0430\u0442\u044C
+          \u0442\u0435\u0431\u0435."
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+  - Context: 9
+    Priority: 300
+    AlwaysShow: 1
+    CooldownSeconds: 0
+    MinTurn: 0
+    MaxTurn: 0
+    Conditions: []
+    Groups:
+    - Name: "\u0444\u0438\u043D\u0430\u043B: \u043F\u043E\u0440\u0430\u0436\u0435\u043D\u0438\u0435"
+      Lines:
+      - Text: "\u0412\u043E\u0442 \u0438 \u0432\u0441\u0451. \u0410 \u044F \u0434\u0443\u043C\u0430\u043B,
+          \u0441 \u0442\u043E\u0431\u043E\u0439 \u0434\u043E\u043B\u044C\u0448\u0435
+          \u0432\u043E\u0437\u0438\u0442\u044C\u0441\u044F \u043F\u0440\u0438\u0434\u0451\u0442\u0441\u044F"
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+      - Text: "\u041D\u0443 \u043D\u0430\u043A\u043E\u043D\u0435\u0446-\u0442\u043E.
+          \u0423\u0436\u0435 \u043D\u0430\u0447\u0430\u043B \u043C\u043D\u0435 \u043D\u0430\u0434\u043E\u0435\u0434\u0430\u0442\u044C"
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+      - Text: "\u0412\u043E\u0442 \u0442\u0435\u043F\u0435\u0440\u044C \u0437\u0430\u043A\u043E\u043D\u0447\u0438\u043B\u0438.
+          \u0422\u0430\u043A \u0433\u043E\u0440\u0430\u0437\u0434\u043E \u043B\u0443\u0447\u0448\u0435"
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+      - Text: "\u041D\u0443 \u0447\u0442\u043E, \u0434\u043E\u0438\u0433\u0440\u0430\u043B\u0441\u044F?
+          \u042F \u043F\u0440\u0435\u0434\u0443\u043F\u0440\u0435\u0436\u0434\u0430\u0442\u044C
+          \u043D\u0435 \u0441\u043E\u0431\u0438\u0440\u0430\u043B\u0441\u044F"
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+      - Text: "\u041D\u0438\u0447\u0435\u0433\u043E \u043B\u0438\u0447\u043D\u043E\u0433\u043E.
+          \u041F\u0440\u043E\u0441\u0442\u043E \u0442\u044B \u0437\u0430\u043A\u043E\u043D\u0447\u0438\u043B\u0441\u044F
+          \u0440\u0430\u043D\u044C\u0448\u0435"
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+  - Context: 4
+    Priority: 100
+    AlwaysShow: 0
+    CooldownSeconds: 12
+    MinTurn: 0
+    MaxTurn: 0
+    Conditions:
+    - Type: 2
+      Item: {fileID: 0}
+      User: 0
+      Amount: 0
+      Seconds: 0
+      Fraction: 0
+    Groups:
+    - Name: "\u043F\u0440\u043E\u043C\u0430\u0445 #1"
+      Lines:
+      - Text: "\u0423\u0434\u0438\u0432\u0438\u0442\u0435\u043B\u044C\u043D\u043E.
+          \u0422\u0440\u0438 \u0435\u0431\u0430\u043D\u044B\u0445 \u0432\u0430\u0440\u0438\u0430\u043D\u0442\u0430
+          \u2014 \u0438 \u0442\u044B \u0432\u0441\u0451 \u0440\u0430\u0432\u043D\u043E
+          \u043D\u0430\u0445\u043E\u0434\u0438\u0448\u044C \u043D\u0435\u043F\u0440\u0430\u0432\u0438\u043B\u044C\u043D\u044B\u0439."
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+    - Name: "\u043F\u0440\u043E\u043C\u0430\u0445 #2"
+      Lines:
+      - Text: "\u0422\u044B \u0432\u0441\u0435\u0433\u0434\u0430 \u0441\u043D\u0430\u0447\u0430\u043B\u0430
+          \u043D\u0430\u0436\u0438\u043C\u0430\u0435\u0448\u044C, \u0430 \u043F\u043E\u0442\u043E\u043C
+          \u043D\u0430\u0447\u0438\u043D\u0430\u0435\u0448\u044C \u043F\u043E\u043D\u0438\u043C\u0430\u0442\u044C?"
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+    - Name: "\u043F\u0440\u043E\u043C\u0430\u0445 #3"
+      Lines:
+      - Text: "\u041E\u043F\u044F\u0442\u044C. \u0422\u044B \u0432\u043E\u043E\u0431\u0449\u0435
+          \u0441\u043F\u043E\u0441\u043E\u0431\u0435\u043D \u0447\u0435\u043C\u0443-\u043D\u0438\u0431\u0443\u0434\u044C
+          \u043D\u0430\u0443\u0447\u0438\u0442\u044C\u0441\u044F?"
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+    - Name: "\u043F\u0440\u043E\u043C\u0430\u0445 #4"
+      Lines:
+      - Text: "\u0422\u044B \u043F\u0440\u0430\u0432\u0434\u0430 \u0432\u044B\u0431\u0440\u0430\u043B
+          \u0438\u043C\u0435\u043D\u043D\u043E \u044D\u0442\u043E\u0442?"
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+    - Name: "\u043F\u0440\u043E\u043C\u0430\u0445 #5"
+      Lines:
+      - Text: "\u0422\u044B \u0432\u043E\u043E\u0431\u0449\u0435 \u0434\u0443\u043C\u0430\u0435\u0448\u044C
+          \u043A\u043E\u0433\u0434\u0430 \u0432\u044B\u0431\u0438\u0440\u0430\u0435\u0448\u044C?"
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+  - Context: 4
+    Priority: 100
+    AlwaysShow: 0
+    CooldownSeconds: 12
+    MinTurn: 0
+    MaxTurn: 0
+    Conditions:
+    - Type: 1
+      Item: {fileID: 0}
+      User: 0
+      Amount: 0
+      Seconds: 0
+      Fraction: 0
+    Groups:
+    - Name: "\u043F\u043E\u043F\u0430\u0434\u0430\u043D\u0438\u0435 #1"
+      Lines:
+      - Text: "\u041E\u0434\u0438\u043D \u0440\u0430\u0437 \u043D\u0435 \u043E\u0431\u043E\u0441\u0440\u0430\u043B\u0441\u044F
+          \u2014 \u0443\u0436\u0435 \u0434\u043E\u0432\u043E\u043B\u0435\u043D?"
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+    - Name: "\u043F\u043E\u043F\u0430\u0434\u0430\u043D\u0438\u0435 #2"
+      Lines:
+      - Text: "\u041C\u043E\u043B\u043E\u0434\u0435\u0446. \u041C\u0435\u0434\u0430\u043B\u044C
+          \u0442\u0435\u0431\u0435 \u0434\u0430\u0442\u044C?"
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+    - Name: "\u043F\u043E\u043F\u0430\u0434\u0430\u043D\u0438\u0435 #3"
+      Lines:
+      - Text: "\u041E, \u043F\u043E\u043F\u0430\u043B. \u0421\u0435\u0439\u0447\u0430\u0441
+          \u0435\u0449\u0451 \u0433\u043E\u0440\u0434\u0438\u0442\u044C\u0441\u044F
+          \u0441\u043E\u0431\u043E\u0439 \u043D\u0430\u0447\u043D\u0451\u0448\u044C."
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+    - Name: "\u043F\u043E\u043F\u0430\u0434\u0430\u043D\u0438\u0435 #4"
+      Lines:
+      - Text: "\u0422\u043E\u043B\u044C\u043A\u043E \u043F\u043E\u043F\u0440\u043E\u0431\u0443\u0439
+          \u0440\u0435\u0448\u0438\u0442\u044C, \u0447\u0442\u043E \u044D\u0442\u043E
+          \u0442\u044B \u0445\u043E\u0440\u043E\u0448\u043E \u0441\u044B\u0433\u0440\u0430\u043B."
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+    - Name: "\u043F\u043E\u043F\u0430\u0434\u0430\u043D\u0438\u0435 #6"
+      Lines:
+      - Text: "\u0422\u044B \u043C\u0435\u043D\u044F \u043D\u0435 \u043F\u043E\u0431\u0435\u0434\u0438\u043B.
+          \u0421\u043B\u044B\u0448\u0438\u0448\u044C? \u041D\u0415 \u041F\u041E\u0411\u0415\u0414\u0418\u041B."
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+    - Name: "\u043F\u043E\u043F\u0430\u0434\u0430\u043D\u0438\u0435 #8"
+      Lines:
+      - Text: "\u0423\u0433\u0443. \u0422\u0435\u043F\u0435\u0440\u044C \u0442\u043E\u043B\u044C\u043A\u043E
+          \u043D\u0435 \u0432\u043E\u043E\u0431\u0440\u0430\u0437\u0438 \u043B\u0438\u0448\u043D\u0435\u0433\u043E."
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+  - Context: 5
+    Priority: 100
+    AlwaysShow: 0
+    CooldownSeconds: 10
+    MinTurn: 0
+    MaxTurn: 0
+    Conditions:
+    - Type: 4
+      Item: {fileID: 0}
+      User: 0
+      Amount: 0
+      Seconds: 0
+      Fraction: 0
+    Groups:
+    - Name: "\u0432\u0440\u0430\u0433 \u043F\u0440\u043E\u043C\u0430\u0445 #1"
+      Lines:
+      - Text: "\u041D\u0435 \u043B\u044B\u0431\u044C\u0441\u044F. \u0422\u044B \u0442\u0443\u0442
+          \u0432\u043E\u043E\u0431\u0449\u0435 \u043D\u0438 \u043F\u0440\u0438 \u0447\u0451\u043C."
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+    - Name: "\u0432\u0440\u0430\u0433 \u043F\u0440\u043E\u043C\u0430\u0445 #2"
+      Lines:
+      - Text: "\u0421\u043C\u043E\u0442\u0440\u0438 \u043A\u0430\u043A \u043E\u0436\u0438\u043B.
+          \u0416\u0430\u043B\u043A\u043E\u0435 \u0437\u0440\u0435\u043B\u0438\u0449\u0435."
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+    - Name: "\u0432\u0440\u0430\u0433 \u043F\u0440\u043E\u043C\u0430\u0445 #3"
+      Lines:
+      - Text: "\u041F\u0443\u0441\u0442\u043E."
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+    - Name: "\u0432\u0440\u0430\u0433 \u043F\u0440\u043E\u043C\u0430\u0445 #4"
+      Lines:
+      - Text: "\u041D\u0443 \u043A\u043E\u043D\u0435\u0447\u043D\u043E."
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+    - Name: "\u0432\u0440\u0430\u0433 \u043F\u0440\u043E\u043C\u0430\u0445 #5"
+      Lines:
+      - Text: "\u041B\u0430\u0434\u043D\u043E."
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+    - Name: "\u0432\u0440\u0430\u0433 \u043F\u0440\u043E\u043C\u0430\u0445 #6"
+      Lines:
+      - Text: "\u0414\u0430 \u043F\u043E\u0448\u043B\u043E \u043E\u043D\u043E \u043D\u0430\u0445\u0443\u0439."
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+    - Name: "\u0432\u0440\u0430\u0433 \u043F\u0440\u043E\u043C\u0430\u0445 #7"
+      Lines:
+      - Text: "\u041D\u0415 \u0411\u042B\u041B\u041E \u0422\u0410\u041C \u041F\u0423\u0421\u0422\u041E."
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+    - Name: "\u0432\u0440\u0430\u0433 \u043F\u0440\u043E\u043C\u0430\u0445 #8"
+      Lines:
+      - Text: "\u0415\u0429\u0401 \u0420\u0410\u0417"
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+    - Name: "\u0432\u0440\u0430\u0433 \u043F\u0440\u043E\u043C\u0430\u0445 #9"
+      Lines:
+      - Text: "\u042F \u041E\u041F\u0420\u041E\u0421\u0422\u041E\u0412\u041E\u041B\u041E\u0421\u0418\u041B\u0421\u042F!!!!"
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+    - Name: "\u0432\u0440\u0430\u0433 \u043F\u0440\u043E\u043C\u0430\u0445 #10"
+      Lines:
+      - Text: "\u042F \u0432\u0438\u0436\u0443, \u043A\u0430\u043A \u0442\u044B \u044D\u0442\u043E\u0433\u043E
+          \u0436\u0434\u0430\u043B."
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+  - Context: 5
+    Priority: 100
+    AlwaysShow: 0
+    CooldownSeconds: 10
+    MinTurn: 0
+    MaxTurn: 0
+    Conditions:
+    - Type: 3
+      Item: {fileID: 0}
+      User: 0
+      Amount: 0
+      Seconds: 0
+      Fraction: 0
+    Groups:
+    - Name: "\u0432\u0440\u0430\u0433 \u043F\u043E\u043F\u0430\u043B #1"
+      Lines:
+      - Text: "\u041D\u0438\u0447\u0435\u0433\u043E \u043B\u0438\u0447\u043D\u043E\u0433\u043E."
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+    - Name: "\u0432\u0440\u0430\u0433 \u043F\u043E\u043F\u0430\u043B #2"
+      Lines:
+      - Text: "\u0421\u0430\u043C \u0441\u044E\u0434\u0430 \u0441\u0435\u043B."
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+    - Name: "\u0432\u0440\u0430\u0433 \u043F\u043E\u043F\u0430\u043B #3"
+      Lines:
+      - Text: "\u0411\u043E\u043B\u044C\u043D\u043E? \u041D\u0430\u0434\u043E \u0431\u044B\u043B\u043E
+          \u0434\u0443\u043C\u0430\u0442\u044C \u0440\u0430\u043D\u044C\u0448\u0435."
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+    - Name: "\u0432\u0440\u0430\u0433 \u043F\u043E\u043F\u0430\u043B #4"
+      Lines:
+      - Text: "\u0412\u041E\u0422."
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+    - Name: "\u0432\u0440\u0430\u0433 \u043F\u043E\u043F\u0430\u043B #5"
+      Lines:
+      - Text: "\u041F\u043E\u043B\u0443\u0447\u0438\u043B?!"
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+    - Name: "\u0432\u0440\u0430\u0433 \u043F\u043E\u043F\u0430\u043B #6"
+      Lines:
+      - Text: "\u042F \u0442\u0435\u0431\u044F \u0435\u0449\u0451 \u043D\u0435 \u043E\u0442\u043F\u0443\u0441\u0442\u0438\u043B."
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+  - Context: 4
+    Priority: 120
+    AlwaysShow: 0
+    CooldownSeconds: 20
+    MinTurn: 0
+    MaxTurn: 0
+    Conditions:
+    - Type: 2
+      Item: {fileID: 0}
+      User: 0
+      Amount: 0
+      Seconds: 0
+      Fraction: 0
+    - Type: 5
+      Item: {fileID: 0}
+      User: 0
+      Amount: 3
+      Seconds: 0
+      Fraction: 0
+    Groups:
+    - Name: "\u0441\u0435\u0440\u0438\u044F \u043F\u0440\u043E\u043C\u0430\u0445\u043E\u0432"
+      Lines:
+      - Text: "\u0422\u044B \u043D\u0435 \u0443\u0447\u0438\u0448\u044C\u0441\u044F
+          \u0432\u043E\u043E\u0431\u0449\u0435, \u0434\u0430?"
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+  - Context: 4
+    Priority: 110
+    AlwaysShow: 0
+    CooldownSeconds: 10
+    MinTurn: 0
+    MaxTurn: 0
+    Conditions:
+    - Type: 2
+      Item: {fileID: 0}
+      User: 0
+      Amount: 0
+      Seconds: 0
+      Fraction: 0
+    - Type: 11
+      Item: {fileID: 0}
+      User: 0
+      Amount: 0
+      Seconds: 0.8
+      Fraction: 0
+    Groups:
+    - Name: "\u0431\u044B\u0441\u0442\u0440\u044B\u0439 \u043F\u0440\u043E\u043C\u0430\u0445"
+      Lines:
+      - Text: "\u0420\u0443\u043A\u0430 \u0431\u044B\u0441\u0442\u0440\u0435\u0435
+          \u0433\u043E\u043B\u043E\u0432\u044B. \u0421\u0440\u0430\u0437\u0443 \u0432\u0438\u0434\u043D\u043E."
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+  - Context: 4
+    Priority: 90
+    AlwaysShow: 0
+    CooldownSeconds: 20
+    MinTurn: 0
+    MaxTurn: 0
+    Conditions:
+    - Type: 2
+      Item: {fileID: 0}
+      User: 0
+      Amount: 0
+      Seconds: 0
+      Fraction: 0
+    - Type: 7
+      Item: {fileID: 0}
+      User: 0
+      Amount: 0
+      Seconds: 0
+      Fraction: 0.34
+    Groups:
+    - Name: "\u0445\u0438\u043B\u044B\u0439 \u0438\u0433\u0440\u043E\u043A #1"
+      Lines:
+      - Text: "\u041D\u0435 \u0434\u0451\u0440\u0433\u0430\u0439\u0441\u044F. \u041F\u043E\u0437\u0434\u043D\u043E
+          \u0441\u0442\u0430\u043D\u043E\u0432\u0438\u0442\u044C\u0441\u044F \u0432\u043D\u0438\u043C\u0430\u0442\u0435\u043B\u044C\u043D\u044B\u043C."
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+    - Name: "\u0445\u0438\u043B\u044B\u0439 \u0438\u0433\u0440\u043E\u043A #2"
+      Lines:
+      - Text: "\u041D\u0443 \u0447\u0442\u043E? \u0423\u0436\u0435 \u043D\u0435 \u0442\u0430\u043A\u043E\u0439
+          \u0443\u0432\u0435\u0440\u0435\u043D\u043D\u044B\u0439?"
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+    - Name: "\u0445\u0438\u043B\u044B\u0439 \u0438\u0433\u0440\u043E\u043A #3"
+      Lines:
+      - Text: "\u0422\u043E\u043B\u044C\u043A\u043E \u043D\u0435 \u043D\u0430\u0447\u0438\u043D\u0430\u0439
+          \u0442\u0435\u043F\u0435\u0440\u044C \u0436\u0430\u043B\u0435\u0442\u044C
+          \u0441\u0435\u0431\u044F."
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+    - Name: "\u0445\u0438\u043B\u044B\u0439 \u0438\u0433\u0440\u043E\u043A #4"
+      Lines:
+      - Text: "\u041D\u0435 \u043B\u0435\u0447\u0438\u0441\u044C. \u0414\u0430\u0432\u0430\u0439
+          \u0445\u043E\u0442\u044C \u0440\u0430\u0437 \u043E\u0442\u0432\u0435\u0447\u0430\u0439
+          \u0437\u0430 \u0442\u043E, \u0447\u0442\u043E \u043D\u0430\u0442\u0432\u043E\u0440\u0438\u043B."
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+    - Name: "\u0445\u0438\u043B\u044B\u0439 \u0438\u0433\u0440\u043E\u043A #5"
+      Lines:
+      - Text: "\u041D\u0443 \u0436\u0435. \u0421\u0434\u0435\u043B\u0430\u0439 \u0435\u0449\u0451
+          \u043E\u0434\u0438\u043D \u0441\u0432\u043E\u0439 \u043E\u0445\u0443\u0435\u043D\u043D\u044B\u0439
+          \u0432\u044B\u0431\u043E\u0440."
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+    - Name: "\u0445\u0438\u043B\u044B\u0439 \u0438\u0433\u0440\u043E\u043A #6"
+      Lines:
+      - Text: "\u0414\u0430\u0432\u0430\u0439, \u0431\u043B\u044F\u0434\u044C. \u041C\u043D\u0435
+          \u0443\u0436\u0435 \u0438\u043D\u0442\u0435\u0440\u0435\u0441\u043D\u043E,
+          \u043A\u0430\u043A \u0438\u043C\u0435\u043D\u043D\u043E \u0442\u044B \u044D\u0442\u043E
+          \u043F\u0440\u043E\u0435\u0431\u0451\u0448\u044C."
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+    - Name: "\u0445\u0438\u043B\u044B\u0439 \u0438\u0433\u0440\u043E\u043A #7"
+      Lines:
+      - Text: "\u041D\u0435 \u0442\u044F\u043D\u0438, \u0431\u043B\u044F\u0434\u044C."
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+    - Name: "\u0445\u0438\u043B\u044B\u0439 \u0438\u0433\u0440\u043E\u043A #8"
+      Lines:
+      - Text: "\u0422\u044B \u0445\u043E\u0442\u0435\u043B \u0434\u043E \u043A\u043E\u043D\u0446\u0430?
+          \u0412\u043E\u0442 \u0442\u0435\u0431\u0435 \u043A\u043E\u043D\u0435\u0446."
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+  - Context: 3
+    Priority: 50
+    AlwaysShow: 0
+    CooldownSeconds: 15
+    MinTurn: 0
+    MaxTurn: 0
+    Conditions: []
+    Groups:
+    - Name: "\u0434\u0443\u043C\u0430\u0435\u0442 #1"
+      Lines:
+      - Text: "\u0422\u044B \u0442\u0430\u043C \u0440\u0435\u0448\u0435\u043D\u0438\u0435
+          \u0432\u0435\u043A\u0430 \u043F\u0440\u0438\u043D\u0438\u043C\u0430\u0435\u0448\u044C?"
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+    - Name: "\u0434\u0443\u043C\u0430\u0435\u0442 #2"
+      Lines:
+      - Text: "\u042F \u0443\u0436\u0435 \u043F\u043E\u043D\u044F\u043B, \u0447\u0442\u043E
+          \u0442\u044B \u043D\u0435 \u0437\u043D\u0430\u0435\u0448\u044C. \u041C\u043E\u0436\u0435\u0448\u044C
+          \u0432\u044B\u0431\u0438\u0440\u0430\u0442\u044C."
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+    - Name: "\u0434\u0443\u043C\u0430\u0435\u0442 #3"
+      Lines:
+      - Text: "\u041C\u043D\u0435 \u043D\u0440\u0430\u0432\u0438\u0442\u0441\u044F,
+          \u043A\u0430\u043A \u0442\u044B \u0438\u0437\u043E\u0431\u0440\u0430\u0436\u0430\u0435\u0448\u044C
+          \u043C\u044B\u0441\u043B\u0438\u0442\u0435\u043B\u044C\u043D\u044B\u0439
+          \u043F\u0440\u043E\u0446\u0435\u0441\u0441."
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+  - Context: 6
+    Priority: 150
+    AlwaysShow: 0
+    CooldownSeconds: 6
+    MinTurn: 0
+    MaxTurn: 0
+    Conditions:
+    - Type: 9
+      Item: {fileID: 11400000, guid: 47a37eca24d58854097db80807067fed, type: 2}
+      User: 0
+      Amount: 0
+      Seconds: 0
+      Fraction: 0
+    - Type: 10
+      Item: {fileID: 0}
+      User: 1
+      Amount: 0
+      Seconds: 0
+      Fraction: 0
+    Groups:
+    - Name: MDMA #1
+      Lines:
+      - Text: "\u0411\u0435\u0437 \u0445\u0438\u043C\u0438\u0438 \u0443\u0436\u0435
+          \u0441\u043E\u0432\u0441\u0435\u043C \u0441\u0442\u0440\u0430\u0448\u043D\u043E?"
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+    - Name: MDMA #2
+      Lines:
+      - Text: "\u041D\u0443 \u0434\u0430\u0432\u0430\u0439, \u0437\u0430\u043A\u0438\u043D\u044C\u0441\u044F.
+          \u0412\u0434\u0440\u0443\u0433 \u0445\u043E\u0442\u044C \u0442\u0430\u043A
+          \u043D\u0430\u0447\u043D\u0451\u0448\u044C \u043D\u043E\u0440\u043C\u0430\u043B\u044C\u043D\u043E
+          \u0441\u043E\u043E\u0431\u0440\u0430\u0436\u0430\u0442\u044C."
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+    - Name: MDMA #3
+      Lines:
+      - Text: "\u041E\u0442\u043B\u0438\u0447\u043D\u043E. \u0422\u0435\u043F\u0435\u0440\u044C
+          \u0442\u044B \u0435\u0449\u0451 \u0438 \u043E\u0431\u0434\u043E\u043B\u0431\u0430\u043D\u043D\u044B\u0439
+          \u0434\u043E\u043B\u0431\u043E\u0451\u0431."
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+    - Name: MDMA #4
+      Lines:
+      - Text: "\u041D\u0443 \u043A\u043E\u043D\u0435\u0447\u043D\u043E. \u0421\u0430\u043C\u043E\u043C\u0443
+          \u0443\u0436\u0435 \u043D\u0438\u043A\u0430\u043A."
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+  - Context: 6
+    Priority: 150
+    AlwaysShow: 0
+    CooldownSeconds: 6
+    MinTurn: 0
+    MaxTurn: 0
+    Conditions:
+    - Type: 9
+      Item: {fileID: 11400000, guid: 801e684fcbf0b414eb097544d4373b11, type: 2}
+      User: 0
+      Amount: 0
+      Seconds: 0
+      Fraction: 0
+    - Type: 10
+      Item: {fileID: 0}
+      User: 1
+      Amount: 0
+      Seconds: 0
+      Fraction: 0
+    Groups:
+    - Name: "\u043C\u043E\u043D\u043E\u043A\u043B\u044C #1"
+      Lines:
+      - Text: "\u041F\u043E\u0434\u0433\u043B\u044F\u0434\u044B\u0432\u0430\u0439.
+          \u0421\u0432\u043E\u0435\u0439 \u0433\u043E\u043B\u043E\u0432\u043E\u0439,
+          \u044F \u0432\u0438\u0436\u0443, \u0442\u044F\u0436\u0435\u043B\u043E\u0432\u0430\u0442\u043E."
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+    - Name: "\u043C\u043E\u043D\u043E\u043A\u043B\u044C #2"
+      Lines:
+      - Text: "\u0425\u043E\u0440\u043E\u0448\u0430\u044F \u0432\u0435\u0449\u044C.
+          \u041E\u0441\u043E\u0431\u0435\u043D\u043D\u043E \u043A\u043E\u0433\u0434\u0430
+          \u0441\u043E\u0431\u0441\u0442\u0432\u0435\u043D\u043D\u043E\u0433\u043E
+          \u0443\u043C\u0430 \u043D\u0435 \u0445\u0432\u0430\u0442\u0430\u0435\u0442."
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+    - Name: "\u043C\u043E\u043D\u043E\u043A\u043B\u044C #3"
+      Lines:
+      - Text: "\u0422\u0435\u0431\u0435 \u0435\u0449\u0451 \u043F\u0430\u043B\u044C\u0446\u0435\u043C
+          \u043F\u043E\u043A\u0430\u0437\u0430\u0442\u044C, \u043A\u0443\u0434\u0430
+          \u043D\u0430\u0436\u0430\u0442\u044C?"
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+  - Context: 6
+    Priority: 150
+    AlwaysShow: 0
+    CooldownSeconds: 6
+    MinTurn: 0
+    MaxTurn: 0
+    Conditions:
+    - Type: 9
+      Item: {fileID: 11400000, guid: 13d9c5a3ad4687d49be5927c4492a51a, type: 2}
+      User: 0
+      Amount: 0
+      Seconds: 0
+      Fraction: 0
+    - Type: 10
+      Item: {fileID: 0}
+      User: 1
+      Amount: 0
+      Seconds: 0
+      Fraction: 0
+    Groups:
+    - Name: " \u043D\u0430\u0440\u0443\u0447\u043D\u0438\u043A\u0438 (\u0438\u0433\u0440\u043E\u043A)
+        #1"
+      Lines:
+      - Text: "\u0421\u0432\u044F\u0437\u0430\u0442\u044C \u043C\u0435\u043D\u044F
+          \u043F\u0440\u043E\u0449\u0435, \u0447\u0435\u043C \u0432\u044B\u0438\u0433\u0440\u0430\u0442\u044C,
+          \u0434\u0430?"
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+    - Name: " \u043D\u0430\u0440\u0443\u0447\u043D\u0438\u043A\u0438 (\u0438\u0433\u0440\u043E\u043A)
+        #2"
+      Lines:
+      - Text: "\u041A\u043E\u043D\u0435\u0447\u043D\u043E. \u041F\u0440\u043E\u0438\u0433\u0440\u044B\u0432\u0430\u0435\u0448\u044C
+          \u2014 \u043F\u0440\u043E\u0441\u0442\u043E \u043D\u0435 \u0434\u0430\u0439
+          \u0434\u0440\u0443\u0433\u043E\u043C\u0443 \u0438\u0433\u0440\u0430\u0442\u044C."
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+    - Name: " \u043D\u0430\u0440\u0443\u0447\u043D\u0438\u043A\u0438 (\u0438\u0433\u0440\u043E\u043A)
+        #3"
+      Lines:
+      - Text: "\u0421\u043D\u0438\u043C\u0438."
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+    - Name: " \u043D\u0430\u0440\u0443\u0447\u043D\u0438\u043A\u0438 (\u0438\u0433\u0440\u043E\u043A)
+        #4"
+      Lines:
+      - Text: "\u0421\u043D\u0438\u043C\u0438 \u044D\u0442\u043E."
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+  - Context: 6
+    Priority: 150
+    AlwaysShow: 0
+    CooldownSeconds: 6
+    MinTurn: 0
+    MaxTurn: 0
+    Conditions:
+    - Type: 9
+      Item: {fileID: 11400000, guid: cf73e36396a33ce47841e09feac7050d, type: 2}
+      User: 0
+      Amount: 0
+      Seconds: 0
+      Fraction: 0
+    - Type: 10
+      Item: {fileID: 0}
+      User: 1
+      Amount: 0
+      Seconds: 0
+      Fraction: 0
+    Groups:
+    - Name: "\u043D\u043E\u0436 #1"
+      Lines:
+      - Text: "\u041D\u0435 \u0442\u0440\u043E\u0433\u0430\u0439 \u0431\u043E\u043B\u044C\u0448\u0435
+          \u043E\u0441\u0442\u0440\u043E\u0435."
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+    - Name: "\u043D\u043E\u0436 #2"
+      Lines:
+      - Text: "\u041D\u0443 \u043A\u043E\u043D\u0435\u0447\u043D\u043E. \u041A\u043E\u0433\u0434\u0430
+          \u0438\u0433\u0440\u0430\u0442\u044C \u043D\u0435 \u043F\u043E\u043B\u0443\u0447\u0430\u0435\u0442\u0441\u044F
+          \u2014 \u0440\u0435\u0436\u044C."
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+    - Name: "\u043D\u043E\u0436 #3"
+      Lines:
+      - Text: "\u041A\u043E\u0433\u0434\u0430 \u0434\u0443\u043C\u0430\u0442\u044C
+          \u043D\u0435 \u043F\u043E\u043B\u0443\u0447\u0430\u0435\u0442\u0441\u044F
+          \u2013 \u0440\u0435\u0436\u044C. \u042F \u0442\u0430\u043A \u043D\u0430
+          \u043C\u0430\u043B\u043E\u043B\u0435\u0442\u043A\u0443 \u043F\u043E\u043F\u0430\u043B"
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+    - Name: "\u043D\u043E\u0436 #4"
+      Lines:
+      - Text: "\u0423\u0411\u0415\u0420\u0418 \u041D\u041E\u0416."
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+    - Name: "\u043D\u043E\u0436 #5"
+      Lines:
+      - Text: "\u042F \u0422\u0415\u0411\u0415 \u0415\u0413\u041E \u0412 \u0413\u041E\u0420\u041B\u041E
+          \u0417\u0410\u041F\u0418\u0425\u041D\u0423."
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+  - Context: 6
+    Priority: 150
+    AlwaysShow: 0
+    CooldownSeconds: 6
+    MinTurn: 0
+    MaxTurn: 0
+    Conditions:
+    - Type: 9
+      Item: {fileID: 11400000, guid: 192bd04e99d693d4d9a1b65333ca03f7, type: 2}
+      User: 0
+      Amount: 0
+      Seconds: 0
+      Fraction: 0
+    - Type: 10
+      Item: {fileID: 0}
+      User: 1
+      Amount: 0
+      Seconds: 0
+      Fraction: 0
+    Groups:
+    - Name: "\u043A\u0440\u0435\u0441\u0442 #1"
+      Lines:
+      - Text: "\u041E\u043F\u044F\u0442\u044C \u043A\u0442\u043E-\u0442\u043E \u0434\u043E\u043B\u0436\u0435\u043D
+          \u043F\u0440\u0438\u043D\u044F\u0442\u044C \u0443\u0434\u0430\u0440 \u0432\u043C\u0435\u0441\u0442\u043E
+          \u0442\u0435\u0431\u044F?"
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+    - Name: "\u043A\u0440\u0435\u0441\u0442 #2"
+      Lines:
+      - Text: "\u041A\u0430\u043A \u0442\u0430\u043C \u0431\u044B\u043B\u043E, \"\u0432\u043E\u0437\u044C\u043C\u0438
+          \u0441\u0432\u043E\u0439 \u043A\u0440\u0435\u0441\u0442 \u0438 \u0441\u043B\u0435\u0434\u0443\u0439
+          \u0437\u0430 \u043C\u043D\u043E\u0439\"? \u041F\u043B\u0435\u0432\u0430\u0442\u044C,
+          \u0432\u0441\u0435 \u0440\u043E\u0432\u043D\u043E \u043D\u0438\u043A\u043E\u0433\u0434\u0430
+          \u043D\u0435 \u0447\u0438\u0442\u0430\u043B \u044D\u0442\u043E\u0442 \u0431\u0440\u0435\u0434"
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+    - Name: "\u043A\u0440\u0435\u0441\u0442 #3"
+      Lines:
+      - Text: "\u0414\u0430, \u0434\u0430\u0432\u0430\u0439. \u0421\u043F\u0440\u044F\u0447\u044C\u0441\u044F
+          \u0437\u0430 \u0447\u0435\u043C-\u043D\u0438\u0431\u0443\u0434\u044C."
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+  - Context: 6
+    Priority: 150
+    AlwaysShow: 0
+    CooldownSeconds: 6
+    MinTurn: 0
+    MaxTurn: 0
+    Conditions:
+    - Type: 9
+      Item: {fileID: 11400000, guid: 13f0cb5dc8c4b4f4eb23b6edad940b30, type: 2}
+      User: 0
+      Amount: 0
+      Seconds: 0
+      Fraction: 0
+    - Type: 10
+      Item: {fileID: 0}
+      User: 1
+      Amount: 0
+      Seconds: 0
+      Fraction: 0
+    Groups:
+    - Name: "\u043C\u043E\u043B\u043E\u0442\u043E\u043A #1"
+      Lines:
+      - Text: "\u041D\u0443 \u043A\u043E\u043D\u0435\u0447\u043D\u043E. \u041D\u0435
+          \u043F\u043E\u043D\u044F\u043B \u2014 \u0440\u0430\u0437\u0431\u0435\u0439."
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+    - Name: "\u043C\u043E\u043B\u043E\u0442\u043E\u043A #2"
+      Lines:
+      - Text: "\u041D\u043E\u0440\u043C\u0430\u043B\u044C\u043D\u043E. \u041C\u043E\u0437\u0433\u043E\u0432
+          \u043D\u0435 \u0445\u0432\u0430\u0442\u0438\u043B\u043E, \u0437\u0430\u0442\u043E
+          \u043C\u043E\u043B\u043E\u0442\u043E\u043A \u043D\u0430\u0448\u0451\u043B\u0441\u044F."
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+    - Name: "\u043C\u043E\u043B\u043E\u0442\u043E\u043A #3"
+      Lines:
+      - Text: "\u0412\u043E\u0442 \u044D\u0442\u043E \u044F \u043F\u043E\u043D\u0438\u043C\u0430\u044E.
+          \u041D\u0430\u043A\u043E\u043D\u0435\u0446 \u0438\u043D\u0441\u0442\u0440\u0443\u043C\u0435\u043D\u0442
+          \u043F\u043E\u0434 \u0442\u0432\u043E\u0439 \u0443\u0440\u043E\u0432\u0435\u043D\u044C."
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+    - Name: "\u043C\u043E\u043B\u043E\u0442\u043E\u043A #4"
+      Lines:
+      - Text: "\u0418\u043D\u0442\u0435\u0440\u0435\u0441\u043D\u043E. \u041A\u043E\u0433\u0434\u0430
+          \u043C\u0438\u0440 \u043D\u0435 \u043F\u043E\u0434\u0441\u0442\u0440\u0430\u0438\u0432\u0430\u0435\u0442\u0441\u044F,
+          \u0442\u044B \u043F\u0440\u043E\u0441\u0442\u043E \u043D\u0430\u0447\u0438\u043D\u0430\u0435\u0448\u044C
+          \u0435\u0433\u043E \u043B\u043E\u043C\u0430\u0442\u044C?"
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+  - Context: 6
+    Priority: 150
+    AlwaysShow: 0
+    CooldownSeconds: 6
+    MinTurn: 0
+    MaxTurn: 0
+    Conditions:
+    - Type: 9
+      Item: {fileID: 11400000, guid: 52e1d144e5d4fae49bc3595858685e16, type: 2}
+      User: 0
+      Amount: 0
+      Seconds: 0
+      Fraction: 0
+    - Type: 10
+      Item: {fileID: 0}
+      User: 1
+      Amount: 0
+      Seconds: 0
+      Fraction: 0
+    Groups:
+    - Name: "\u043B\u0435\u0447\u0435\u043D\u0438\u0435 (\u0438\u0433\u0440\u043E\u043A)
+        #1"
+      Lines:
+      - Text: "\u0414\u0430\u0432\u0430\u0439, \u043F\u0440\u043E\u0434\u043B\u0438
+          \u044D\u0442\u043E \u0435\u0449\u0451 \u043D\u0435\u043C\u043D\u043E\u0433\u043E.
+          \u0422\u044B \u0436\u0435 \u044F\u0432\u043D\u043E \u043B\u044E\u0431\u0438\u0448\u044C
+          \u0441\u0442\u0440\u0430\u0434\u0430\u0442\u044C \u043F\u043E\u0434\u043E\u043B\u044C\u0448\u0435."
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+    - Name: "\u043B\u0435\u0447\u0435\u043D\u0438\u0435 (\u0438\u0433\u0440\u043E\u043A)
+        #2"
+      Lines:
+      - Text: "\u041D\u0435 \u043F\u043E\u043C\u043E\u0433\u043B\u0430 \u0433\u043E\u043B\u043E\u0432\u0430
+          \u2014 \u043F\u043E\u043C\u043E\u0436\u0435\u0442 \u0448\u043F\u0440\u0438\u0446."
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+    - Name: "\u043B\u0435\u0447\u0435\u043D\u0438\u0435 (\u0438\u0433\u0440\u043E\u043A)
+        #3"
+      Lines:
+      - Text: "\u0426\u0435\u043F\u043B\u044F\u0435\u0448\u044C\u0441\u044F \u0442\u0430\u043A,
+          \u0431\u0443\u0434\u0442\u043E \u0434\u0430\u043B\u044C\u0448\u0435 \u043D\u0430\u0447\u043D\u0451\u0448\u044C
+          \u0438\u0433\u0440\u0430\u0442\u044C \u043B\u0443\u0447\u0448\u0435."
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+  - Context: 6
+    Priority: 150
+    AlwaysShow: 0
+    CooldownSeconds: 6
+    MinTurn: 0
+    MaxTurn: 0
+    Conditions:
+    - Type: 9
+      Item: {fileID: 11400000, guid: 13d9c5a3ad4687d49be5927c4492a51a, type: 2}
+      User: 0
+      Amount: 0
+      Seconds: 0
+      Fraction: 0
+    - Type: 10
+      Item: {fileID: 0}
+      User: 2
+      Amount: 0
+      Seconds: 0
+      Fraction: 0
+    Groups:
+    - Name: "\u043D\u0430\u0440\u0443\u0447\u043D\u0438\u043A\u0438 (\u0413\u043D\u0435\u0432)"
+      Lines:
+      - Text: "\u041F\u043E\u0441\u0438\u0434\u0438. \u0422\u0435\u0431\u0435 \u043F\u043E\u043B\u0435\u0437\u043D\u043E
+          \u0438\u043D\u043E\u0433\u0434\u0430 \u043D\u0438\u0447\u0435\u0433\u043E
+          \u043D\u0435 \u0434\u0435\u043B\u0430\u0442\u044C."
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+  - Context: 6
+    Priority: 150
+    AlwaysShow: 0
+    CooldownSeconds: 6
+    MinTurn: 0
+    MaxTurn: 0
+    Conditions:
+    - Type: 9
+      Item: {fileID: 11400000, guid: 52e1d144e5d4fae49bc3595858685e16, type: 2}
+      User: 0
+      Amount: 0
+      Seconds: 0
+      Fraction: 0
+    - Type: 10
+      Item: {fileID: 0}
+      User: 2
+      Amount: 0
+      Seconds: 0
+      Fraction: 0
+    Groups:
+    - Name: "\u043B\u0435\u0447\u0435\u043D\u0438\u0435 (\u0413\u043D\u0435\u0432)"
+      Lines:
+      - Text: "\u041D\u0435 \u0440\u0430\u0434\u0443\u0439\u0441\u044F. \u042F \u043F\u0440\u043E\u0441\u0442\u043E
+          \u0438\u0441\u043F\u0440\u0430\u0432\u043B\u044F\u044E \u0441\u043B\u0443\u0447\u0430\u0439\u043D\u043E\u0441\u0442\u044C."
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+  - Context: 7
+    Priority: 150
+    AlwaysShow: 0
+    CooldownSeconds: 10
+    MinTurn: 0
+    MaxTurn: 0
+    Conditions:
+    - Type: 9
+      Item: {fileID: 11400000, guid: cf73e36396a33ce47841e09feac7050d, type: 2}
+      User: 0
+      Amount: 0
+      Seconds: 0
+      Fraction: 0
+    - Type: 10
+      Item: {fileID: 0}
+      User: 1
+      Amount: 0
+      Seconds: 0
+      Fraction: 0
+    Groups:
+    - Name: "\u043D\u043E\u0436 \u043C\u0438\u043C\u043E #1"
+      Lines:
+      - Text: "\u0422\u044B \u0443\u043C\u0443\u0434\u0440\u0438\u043B\u0441\u044F
+          \u043F\u0440\u043E\u0438\u0433\u0440\u0430\u0442\u044C \u0441\u043E\u0431\u0441\u0442\u0432\u0435\u043D\u043D\u043E\u043C\u0443
+          \u043D\u043E\u0436\u0443."
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1
+    - Name: "\u043D\u043E\u0436 \u043C\u0438\u043C\u043E #2"
+      Lines:
+      - Text: "\u041A\u0430\u043A \u0442\u044B \u0432\u043E\u043E\u0431\u0449\u0435
+          \u0434\u043E\u0436\u0438\u043B \u0434\u043E \u044D\u0442\u043E\u0433\u043E
+          \u0441\u0442\u043E\u043B\u0430?"
+        TextColor: {r: 1, g: 1, b: 1, a: 1}
+        VoiceEvent:
+          Guid:
+            Data1: 1216949052
+            Data2: 1122177664
+            Data3: -1760383847
+            Data4: -615476754
+          Path: event:/SFX/Enemie/e_Voice
+        MinDisplayDuration: 0.6
+        WaitForClick: 1

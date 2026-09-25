@@ -8,6 +8,7 @@ public class FpsCounterManager : MonoBehaviour, ISettingsModule
     [SerializeField] private float updateInterval = 0.5f;
 
     private const string VISIBLE_KEY = "FpsCounterVisible";
+    private const string LABEL_NAME = "FPS";
 
     private float _accumulatedTime;
     private int _accumulatedFrames;
@@ -19,12 +20,27 @@ public class FpsCounterManager : MonoBehaviour, ISettingsModule
     {
         if (Instance != null && Instance != this)
         {
-            Destroy(gameObject);
+            Destroy(this);
             return;
         }
 
         Instance = this;
         DontDestroyOnLoad(gameObject);
+    }
+
+    /// <summary>
+    /// Гарантирует существование персистентного менеджера счётчика FPS. Раньше он
+    /// не был прицеплен ни к одной сцене/префабу, поэтому переключатель в меню
+    /// настроек работал вхолостую.
+    /// </summary>
+    public static FpsCounterManager EnsureExists()
+    {
+        if (Instance != null)
+            return Instance;
+
+        var go = new GameObject("FpsCounterManager");
+        DontDestroyOnLoad(go);
+        return go.AddComponent<FpsCounterManager>();
     }
 
     private void Start()
@@ -49,6 +65,7 @@ public class FpsCounterManager : MonoBehaviour, ISettingsModule
 
     private void Update()
     {
+        if (fpsLabel == null) TryBindLabel();
         if (!IsVisible || fpsLabel == null) return;
 
         _accumulatedTime += Time.unscaledDeltaTime;
@@ -60,6 +77,24 @@ public class FpsCounterManager : MonoBehaviour, ISettingsModule
             fpsLabel.text = $"{Mathf.RoundToInt(avg)} FPS";
             _accumulatedTime = 0f;
             _accumulatedFrames = 0;
+        }
+    }
+
+    /// <summary>
+    /// Подхватывает текст "FPS" на канвасе, если поле не назначено в инспекторе:
+    /// сам счётчик создаётся бутстрапом без сцены, а лейбл в ===FadeCanvas.prefab
+    /// остался без ссылки. Поиск отложенный — префаб может появиться позже.
+    /// </summary>
+    private void TryBindLabel()
+    {
+        var labels = Object.FindObjectsByType<TMPro.TMP_Text>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        foreach (var label in labels)
+        {
+            if (label.name != LABEL_NAME) continue;
+
+            fpsLabel = label;
+            fpsLabel.gameObject.SetActive(IsVisible);
+            return;
         }
     }
 

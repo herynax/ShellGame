@@ -16,6 +16,9 @@ public class DisplaySettingsUI : MonoBehaviour
     {
         if (DisplaySettingsManager.Instance == null) return;
 
+        // Тумблер обязан показывать фактическое значение из менеджера, иначе после
+        // первого запуска он молча расходится с подписью (в префабе стоит m_IsOn: 1).
+        vSyncToggleButton.SetIsOnWithoutNotify(DisplaySettingsManager.Instance.VSyncEnabled);
         vSyncToggleButton.onValueChanged.AddListener(OnVSyncToggle);
         fpsLimitPrevButton.onClick.AddListener(OnFpsPrev);
         fpsLimitNextButton.onClick.AddListener(OnFpsNext);

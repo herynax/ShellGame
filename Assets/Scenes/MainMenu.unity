@@ -1771,7 +1771,7 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 1556675243}
         m_TargetAssemblyTypeName: MainMenuController, Assembly-CSharp
-        m_MethodName: OnBackButtonPressed
+        m_MethodName: CloseTopMenu
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -2505,7 +2505,7 @@ MonoBehaviour:
   continueAttemptButton: {fileID: 2019157731}
   newRunConfirmationPanel: {fileID: 7054186}
   fadeDuration: 0.3
-  firstGameplaySceneName: Tutorial
+  firstGameplaySceneName: Level_1
   tutorialSceneName: Tutorial
 --- !u!1 &1679769381
 GameObject:
@@ -3056,11 +3056,6 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Name
       value: ===FadeCanvas
-      objectReference: {fileID: 0}
-    - target: {fileID: 496035266803473719, guid: 59405ffe171945b43a247712596cce87,
-        type: 3}
-      propertyPath: m_IsActive
-      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 3125085009690672755, guid: 59405ffe171945b43a247712596cce87,
         type: 3}

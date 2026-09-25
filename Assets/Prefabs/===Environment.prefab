@@ -338,7 +338,7 @@ AudioListener:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 323729313901965333}
-  m_Enabled: 1
+  m_Enabled: 0
 --- !u!114 &5176821816566805652
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -9396,7 +9396,7 @@ Animator:
   m_GameObject: {fileID: 5074886890048099042}
   m_Enabled: 1
   m_Avatar: {fileID: 0}
-  m_Controller: {fileID: 9100000, guid: a1f06b84348110e47ba4a6cea17571de, type: 2}
+  m_Controller: {fileID: 9100000, guid: 665565488d55505679326f0c757e25e2, type: 2}
   m_CullingMode: 0
   m_UpdateMode: 0
   m_ApplyRootMotion: 0
@@ -9429,6 +9429,7 @@ MonoBehaviour:
     Path: event:/SFX/Env/env_NeedleMove
   _injectionPoint: {fileID: 5559216627342035032}
   _autoStopDelaySeconds: 0
+  _damageFallbackDelay: 0.8
 --- !u!1 &5251082378586731012
 GameObject:
   m_ObjectHideFlags: 0
@@ -10199,6 +10200,7 @@ MonoBehaviour:
     Path: event:/SFX/Env/env_NeedleMove
   _injectionPoint: {fileID: 6443914260487131876}
   _autoStopDelaySeconds: 0
+  _damageFallbackDelay: 0.4
 --- !u!1 &6021563928078187937
 GameObject:
   m_ObjectHideFlags: 0
@@ -13410,7 +13412,9 @@ MonoBehaviour:
   _dissolvePropertyName: _DissolveAmount
   _deathDissolveDuration: 1.2
   _dissolveStartDelay: 0.2
+  _tutorEnemie: 0
   _soundConfig: {fileID: 11400000, guid: 1f558948670c0c192858b168decfd93b, type: 2}
+  _logDamageFlow: 1
 --- !u!114 &8922421390057380140
 MonoBehaviour:
   m_ObjectHideFlags: 0

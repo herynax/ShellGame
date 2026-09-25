@@ -141,16 +141,24 @@ namespace ShellGame.Gameplay
             if (_shellConfig == null) return 0.22f;
             float difficultyReduction = (_shellConfig.ShuffleRoundReduction + _shellConfig.ShuffleLevelReduction)
                 * Mathf.Max(0f, _currentDifficultyIndex);
-            float reducedDuration = _shellConfig.ShuffleMoveDurationBase - difficultyReduction;
+            // Сложность может вычесть больше, чем есть базы — не даём уйти в минус.
+            float reducedDuration = Mathf.Max(0f, _shellConfig.ShuffleMoveDurationBase - difficultyReduction);
             float duration = reducedDuration * _moveDurationMultiplier;
 
             if (_isEnemyTurn)
             {
-                // Для врага минимум НЕ применяем — скорость полностью определяется множителем
                 duration *= Mathf.Clamp(_shellConfig.EnemyShuffleSpeedMultiplier, 0.05f, 1f);
+
+                // У врага СВОЙ минимальный порог: множитель скорости не должен
+                // доводить перемещение до мгновенного телепорта. Раньше нижний
+                // порог не применялся вовсе, и на высокой сложности наперстки
+                // просто телепортировались (длительность уходила в ноль).
+                float enemyMin = Mathf.Max(0.01f, _shellConfig.EnemyShuffleMoveDurationMin);
+                float finalEnemyDuration = Mathf.Max(enemyMin, duration);
                 Debug.Log($"[ShuffleSystem] ENEMY base={_shellConfig.ShuffleMoveDurationBase}, " +
-                          $"afterMult={duration:F3} (min ignored)");
-                return duration;
+                          $"reduced={reducedDuration:F3}, afterMult={duration:F3}, enemyMin={enemyMin:F3}, " +
+                          $"FINAL={finalEnemyDuration:F3}");
+                return finalEnemyDuration;
             }
 
             float finalDuration = Mathf.Max(_shellConfig.ShuffleMoveDurationMin, duration);

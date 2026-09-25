@@ -30,14 +30,20 @@ public class MainMenuController : MonoBehaviour
     [SerializeField] private float fadeDuration = 0.3f;
 
     [Header("Настройки сцены")]
-    [Tooltip("Имя сцены, которая загрузится при нажатии 'Новая попытка'")]
-    [SerializeField] private string firstGameplaySceneName = "Level_2";
+    [Tooltip("Имя сцены, которая загрузится при нажатии 'Новая попытка', если обучение уже пройдено")]
+    [SerializeField] private string firstGameplaySceneName = "Level_1";
+    [Tooltip("Имя сцены обучения — старт новой попытки, пока обучение не пройдено")]
     [SerializeField] private string tutorialSceneName = "Tutorial";
     private Stack<CanvasGroup> _menuStack = new Stack<CanvasGroup>();
     private bool isExitingOrLoading = false;
 
     private void Start()
     {
+        // Меню всегда кликабельно: курсор нужен независимо от того, откуда
+        // игрок в него пришёл (после победы он остался скрыт от загрузки).
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+
         if (rootMenuCanvasGroup != null)
         {
             _menuStack.Push(rootMenuCanvasGroup);
@@ -218,16 +224,16 @@ public class MainMenuController : MonoBehaviour
             GameSessionProgression.Instance.Reset();
         RunCheckpointStorage.Clear();
 
+        // Новая попытка — статистика и плейтайм прошлой больше не считаются.
+        // Сам отсчёт начнётся заново, когда загрузится стартовая сцена забега.
+        RunStatsTracker.Instance?.EndRun();
+
         if (SceneLoader.Instance != null)
         {
-            if (GameManager.IsTutorialCompleted() == true)
-            {
-                SceneLoader.Instance.LoadScene(firstGameplaySceneName);
-            }
-            else
-            {
-                SceneLoader.Instance.LoadScene(tutorialSceneName);
-            }
+            // Обучение пройдено — новая попытка с Level_1, иначе — с Tutorial.
+            string targetScene = GameManager.GetNewRunSceneName(tutorialSceneName, firstGameplaySceneName);
+            Debug.Log($"[MainMenuController] Новая попытка со сцены '{targetScene}' (обучение пройдено: {GameManager.IsTutorialCompleted()}).");
+            SceneLoader.Instance.LoadScene(targetScene);
         }
         else
         {
@@ -256,6 +262,10 @@ public class MainMenuController : MonoBehaviour
 
         if (GameSessionProgression.Instance != null)
             GameSessionProgression.Instance.PendingContinueFromCheckpoint = true;
+
+        // Возвращаемся в тот же забег: время, проведённое в меню, в плейтайм
+        // не входит, поэтому секундомер снова пускается.
+        RunStatsTracker.Instance?.ResumeClock();
 
         if (SceneLoader.Instance != null)
             SceneLoader.Instance.LoadScene(checkpoint.SceneName);

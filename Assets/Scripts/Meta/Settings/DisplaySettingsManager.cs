@@ -20,12 +20,28 @@ public class DisplaySettingsManager : MonoBehaviour, ISettingsModule
     {
         if (Instance != null && Instance != this)
         {
-            Destroy(gameObject);
+            Destroy(this);
             return;
         }
 
         Instance = this;
         DontDestroyOnLoad(gameObject);
+    }
+
+    /// <summary>
+    /// Гарантирует существование персистентного менеджера дисплея. Раньше
+    /// компонент не был прицеплен ни к одной сцене/префабу, поэтому VSync и лимит
+    /// FPS из PlayerPrefs не применялись вообще: тумблер и стрелки в настройках
+    /// были мертвы, а QualitySettings оставался с vSyncCount: 1 из пресета.
+    /// </summary>
+    public static DisplaySettingsManager EnsureExists()
+    {
+        if (Instance != null)
+            return Instance;
+
+        var go = new GameObject("DisplaySettingsManager");
+        DontDestroyOnLoad(go);
+        return go.AddComponent<DisplaySettingsManager>();
     }
 
     private void Start()
@@ -43,7 +59,7 @@ public class DisplaySettingsManager : MonoBehaviour, ISettingsModule
 
     private int DefaultFpsIndex()
     {
-        int index = System.Array.IndexOf(fpsOptions, 60);
+        int index = System.Array.IndexOf(fpsOptions, -1);
         return index >= 0 ? index : 0;
     }
 
