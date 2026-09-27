@@ -102,6 +102,9 @@ namespace ShellGame.Dialogue
 
         [Tooltip("true — ждёт клик/пробел (игрок может скинуть), false — закрывается сама.")]
         public bool WaitForClick = true;
+
+        [Tooltip("Переопределение AutoSkipSeconds конфига для этой реплики. -1 (по умолчанию) — взять из конфига. 0 — не автоскипать, ждать клика. Больше 0 — уйти через столько секунд.")]
+        public float AutoSkipSeconds = -1f;
     }
 
     /// <summary>
@@ -183,6 +186,10 @@ namespace ShellGame.Dialogue
         [Min(0f), Tooltip("Пауза перед вступительными репликами на старте уровня.")]
         public float FirstLineDelaySeconds = 0.6f;
 
+        [Header("Показ реплик")]
+        [Min(0f), Tooltip("Сколько секунд реплика висит максимум, прежде чем уйти сама, если игрок не кликнул. Игрок может закрыть её раньше. 0 — не автоскипать, реплики ждут клика.")]
+        public float AutoSkipSeconds = 5f;
+
         [Header("Правила")]
         public List<EnemyReactionRule> Rules = new List<EnemyReactionRule>();
 
@@ -201,6 +208,19 @@ namespace ShellGame.Dialogue
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// Время автоскипа для конкретной реплики: её собственное
+        /// переопределение, если оно задано, иначе общее AutoSkipSeconds
+        /// конфига.
+        /// </summary>
+        public float ResolveAutoSkipSeconds(EnemyReactionLine line)
+        {
+            if (line != null && line.AutoSkipSeconds >= 0f)
+                return line.AutoSkipSeconds;
+
+            return Mathf.Max(0f, AutoSkipSeconds);
         }
 
         /// <summary>Антиспам и общий шанс. lastShownAt = -inf, если реплик ещё не было.</summary>

@@ -22,6 +22,7 @@ namespace ShellGame.Gameplay
         [SerializeField, Min(0.001f)] private float _aimSmoothingTime = 0.03f;
 
         private bool _isEnabled;
+        private bool _itemInteractionEnabled;
         private IRoundInputTarget _hoveredTarget;
         private ItemPickupView _hoveredItem;
         private RoundStartButton _roundStartButton;
@@ -47,23 +48,48 @@ namespace ShellGame.Gameplay
             _roundStartButton = roundStartButton;
         }
 
+        /// <summary>Канал выбора напертка и кнопки старта (ходит только игрок).</summary>
         public void SetEnabled(bool enabled)
         {
             _isEnabled = enabled;
+            if (enabled)
+                return;
+
+            _hoveredTarget?.OnHoverExit();
+            _hoveredTarget = null;
+            _hasSmoothedRay = false;
+
+            // Предметы могут остаться открытыми на ходу врага — тогда ховер
+            // с них сбрасывать нельзя.
+            if (!_itemInteractionEnabled)
+                ClearItemHover();
+        }
+
+        /// <summary>
+        /// Канал ховера/клика по предметам. Живёт отдельно от SetEnabled,
+        /// потому что на ходу врага наперток трогать нельзя, а предметы без
+        /// выбора напертка (хилка, крест, таблетки) использовать можно.
+        /// </summary>
+        public void SetItemInteractionEnabled(bool enabled)
+        {
+            if (_itemInteractionEnabled == enabled)
+                return;
+
+            _itemInteractionEnabled = enabled;
             if (!enabled)
-            {
-                if (_hoveredItem != null)
-                    _hoveredItem.SetHovered(false);
-                _hoveredItem = null;
-                _hoveredTarget?.OnHoverExit();
-                _hoveredTarget = null;
-                _hasSmoothedRay = false;
-            }
+                ClearItemHover();
+        }
+
+        private void ClearItemHover()
+        {
+            if (_hoveredItem != null)
+                _hoveredItem.SetHovered(false);
+            _hoveredItem = null;
         }
 
         private void Update()
         {
-            if (!_isEnabled)
+            if (!_isEnabled && !_itemInteractionEnabled)
                 return;
 
             HandleHover();
@@ -95,9 +121,11 @@ namespace ShellGame.Gameplay
             IRoundInputTarget targetUnderCursor = null;
             ItemPickupView itemUnderCursor = null;
             bool buttonHit = false;
-            
-            // 1. Проверяем кнопку старта
-            if (_roundStartButton != null && _roundStartButton.gameObject.activeInHierarchy)
+            bool itemHit = false;
+
+            // 1. Проверяем кнопку старта. Она живёт в канале напертка, поэтому
+            // на ходу врага (когда _isEnabled == false) её не ищем вовсе.
+            if (_isEnabled && _roundStartButton != null && _roundStartButton.gameObject.activeInHierarchy)
             {
                 var buttonHits = Physics.RaycastAll(ray, 100f, Physics.AllLayers, QueryTriggerInteraction.Collide);
                 System.Array.Sort(buttonHits, (left, right) => left.distance.CompareTo(right.distance));
@@ -116,7 +144,8 @@ namespace ShellGame.Gameplay
             // 2. БЛОКИРОВКА АИМ-АССИСТА: Проверяем, не смотрим ли мы прямо на предмет.
             // Тот же самый рей определяет и ховер предмета — один источник истины для
             // прицела и ховера, чтобы предмет не "молчал", когда прицел прямо на нём.
-            bool itemHit = false;
+            // РейCast идёт даже при выключенном канале напертка: блокировка магнита
+            // нужна всегда, а вот ховер отдаём только при открытом предметном канале.
             if (!buttonHit)
             {
                 if (Physics.Raycast(ray, out RaycastHit directHit, 100f, Physics.AllLayers, QueryTriggerInteraction.Collide))
@@ -125,9 +154,23 @@ namespace ShellGame.Gameplay
                     if (item != null)
                     {
                         itemHit = true; // Мы смотрим прямо на предмет, магнит наперстков отключается!
-                        itemUnderCursor = item;
+                        if (_itemInteractionEnabled)
+                            itemUnderCursor = item;
                     }
                 }
+            }
+
+            UpdateItemHover(itemUnderCursor);
+
+            if (!_isEnabled)
+            {
+                // Ход противника: наверх по иерархии висеть не на чему.
+                if (_hoveredTarget != null)
+                {
+                    _hoveredTarget.OnHoverExit();
+                    _hoveredTarget = null;
+                }
+                return;
             }
 
             // 3. Ищем наперсток толстым лучом, только если не смотрим на кнопку или предмет
@@ -135,8 +178,6 @@ namespace ShellGame.Gameplay
             {
                 targetUnderCursor = FindShellUnderAim(ray);
             }
-
-            UpdateItemHover(itemUnderCursor);
 
             if (targetUnderCursor == _hoveredTarget)
                 return;
@@ -226,11 +267,14 @@ namespace ShellGame.Gameplay
                 return;
 
             // Сначала предмет, если смотрим прямо на него, иначе — наперсток/кнопка.
-            if (_hoveredItem != null && _hoveredItem.IsInteractive)
+            if (_itemInteractionEnabled && _hoveredItem != null && _hoveredItem.IsInteractive)
             {
                 _hoveredItem.TryUse();
                 return;
             }
+
+            if (!_isEnabled)
+                return;
 
             _hoveredTarget?.Select();
         }

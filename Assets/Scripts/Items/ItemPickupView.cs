@@ -29,11 +29,34 @@ namespace ShellGame.Items
 
         private IAudioService Audio => ServiceLocator.TryGet(out IAudioService audio) ? audio : null;
 
+        /// <summary>
+        /// Кто имеет право использовать предмет, кроме владельца. Ставится
+        /// GameManager'ом (см. GameManager.IsItemUsageAllowedNow) и решает,
+        /// открыт ли предмет по ItemDefinition.UsageWindow именно сейчас:
+        /// хилка/крест/таблетки остаются кликабельными на ходу врага, а нож,
+        /// молоток, монокль и наручники — нет.
+        ///
+        /// null = фильтр не установлен (тесты, превью сцены), тогда действует
+        /// старое правило «владелец всегда может».
+        /// </summary>
+        private static Func<ItemDefinition, bool> _usageWindowFilter;
+
+        public static void SetUsageWindowFilter(Func<ItemDefinition, bool> filter)
+        {
+            _usageWindowFilter = filter;
+        }
+
         public ItemDefinition Item => _item;
         public TurnSide Owner => _owner;
 
         /// <summary>Может ли игрок взаимодействовать с предметом (ховер и использование).</summary>
-        public bool IsInteractive => _owner == TurnSide.Player;
+        public bool IsInteractive => _owner == TurnSide.Player && IsUsageWindowOpenNow();
+
+        private bool IsUsageWindowOpenNow()
+        {
+            if (_item == null) return false;
+            return _usageWindowFilter == null || _usageWindowFilter(_item);
+        }
         public bool IsHovered => _isHovered;
 
         public event Action<ItemPickupView> Used;

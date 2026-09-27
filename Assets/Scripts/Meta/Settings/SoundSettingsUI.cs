@@ -1,7 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
-using FMODUnity;
 
 /// <summary>Живёт на панели "Аудио".</summary>
 public class SoundSettingsUI : MonoBehaviour
@@ -9,7 +8,7 @@ public class SoundSettingsUI : MonoBehaviour
     [SerializeField] private Slider masterSlider;
     [SerializeField] private Slider musicSlider;
     [SerializeField] private Slider sfxSlider;
-    [SerializeField, EventRef] private string sfxPreviewEvent;
+    [SerializeField] private string sfxPreviewEvent;
 
     private bool _subscribed;
     private bool _previewBound;

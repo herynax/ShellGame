@@ -78,7 +78,14 @@ namespace ShellGame.Tutorial
                     clicked = true;
 
                 bool minTimePassed = timer >= line.MinDisplayDuration;
-                bool finished = line.WaitForClick ? (minTimePassed && clicked) : minTimePassed;
+
+                // Автоскип: реплика реакции врага уходит сама, даже если
+                // игрок не кликнул — иначе игра встаёт намертво, пока он
+                // читает. Игрок может закрыть её раньше, клик по-прежнему
+                // работает. 0 = ждать клика до конца.
+                bool autoSkipped = line.AutoSkipSeconds > 0f && timer >= line.AutoSkipSeconds;
+
+                bool finished = autoSkipped || (line.WaitForClick ? (minTimePassed && clicked) : minTimePassed);
 
                 if (finished)
                     break;

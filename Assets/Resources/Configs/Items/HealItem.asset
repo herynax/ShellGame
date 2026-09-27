@@ -22,6 +22,7 @@ MonoBehaviour:
     \u0443\u043C\u0435\u043D\u044C\u0448\u0435\u043D\u0430 \u043D\u0430 1"
   WorldPrefab: {fileID: 165798451943810041, guid: 46681f748bebdac4f8d81bb8a823b813,
     type: 3}
+  UsageWindow: 2
   HoverLiftHeight: 0.08
   HoverScaleMultiplier: 1.15
   HoverTweenDuration: 0.15

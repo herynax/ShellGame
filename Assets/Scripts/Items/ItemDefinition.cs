@@ -25,6 +25,10 @@ namespace ShellGame.Items
         [TextArea] public string UseDescription;
         public GameObject WorldPrefab;
 
+        [Header("Когда можно использовать")]
+        [Tooltip("AnyTurn — предмет можно применить и на ходу противника (так можно только тем предметам, которые не отменяют выбор напертка: хилка, крест, таблетки).")]
+        public ItemUsageWindow UsageWindow = ItemUsageWindow.OwnTurnOnly;
+
         [Header("Ховер (подъём + увеличение)")]
         public float HoverLiftHeight = 0.08f;
         public float HoverScaleMultiplier = 1.15f;

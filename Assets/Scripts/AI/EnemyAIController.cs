@@ -39,6 +39,10 @@ namespace ShellGame.AI
         private float _trackingLossReductionMultiplier = 1f;
         private bool _isTrackingSwaps;
 
+        // true, если с последнего решения враг уже потратил предмет. Снимает
+        // бонус скорости "решил без предметов" (см. DecisionRoutine).
+        private bool _itemUsedThisDecision;
+
         // --- Форсированный исход (для обучения/скриптованных сцен) ---
         private bool _forceCorrectChoice;
         private bool _forcedChoicePersistent;
@@ -176,28 +180,106 @@ namespace ShellGame.AI
         /// onShellChosen — вызывающий код (GameManager) сам решает, что с ним
         /// делать (обычно — Shell.Select(), как и для игрока).
         /// </summary>
-        public void MakeDecisionAndAttack(IReadOnlyList<Shell> shells, Action<Shell> onShellChosen)
+        public void MakeDecisionAndAttack(IReadOnlyList<Shell> shells, Action<Shell> onShellChosen, bool afterItemUse = false)
         {
+            if (afterItemUse)
+                _itemUsedThisDecision = true;
+
             State = EnemyAIState.Decision;
             StartCoroutine(DecisionRoutine(shells, onShellChosen));
         }
 
+        /// <summary>
+        /// Решение для предмета, которому нужен ПУСТОЙ наперсток (молоток).
+        /// В отличие от MakeDecisionAndAttack враг ищет не метку, а наоборот —
+        /// слот, который по его Knowledge скорее всего пуст (см.
+        /// EnemyKnowledgeModel.GetMarkerBelief). Точность оценивается той же
+        /// кривой, что и у обычного выбора, поэтому враг и здесь может
+        /// ошибиться и влепить себе молотком в лицо.
+        ///
+        /// Решение намеренно асинхронное, с той же задержкой "раздумья", что и
+        /// обычный выбор: предмет, который бьёт по напертку, должен выбрать его
+        /// ДО того, как GameManager запустит следующий обычный ход врага
+        /// (см. EnemyStrikeSettleSeconds у HammerItemDefinition).
+        /// </summary>
+        public void MakeDecisionAndPickEmpty(IReadOnlyList<Shell> shells, Action<Shell> onShellChosen)
+        {
+            _itemUsedThisDecision = true;
+            State = EnemyAIState.Decision;
+            StartCoroutine(PickEmptyShellRoutine(shells, onShellChosen));
+        }
+
+        /// <summary>
+        /// Задержка перед ближайшим решением ИИ с поправкой на множители
+        /// скорости. Предметы, которые сами выбирают наперсток, берут её отсюда,
+        /// чтобы GameManager мог отложить обычный ход врага ровно на столько.
+        /// </summary>
+        public float GetDecisionDelay()
+        {
+            if (_config == null)
+                return 0f;
+
+            return _config.EvaluateDecisionDelay(_currentDifficultyIndex)
+                * _decisionSpeedMultiplier
+                * (_itemUsedThisDecision ? 1f : _noItemDecisionSpeedMultiplier);
+        }
+
+        private IEnumerator PickEmptyShellRoutine(IReadOnlyList<Shell> shells, Action<Shell> onShellChosen)
+        {
+            float delay = GetDecisionDelay();
+            if (delay > 0f)
+                yield return new WaitForSeconds(delay);
+
+            State = EnemyAIState.Attack;
+            onShellChosen?.Invoke(PickEmptyShell(shells));
+        }
+
+        /// <summary>Слот, который противник считает самым вероятным пустым, с той же долей ошибки, что и у обычного выбора.</summary>
+        private Shell PickEmptyShell(IReadOnlyList<Shell> shells)
+        {
+            if (shells == null || shells.Count == 0)
+                return null;
+
+            var bestCandidates = new List<Shell>();
+            float bestBelief = float.PositiveInfinity;
+
+            foreach (var shell in shells)
+            {
+                if (shell == null)
+                    continue;
+
+                float belief = _knowledge.GetMarkerBelief(shell.SlotIndex);
+                if (belief < bestBelief - 0.001f)
+                {
+                    bestBelief = belief;
+                    bestCandidates.Clear();
+                    bestCandidates.Add(shell);
+                }
+                else if (Mathf.Approximately(belief, bestBelief))
+                {
+                    bestCandidates.Add(shell);
+                }
+            }
+
+            if (bestCandidates.Count == 0)
+                return shells[0];
+
+            float errorProbability = _config != null
+                ? _config.EvaluateDecisionErrorProbability(_currentDifficultyIndex, _currentHealthFraction, _isFirstLevel)
+                : 0f;
+
+            if (UnityEngine.Random.value < errorProbability)
+                return shells[UnityEngine.Random.Range(0, shells.Count)];
+
+            return bestCandidates[UnityEngine.Random.Range(0, bestCandidates.Count)];
+        }
+
         private IEnumerator DecisionRoutine(IReadOnlyList<Shell> shells, Action<Shell> onShellChosen)
         {
-            // TODO: здесь будет проход по инвентарю расходуемых предметов
-            // противника (CanUse -> ShouldUse -> IgnoreChance -> Apply ->
-            // обновление Knowledge, повтор цикла) — см. таблицы CanUse/ShouldUse
-            // в ГДД. Монокль уже готов (ResyncKnowledge выше), остальные
-            // предметы (Пассатижи/Молоток/Метка/Наркотики/Двойной урон)
-            // потребуют инвентаря у противника — пока пропускается.
-            //
-            // usedItemThisDecision нужно выставить в true в том месте, где
-            // реально был применён предмет в рамках этого решения — тогда
-            // бонус скорости "без предметов" (_noItemDecisionSpeedMultiplier)
-            // корректно перестанет применяться.
-            bool usedItemThisDecision = false;
+            bool usedItemThisDecision = _itemUsedThisDecision;
+            _itemUsedThisDecision = false;
 
-            float baseDelay = _config.EvaluateDecisionDelay(_currentDifficultyIndex);
+            float baseDelay = _config != null ? _config.EvaluateDecisionDelay(_currentDifficultyIndex) : 0f;
             float delay = baseDelay * _decisionSpeedMultiplier
                 * (usedItemThisDecision ? 1f : _noItemDecisionSpeedMultiplier);
 
@@ -238,8 +320,10 @@ namespace ShellGame.AI
                     targetSlotIndex = shells[UnityEngine.Random.Range(0, shells.Count)].SlotIndex;
                 }
 
-                errorProbability = _config.EvaluateDecisionErrorProbability(
-                    _currentDifficultyIndex, _currentHealthFraction, _isFirstLevel);
+                errorProbability = _config != null
+                    ? _config.EvaluateDecisionErrorProbability(
+                        _currentDifficultyIndex, _currentHealthFraction, _isFirstLevel)
+                    : 0f;
                 errorRoll = UnityEngine.Random.value;
                 bool madeError = errorRoll < errorProbability;
                 if (madeError)

@@ -43,7 +43,7 @@ namespace ShellGame.Items
         {
             if (soundEvent.IsNull) return;
             _flightInstance = RuntimeManager.CreateInstance(soundEvent);
-            RuntimeManager.AttachInstanceToGameObject(_flightInstance, transform);
+            RuntimeManager.AttachInstanceToGameObject(_flightInstance, gameObject);
             _flightInstance.start();
         }
 

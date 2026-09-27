@@ -39,6 +39,8 @@ namespace ShellGame.Feedback
         [SerializeField] private float _vignetteFadeInDuration = 0.08f;
         [SerializeField] private float _vignetteFadeOutDuration = 0.5f;
 
+        [SerializeField] private GameObject _bloodPS;
+
         [Header("Отладка")]
         [Tooltip("Логировать в консоль, когда игла реально укалывает игрока и когда урон обрабатывается только реакцией (виньетка/тряска). Удобно проверять, что игла играет ТОЛЬКО при уроне дозой (после поднятия наперстка с меткой).")]
         [SerializeField] private bool _logDamageFlow = true;
@@ -49,7 +51,6 @@ namespace ShellGame.Feedback
         public CinemachineCamera mainCamera;
         public float cameraChangeDuration = 0.5f;
 
-        private Tween _cameraShakeTween;
         private Sequence _vignetteSequence;
         private Coroutine _animationCoroutine;
         private bool _needleSearchWarned;
@@ -127,6 +128,10 @@ namespace ShellGame.Feedback
 
                 yield return new WaitForSeconds(_damageAnimDuration);
 
+                if (_bloodPS != null)
+                    _bloodPS.SetActive(false);
+                    _bloodPS.SetActive(true);
+
                 if (needleAnimator != null)
                     needleAnimator.SetTrigger(_returnAnimationName);
 
@@ -192,7 +197,6 @@ namespace ShellGame.Feedback
         protected override void OnDisable()
         {
             base.OnDisable();
-            _cameraShakeTween?.Kill();
             _vignetteSequence?.Kill();
 
             if (_animationCoroutine != null)

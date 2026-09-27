@@ -69,9 +69,9 @@ public class SceneLoader : MonoBehaviour
     private Canvas fadeCanvas;
     private bool isLoading = false;
 
-    [InjectOptional] private HealthController _healthController;
-    [InjectOptional] private IUnlockManager _unlockManager;
-    [InjectOptional] private ShellGame.Meta.IGlobalProgressService _globalProgress;
+    [InjectOptional] private HealthController _healthController = null;
+    [InjectOptional] private IUnlockManager _unlockManager = null;
+    [InjectOptional] private ShellGame.Meta.IGlobalProgressService _globalProgress = null;
     [Inject] private GameSessionProgression _sessionProgression;
 
     private void Awake()
@@ -160,7 +160,7 @@ public class SceneLoader : MonoBehaviour
 
     private void StopCameraLookOnTransition()
     {
-        var lookControllers = FindObjectsOfType<CinemachineStationaryLook>(true);
+        var lookControllers = FindObjectsByType<CinemachineStationaryLook>(FindObjectsInactive.Include, FindObjectsSortMode.None);
         foreach (var lookController in lookControllers)
             if (lookController != null) lookController.enabled = false;
     }

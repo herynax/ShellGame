@@ -517,7 +517,8 @@ namespace ShellGame.Dialogue
                     line.TextColor,
                     line.VoiceEvent,
                     line.MinDisplayDuration,
-                    line.WaitForClick);
+                    line.WaitForClick,
+                    _config != null ? _config.ResolveAutoSkipSeconds(line) : 0f);
 
                 yield return _dialogue.ShowLine(runtimeLine);
                 Destroy(runtimeLine);

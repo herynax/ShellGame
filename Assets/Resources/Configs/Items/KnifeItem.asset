@@ -74,3 +74,5 @@ MonoBehaviour:
       Data3: 682924432
       Data4: -247475104
     Path: event:/SFX/Items/Knife/I_KnifeStab
+  EnemyDesireBase: 0.3
+  EnemyDesireConfidenceWeight: 0.7

@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
@@ -90,18 +91,29 @@ namespace ShellGame.Feedback
                 _material = material;
             }
 
+            // Проект работает с выключенным Render Graph
+            // (UniversalRenderPipelineGlobalSettings: m_EnableRenderGraph = 0), поэтому
+            // кастомный пасс обязан реализовывать compatibility-путь URP.
+            // [Obsolete] на override-ах — штатное средство, рекомендованное самим
+            // компилятором для CS0672.
+            [Obsolete("Compatibility-mode pass: активен, пока в URP выключен Render Graph.")]
             public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
             {
                 var descriptor = renderingData.cameraData.cameraTargetDescriptor;
                 descriptor.depthBufferBits = 0;
+#pragma warning disable CS0618 // ReAllocateIfNeeded: нет замены для compatibility-пути.
                 RenderingUtils.ReAllocateIfNeeded(ref _tempHandle, descriptor, name: "_ChromaticAberrationTempPSX");
+#pragma warning restore CS0618
             }
 
+            [Obsolete("Compatibility-mode pass: активен, пока в URP выключен Render Graph.")]
             public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
             {
                 if (_material == null) return;
 
+#pragma warning disable CS0618 // cameraColorTargetHandle: нет замены для compatibility-пути.
                 var cameraTarget = renderingData.cameraData.renderer.cameraColorTargetHandle;
+#pragma warning restore CS0618
                 var cmd = CommandBufferPool.Get("ShellGame Chromatic Aberration (PSX)");
 
                 _material.SetFloat("_Intensity", Intensity);

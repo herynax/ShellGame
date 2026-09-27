@@ -5,7 +5,6 @@ using UnityEngine.UI;
 public class BrightnessSliderUI : MonoBehaviour
 {
     [SerializeField] private Slider brightnessSlider;
-    [SerializeField] private bool startGameScreen = false;
 
     private void Awake()
     {

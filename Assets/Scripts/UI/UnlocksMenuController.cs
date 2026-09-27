@@ -19,9 +19,9 @@ namespace ShellGame.UI
         [Tooltip("Имя сцены, которая загрузится после сброса прогресса.")]
         [SerializeField] private string _tutorialSceneName = "Tutorial";
 
-        [Inject] private IUnlockManager _unlockManager;
-        [Inject] private UnlocksConfig _unlocksConfig;
-        [Inject] private IGlobalProgressService _globalProgress;
+        [Inject] private IUnlockManager _unlockManager = null;
+        [Inject] private UnlocksConfig _unlocksConfig = null;
+        [Inject] private IGlobalProgressService _globalProgress = null;
 
         private void OnEnable()
         {

@@ -3,13 +3,14 @@ using UnityEngine;
 using Unity.Cinemachine;
 using ShellGame.Core;
 using ShellGame.Gameplay;
+using ShellGame.Run;
 using Zenject;
 
 namespace ShellGame.Tutorial
 {
     public class TutorialScenarioManager : MonoBehaviour
     {
-        [SerializeField] private string _nextSceneName = "Level_2";
+        [SerializeField] private string _nextSceneName = "Level_1";
 
         [Header("--- CINEMACHINE КАМЕРЫ ---")]
         [SerializeField] private CinemachineCamera _mainCamera;
@@ -336,7 +337,20 @@ namespace ShellGame.Tutorial
             // нужен, а снимаем его до загрузки, чтобы статик не уехал в
             // следующую сцену.
             TutorialSceneTransitionGate.HoldEnemyDeathTransition = false;
-            SceneLoader.Instance.LoadScene(_nextSceneName);
+
+            // RunManager уже продвинул карту в GameManager.OnSideDied (та же
+            // GameEvents.SideDied, что и мы слушаем) и запомнил следующую
+            // сцену. Если RunManager ран не ведёт (или сцена ещё не
+            // подключена) — используем старый инспекторный дефолт, поведение
+            // не меняется.
+            string scene = RunManager.Instance != null
+                ? RunManager.Instance.ConsumePendingNextScene()
+                : null;
+
+            if (string.IsNullOrEmpty(scene))
+                scene = _nextSceneName;
+
+            SceneLoader.Instance.LoadScene(scene);
         }
 
         private void OnTutorialCompleted()

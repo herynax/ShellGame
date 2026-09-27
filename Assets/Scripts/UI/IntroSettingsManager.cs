@@ -24,7 +24,7 @@ public class IntroSettingsManager : MonoBehaviour
     [SerializeField] private Slider musicSlider;
     [SerializeField] private Slider sfxSlider;
     [SerializeField] private Button soundConfirmButton;
-    [SerializeField, EventRef] private string sfxPreviewEvent; // Тестовый звук при отпускании SFX слайдера
+    [SerializeField] private string sfxPreviewEvent; // Тестовый звук при отпускании SFX слайдера
 
     [Header("FMOD Paths")]
     [SerializeField] private string masterBusPath = "bus:/";
@@ -33,7 +33,7 @@ public class IntroSettingsManager : MonoBehaviour
 
     [Header("Переходы панелей")]
     [SerializeField] private float panelFadeDuration = 0.5f;
-    [SerializeField, EventRef] private string anxietyStingEvent;
+    [SerializeField] private string anxietyStingEvent;
 
     [Header("Спокойные переходы")]
     [SerializeField] private float calmFadeDuration = 0.5f;

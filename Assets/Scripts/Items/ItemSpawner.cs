@@ -51,8 +51,8 @@ namespace ShellGame.Items
         private IAudioService _audio;
         private bool _hasSpawned;
 
-        [InjectOptional] private IUnlockManager _unlockManager;
-        [InjectOptional] private UnlocksConfig _unlocksConfig;
+        [InjectOptional] private IUnlockManager _unlockManager = null;
+        [InjectOptional] private UnlocksConfig _unlocksConfig = null;
 
         public bool HasFinishedSpawning { get; private set; }
 
@@ -543,6 +543,14 @@ namespace ShellGame.Items
                     result.TurnResolvedByItem = true;
                     break;
                 }
+
+                // Предмет, который бьёт по напёртку (молоток), выбирает его сам и
+                // занимает шлюз выбора чашки. Второй такой предмет в этом ходу
+                // ждать нельзя — оба удара наложились бы на один шлюз. Обычный
+                // выбор врага после удара запустит GameManager (см.
+                // EnemyStrikeSettleSeconds у HammerItemDefinition).
+                if (ShellHammerGate.IsPending || ShellKnifeGate.IsPending)
+                    break;
             }
 
             _enemyLookController?.ResetLook();

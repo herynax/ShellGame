@@ -26,6 +26,12 @@ namespace ShellGame.Items
         [Tooltip("Звук при попадании")]
         public EventReference ImpactSound;
 
+        [Header("Желание для ИИ врага")]
+        [Tooltip("Базовое желание взять нож (0..1) — насколько охотно враг берётся за него, когда вообще не понимает, где метки.")]
+        [Range(0f, 1f)] public float EnemyDesireBase = 0.3f;
+        [Tooltip("Насколько уверенность врага в отслеживании меток повышает желание. Итог: EnemyDesireBase + уверенность * вес.")]
+        [Range(0f, 1f)] public float EnemyDesireConfidenceWeight = 0.7f;
+
         private static TurnSide Opposite(TurnSide side) => side == TurnSide.Player ? TurnSide.Enemy : TurnSide.Player;
 
         public override bool CanUse(ItemEffectContext context)
@@ -69,7 +75,7 @@ namespace ShellGame.Items
                     TurnSide targetSide = targetShell.HasMarker ? Opposite(context.UserSide) : context.UserSide;
                     ExecuteStrike(context, activeKnife, targetSide, targetShell.HasMarker ? DamageToEnemy : DamageToPlayer);
                 });
-                context.EnemyAI.MakeDecisionAndAttack(context.ActiveShells, chosen => chosen.Select());
+                context.EnemyAI.MakeDecisionAndAttack(context.ActiveShells, chosen => chosen.Select(), afterItemUse: true);
                 return true;
             }
 
@@ -108,6 +114,21 @@ namespace ShellGame.Items
                 context.Health.ApplyDamage(targetSide, damage);
             });
         }
+
+        /// <summary>
+        /// Нож — атака: враг бьёт по напёртку, в котором по его мнению метка.
+        /// Чем увереннее он отслеживает метки, тем охотнее берёт нож в руки —
+        /// бросать наугад враг не станет, риск остаться без дозы слишком велик.
+        /// </summary>
+        public override float EvaluateEnemyDesire(ItemEffectContext context)
+        {
+            if (!CanUse(context)) return 0f;
+
+            float confidence = context.EnemyAI != null ? context.EnemyAI.GetTrackedKnowledgeFraction() : 0.5f;
+            return Mathf.Clamp01(EnemyDesireBase + confidence * EnemyDesireConfidenceWeight);
+        }
+
+        public override string GetEnemyUseAnnouncement() => "Враг метнул нож в напёрток!";
     }
 }
 // END OF FILE

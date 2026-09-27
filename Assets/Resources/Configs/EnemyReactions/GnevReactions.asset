@@ -20,6 +20,7 @@ MonoBehaviour:
   MaxLinesPerTurn: 1
   PlayerThinkingWarningSeconds: 4
   FirstLineDelaySeconds: 0.6
+  AutoSkipSeconds: 5
   Rules:
   - Context: 0
     Priority: 100

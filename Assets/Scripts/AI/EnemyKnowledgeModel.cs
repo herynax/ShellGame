@@ -102,5 +102,34 @@ namespace ShellGame.AI
         {
             return _entries.FindAll(e => e.IsTracked);
         }
+
+        /// <summary>
+        /// Насколько противник ВЕРИТ, что в этом слоте сейчас метка: 1 — метка
+        /// отслеживается прямо сейчас, промежуточное значение — метку потеряли
+        /// при перемешивании и осталась только старая догадка, 0 — про слот
+        /// противник не знает ничего.
+        ///
+        /// Нужно предметам, которым требуется ПУСТОЙ напёрсток (молоток): враг
+        /// выбирает слот с минимальной верой в метку, а не наоборот.
+        /// </summary>
+        public float GetMarkerBelief(int slotIndex)
+        {
+            const float StaleGuessBelief = 0.35f;
+
+            float belief = 0f;
+
+            foreach (var entry in _entries)
+            {
+                if (entry.CurrentSlotIndex != slotIndex)
+                    continue;
+
+                if (entry.IsTracked)
+                    return 1f;
+
+                belief = StaleGuessBelief;
+            }
+
+            return belief;
+        }
     }
 }

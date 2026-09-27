@@ -81,3 +81,8 @@ MonoBehaviour:
       Data3: 1055168958
       Data4: 576765403
     Path: event:/SFX/Items/Knife/I_KnifeThrow
+  DamageToEnemy: 1
+  EnemyDesireBase: 0.35
+  EnemyDesireConfidenceWeight: 0.65
+  EnemyCrowdedShellCount: 4
+  EnemyStrikeSettleSeconds: 1.2

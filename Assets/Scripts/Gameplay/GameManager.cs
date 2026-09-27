@@ -8,6 +8,7 @@ using ShellGame.Health;
 using ShellGame.Items;
 using ShellGame.Meta;
 using ShellGame.Shells;
+using ShellGame.Run;
 using FMODUnity;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -94,8 +95,18 @@ namespace ShellGame.Gameplay
         private float _activeGameSpeedMultiplier = 1f;
         private bool _gameSpeedEffectActive;
         private TurnSide _gameSpeedEffectOwner;
-        private bool _gameSpeedOwnerHasChosen;
         private Coroutine _gameSpeedTransition;
+
+        // Таблетки (SlowShuffle) у игрока: замедление живёт только на ходе
+        // игрока и только на этапе перемешивания, а заканчивается сразу после
+        // его выбора напертка. Если таблетку взяли ПОСЛЕ своего перемешивания,
+        // эффект не включается в этом раунде вовсе, а ждёт следующего хода
+        // игрока — поэтому он хранится отдельно как «отложенный».
+        private bool _slowdownPendingForPlayer;
+        private float _pendingSlowdownFactor = 2f;
+
+        /// <summary>Перемешивание игрока в текущем ходу уже закончилось.</summary>
+        private bool _playerShuffleCompleted;
 
         private const float MinGameSpeed = 0.5f;
         private const float GameSpeedTransitionDuration = 1f;
@@ -214,6 +225,7 @@ namespace ShellGame.Gameplay
             }
 
             RunStatsTracker.EnsureExists();
+            ShellGame.Run.RunManager.EnsureExists();
 
             // Забег живёт между уровнями, поэтому старт статистики здесь
             // идемпотентный: новая попытка (обучение или Level_1 после него) —
@@ -438,38 +450,112 @@ namespace ShellGame.Gameplay
             };
         }
 
+        /// <summary>
+        /// Открыт ли предмет игроку прямо сейчас. Ставится в ItemPickupView как
+        /// фильтр ховера/клика, поэтому решает всё: и подсветку, и доступность.
+        ///
+        /// Фаза: предметы трогать можно только когда идёт ход (RoundState.PlayerTurn
+        /// обслуживает обе стороны) либо в ожидании старта первого раунда. В
+        /// Reveal/RevealResult/Cleanup/Shuffle ход ещё не идёт — кликать нельзя.
+        /// Плюс блокируем ход обучения и висящие шлюзы выбора напертка (пик/нож/
+        /// молоток), пока игрок занят другим выбором.
+        /// </summary>
+        public bool IsItemUsageAllowedNow(ItemDefinition item)
+        {
+            if (item == null) return false;
+
+            if (_state != RoundState.PlayerTurn && _state != RoundState.WaitForStart)
+                return false;
+
+            if (IsTutorialActive() && _tutorialPlayerChoiceLocked)
+                return false;
+
+            if (ShellPeekGate.IsPending || ShellKnifeGate.IsPending || ShellHammerGate.IsPending)
+                return false;
+
+            switch (item.UsageWindow)
+            {
+                case ItemUsageWindow.AnyTurn:
+                    return true;
+                case ItemUsageWindow.EnemyTurnOnly:
+                    return _activeSide == TurnSide.Enemy;
+                default:
+                    return _activeSide == TurnSide.Player;
+            }
+        }
+
         private void SetGameSpeedMultiplier(TurnSide side, float slowdownFactor)
         {
-            if (_gameSpeedEffectActive)
-                return;
+            // Не стакается: пока эффект держится, вторую дозу взять нельзя
+            // (CanSlowGamePace это уже проверяет, здесь — страховка).
+            if (_gameSpeedEffectActive) return;
 
+            _pendingSlowdownFactor = slowdownFactor;
+
+            // Таблетки включаются ТОЛЬКО на ходу игрока и ТОЛЬКО до конца его
+            // перемешивания. Поэтому включаем эффект сразу лишь когда игрок
+            // ещё не перемешивал в этом ходу. В остальных случаях таблетка
+            // ждёт следующего хода игрока:
+            //   • взята ПОСЛЕ своего перемешивания (уже выбирает наперток) —
+            //     на этом раунде эффекта быть не должно;
+            //   • взята на ходу ВРАГА — на ходу врага эффекта быть не должно.
+            bool activatesNow = _activeSide == TurnSide.Player && !_playerShuffleCompleted;
+
+            if (!activatesNow)
+            {
+                _slowdownPendingForPlayer = true;
+                return;
+            }
+
+            ActivatePlayerSlowdown(slowdownFactor);
+        }
+
+        /// <summary>
+        /// Собственно включение замедления. Вызывается сразу при использовании
+        /// таблетки (если перемешивание впереди) и на следующем перемешивании
+        /// игрока, если таблетка была взята уже после него.
+        /// </summary>
+        private void ActivatePlayerSlowdown(float slowdownFactor)
+        {
+            _slowdownPendingForPlayer = false;
             _gameSpeedEffectActive = true;
-            _gameSpeedEffectOwner = side;
-            _gameSpeedOwnerHasChosen = false;
+            _gameSpeedEffectOwner = TurnSide.Player;
             float targetSpeed = Mathf.Clamp(1f / Mathf.Max(1f, slowdownFactor), MinGameSpeed, 1f);
             StartGameSpeedTransition(targetSpeed);
         }
 
+        /// <summary>
+        /// Точка включения отложенного эффекта: перемешивание игрока.
+        /// Таблетки «должны включаться именно когда ход игрока и этап
+        /// перемешивания», поэтому позже (выбор напертка) эффект не включается.
+        /// </summary>
+        private void TryActivatePendingPlayerSlowdown()
+        {
+            if (!_slowdownPendingForPlayer || _gameSpeedEffectActive)
+                return;
+
+            ActivatePlayerSlowdown(_pendingSlowdownFactor);
+        }
+
         private void ResetGameSpeedMultiplier()
         {
+            _slowdownPendingForPlayer = false;
+
             if (!_gameSpeedEffectActive && Mathf.Approximately(_activeGameSpeedMultiplier, 1f))
                 return;
 
             _gameSpeedEffectActive = false;
-            _gameSpeedOwnerHasChosen = false;
             StartGameSpeedTransition(1f);
         }
 
+        /// <summary>
+        /// Таблетки держат замедление ровно до выбора напертка их владельцем:
+        /// после выбора эффект снимается, на ход врага он не переносится.
+        /// </summary>
         private void HandleGameSpeedOwnerChoice(TurnSide side)
         {
             if (!_gameSpeedEffectActive || side != _gameSpeedEffectOwner)
                 return;
-
-            if (!_gameSpeedOwnerHasChosen)
-            {
-                _gameSpeedOwnerHasChosen = true;
-                return;
-            }
 
             ResetGameSpeedMultiplier();
         }
@@ -567,6 +653,7 @@ namespace ShellGame.Gameplay
                     while (_tutorialGameplayPaused)
                     {
                         _inputSystem?.SetEnabled(false);
+                        _inputSystem?.SetItemInteractionEnabled(false);
                         yield return null;
                     }
                 }
@@ -678,7 +765,11 @@ namespace ShellGame.Gameplay
                     if (!isTutorialActive)
                     {
                         if (_roundStartButton != null) _roundStartButton.SetInteractable(true);
-                        if (_inputSystem != null) _inputSystem.SetEnabled(true);
+                        if (_inputSystem != null)
+                        {
+                            _inputSystem.SetEnabled(true);
+                            _inputSystem.SetItemInteractionEnabled(true);
+                        }
                     }
 
                     // Ждем. В обычной игре это ожидание снимет клик по кнопке, 
@@ -688,7 +779,11 @@ namespace ShellGame.Gameplay
                     if (!isTutorialActive)
                     {
                         if (_roundStartButton != null) _roundStartButton.Hide();
-                        if (_inputSystem != null) _inputSystem.SetEnabled(false);
+                        if (_inputSystem != null)
+                        {
+                            _inputSystem.SetEnabled(false);
+                            _inputSystem.SetItemInteractionEnabled(false);
+                        }
                     }
                     break;
                     case RoundState.Reveal:
@@ -708,6 +803,14 @@ namespace ShellGame.Gameplay
                 case RoundState.Shuffle:
                     if (_inputSystem == null || _shuffleSystem == null || _roundGenerator == null) yield break;
                     _inputSystem.SetEnabled(false);
+                    _inputSystem.SetItemInteractionEnabled(false);
+                    _playerShuffleCompleted = false;
+
+                    // Таблетка, взятая на прошлом ходу игрока уже ПОСЛЕ его
+                    // перемешивания, включается ровно здесь — когда ход вернулся
+                    // к игроку и началось перемешивание.
+                    if (_activeSide == TurnSide.Player)
+                        TryActivatePendingPlayerSlowdown();
                     yield return new WaitForSeconds(_shuffleDelay);
                     if (_activeSide == TurnSide.Enemy && _enemyAI != null) _enemyAI.EnterTrackShuffle();
                     _shuffleSystem.SetMoveDurationMultiplier(ConsumeNextShuffleDurationMultiplier(_activeSide));
@@ -743,10 +846,16 @@ namespace ShellGame.Gameplay
                         {
                             yield return WaitForGameplayGate();
                             _inputSystem.SetEnabled(true);
+                            _inputSystem.SetItemInteractionEnabled(true);
                         }
                         else
                         {
+                            // Наперток в этот момент выбирает враг, поэтому канал
+                            // напертка закрыт. Но предметы, которые выбор напертка
+                            // не отменяют (хилка, крест, таблетки — см.
+                            // ItemDefinition.UsageWindow), игрок применить может.
                             _inputSystem.SetEnabled(false);
+                            _inputSystem.SetItemInteractionEnabled(true);
 
                             if (_extraTurnRequested[TurnSide.Player])
                             {
@@ -760,12 +869,14 @@ namespace ShellGame.Gameplay
 
                             _skipEnemyTurn = false;
                             float itemExtraDelay = 0f;
+                            bool enemyTurnResolvedByItem = false;
                             if (_itemSpawner != null)
                             {
                                 var itemUseResult = new EnemyItemUseResult();
                                 yield return _itemSpawner.TryUseEnemyItemsRoutine(this, _currentParameters.DifficultyIndex, itemUseResult);
                                 _skipEnemyTurn = itemUseResult.SkippedTurn;
                                 itemExtraDelay = itemUseResult.ExtraDelaySeconds;
+                                enemyTurnResolvedByItem = itemUseResult.TurnResolvedByItem;
                             }
 
                             if (_skipEnemyTurn)
@@ -783,7 +894,12 @@ namespace ShellGame.Gameplay
                             if (itemExtraDelay > 0f)
                                 yield return new WaitForSeconds(itemExtraDelay);
 
-                            if (_enemyAI != null && _roundGenerator != null)
+                            // Предмет мог заменить врагу его обычный выбор напёртка
+                            // (нож бьёт по напёртку сам) — тогда ниже запускать
+                            // ничего нельзя, иначе враг ударит дважды за ход. Сам
+                            // выбор предмета придёт через ShellSelected и уведёт
+                            // машину состояний в RevealResult сам.
+                            if (_enemyAI != null && _roundGenerator != null && !enemyTurnResolvedByItem)
                             {
 
                                 if (_healthController != null)
@@ -887,6 +1003,7 @@ namespace ShellGame.Gameplay
                     case RoundState.Cleanup:
                         if (_roundGenerator == null || _inputSystem == null) yield break;
                         _inputSystem.SetEnabled(false);
+                        _inputSystem.SetItemInteractionEnabled(false);
                         _turnsCompletedInCurrentRound = 0;
                         _roundLayoutGenerated = false;
                         _completedRoundsInSession++;
@@ -920,6 +1037,7 @@ namespace ShellGame.Gameplay
                     case RoundState.GameOver:
                         _roundGenerator?.ClearRound();
                         _inputSystem?.SetEnabled(false);
+                        _inputSystem?.SetItemInteractionEnabled(false);
                         yield break;
 
                     default: yield break;
@@ -941,6 +1059,7 @@ namespace ShellGame.Gameplay
 
         private void OnEnable()
         {
+            ItemPickupView.SetUsageWindowFilter(IsItemUsageAllowedNow);
             GameEvents.ShellSelected += OnShellSelected;
             GameEvents.RoundShuffleCompleted += OnShuffleCompleted;
             GameEvents.ShellRevealed += OnShellRevealed;
@@ -950,6 +1069,9 @@ namespace ShellGame.Gameplay
 
         private void OnDisable()
         {
+            // Статический фильтр не должен пережить сцену: иначе новый
+            // GameManager подхватит правило от.destroyed экземпляра.
+            ItemPickupView.SetUsageWindowFilter(null);
             GameEvents.ShellSelected -= OnShellSelected;
             GameEvents.RoundShuffleCompleted -= OnShuffleCompleted;
             GameEvents.ShellRevealed -= OnShellRevealed;
@@ -962,6 +1084,8 @@ namespace ShellGame.Gameplay
             ResetGameSpeedMultiplier();
             _enemySlowItemChoicesRemaining = 0;
             _enemyAI?.ResetDrugEffects();
+
+            RunManager.Instance?.NotifyEncounterFinished(side);
         }
 
         private void OnShellSelected(Shell shell)
@@ -978,6 +1102,7 @@ namespace ShellGame.Gameplay
 
             _selectedShell = shell;
             _inputSystem.SetEnabled(false);
+            _inputSystem.SetItemInteractionEnabled(false);
             _state = RoundState.RevealResult;
 
             if (_activeSide == TurnSide.Enemy && _enemySlowItemChoicesRemaining > 0)
@@ -1040,6 +1165,7 @@ namespace ShellGame.Gameplay
         private void OnShuffleCompleted()
         {
             if (_activeSide == TurnSide.Enemy && _enemyAI != null) _enemyAI.ExitTrackShuffle();
+            if (_activeSide == TurnSide.Player) _playerShuffleCompleted = true;
             if (_state == RoundState.Shuffle) _state = RoundState.PlayerTurn;
         }
 

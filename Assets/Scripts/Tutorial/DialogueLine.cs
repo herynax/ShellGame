@@ -31,6 +31,8 @@ namespace ShellGame.Tutorial
         [SerializeField] private float _minDisplayDuration = 0.6f;
         [Tooltip("Если включено — реплика ждёт клик/пробел, чтобы закрыться. Если выключено — закроется сама через minDisplayDuration.")]
         [SerializeField] private bool _waitForClick = true;
+        [Tooltip("Сколько секунд реплика может висеть максимум, даже если игрок не кликнул. 0 — не автоскипать, ждать клика. Работает вместе с waitForClick: игрок может закрыть реплику раньше.")]
+        [SerializeField] private float _autoSkipSeconds;
 
         public string Text => _text;
         public TMP_FontAsset FontAsset => _fontAsset;
@@ -39,6 +41,7 @@ namespace ShellGame.Tutorial
         public EventReference VoiceEvent => _voiceEvent;
         public float MinDisplayDuration => _minDisplayDuration;
         public bool WaitForClick => _waitForClick;
+        public float AutoSkipSeconds => _autoSkipSeconds;
 
         /// <summary>
         /// Создаёт временную реплику из данных конфига — для систем, которые
@@ -54,7 +57,8 @@ namespace ShellGame.Tutorial
             Color textColor,
             EventReference voiceEvent,
             float minDisplayDuration,
-            bool waitForClick)
+            bool waitForClick,
+            float autoSkipSeconds = 0f)
         {
             var line = CreateInstance<DialogueLine>();
             line.name = string.IsNullOrEmpty(text) ? "ReactionLine" : text;
@@ -63,6 +67,7 @@ namespace ShellGame.Tutorial
             line._voiceEvent = voiceEvent;
             line._minDisplayDuration = Mathf.Max(0f, minDisplayDuration);
             line._waitForClick = waitForClick;
+            line._autoSkipSeconds = Mathf.Max(0f, autoSkipSeconds);
             return line;
         }
     }
