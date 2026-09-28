@@ -35,11 +35,13 @@ namespace ShellGame.Health
 
 
         [Inject]
-        private void InjectDependencies(
-            PlayerDamageFeedback playerDamageFeedback,
-            EnemyDamageFeedback enemyDamageFeedback)
+        private void InjectDependencies(PlayerDamageFeedback playerDamageFeedback)
         {
             _playerDamageFeedback = playerDamageFeedback;
+        }
+
+        public void BindEnemyFeedback(EnemyDamageFeedback enemyDamageFeedback)
+        {
             _enemyDamageFeedback = enemyDamageFeedback;
         }
 

@@ -22,13 +22,15 @@ namespace ShellGame.Dialogue
     ///   реплик — например, чтобы враг не использовал второй предмет, не дав
     ///   игроку прочитать комментарий к первому);
     /// — на смерти стороны держит SceneTransitionGate, поэтому следующий
-    ///   уровень не начинается, пока враг не договорит.
+    ///   уровень не начинается, пока враг не договорит;
+    /// — вступление начинает только после того, как экран перестал быть тёмным.
     ///
     /// Интеграция для нового врага: создать EnemyReactionConfig (правый клик
     /// в Project → Create → ShellGame → Dialogue → Enemy Reaction Config),
     /// положить в Resources/Configs/EnemyReactions и указать сцену в Scenes —
     /// директора поднимет EnemyReactionBootstrap. Либо повесить этот компонент
-    /// вручную и назначить конфиг в инспекторе.
+    /// вручную и назначить конфиг в инспекторе. В забеге с картой директора
+    /// создаёт EncounterHost по EncounterDefinition.ReactionConfig.
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class EnemyReactionDirector : MonoBehaviour
@@ -44,6 +46,9 @@ namespace ShellGame.Dialogue
 
         [SerializeField, Min(0f), Tooltip("Страховка: сколько ждать готовности стола (кнопки «Начать игру»), прежде чем начать вступление.")]
         private float _tableReadyTimeout = 6f;
+
+        [SerializeField, Min(0f), Tooltip("Страховка: сколько максимум ждать, пока экран перестанет быть тёмным (конец перехода SceneLoader), прежде чем начать вступление. 0 = без ограничения.")]
+        private float _screenRevealTimeout = 15f;
 
         [SerializeField, Min(0f), Tooltip("Пауза между предложениями врага поверх отзума. 0 = следующая реплика сразу после отзума.")]
         private float _afterLinePause;
@@ -359,10 +364,15 @@ namespace ShellGame.Dialogue
         /// <summary>
         /// Вступление уровня. Гейт реплик к этому моменту уже занят в Awake
         /// (раунд не начнётся, пока враг не поздоровается), здесь — ожидание
-        /// готовности стола, первая пауза и сам показ.
+        /// открытия экрана, готовности стола, первая пауза и сам показ.
         /// </summary>
         private IEnumerator IntroRoutine()
         {
+            // Сначала ждём, пока экран перестанет быть тёмным: переход
+            // SceneLoader (затемнение, загрузка, открытие) должен полностью
+            // закончиться, иначе игрок услышит врага в чёрном экране.
+            yield return WaitForScreenRevealed();
+
             // Вступление идёт ПОСЛЕ того, как игрок и стол окончательно
             // загрузились: ждём, пока спавнятся предметы и на стол выезжает
             // кнопка «Начать игру» (она в этот момент некликабельная).
@@ -370,7 +380,7 @@ namespace ShellGame.Dialogue
 
             float delay = _config != null ? _config.FirstLineDelaySeconds : 0f;
             if (delay > 0f)
-                yield return new WaitForSeconds(delay);
+                yield return new WaitForSecondsRealtime(delay);
 
             var group = SelectGroup(BuildQuery(EnemyReactionContext.GameStart, TurnSide.Enemy), true);
             if (group == null)
@@ -387,6 +397,32 @@ namespace ShellGame.Dialogue
 
             GameplayGate.Release(this);
             ReleasePresentation();
+        }
+
+        /// <summary>
+        /// Ждёт конца перехода SceneLoader (SceneLoader.IsTransitioning станет
+        /// false только когда экран полностью открылся и время вернулось в
+        /// норму). Если загрузчика нет — не ждём. Таймаут — страховка от
+        /// зависшего перехода.
+        /// </summary>
+        private IEnumerator WaitForScreenRevealed()
+        {
+            float elapsed = 0f;
+            while (!_levelEnded)
+            {
+                var loader = SceneLoader.Instance;
+                if (loader == null || !loader.IsTransitioning)
+                    yield break;
+
+                if (_screenRevealTimeout > 0f && elapsed >= _screenRevealTimeout)
+                {
+                    Debug.LogWarning($"[EnemyReactionDirector] Экран не открылся за {_screenRevealTimeout:F1}с — начинаю вступление без ожидания.", this);
+                    yield break;
+                }
+
+                elapsed += Time.unscaledDeltaTime;
+                yield return null;
+            }
         }
 
         /// <summary>

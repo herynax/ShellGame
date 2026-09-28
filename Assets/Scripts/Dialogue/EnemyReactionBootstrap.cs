@@ -39,13 +39,14 @@ namespace ShellGame.Dialogue
     }
 
     /// <summary>
-    /// Автоматическая интеграция реакций: на каждой сцене для каждого
-    /// EnemyReactionConfig из Resources/Configs/EnemyReactions, у которого эта
-    /// сцена указана в Scenes, поднимается свой EnemyReactionDirector.
-    /// Новый враг на новом уровне = новый ассет конфига, ни строчки кода.
+    /// Директоры реакций для отдельных сцен (обучение, тестовые уровни):
+    /// для каждого EnemyReactionConfig из Resources/Configs/EnemyReactions,
+    /// у которого эта сцена явно указана в Scenes, поднимается свой директор.
     ///
-    /// Если директор для этого конфига уже лежит на сцене (добавлен вручную),
-    /// второй не создаётся.
+    /// В сцене Game (забег с картой) этот механизм отключён: там директора
+    /// создаёт EncounterHost по EncounterDefinition.ReactionConfig, то есть
+    /// по текущему врагу, а не по имени сцены. Конфиги с пустым Scenes
+    /// автоматически на сцены не вешаются.
     ///
     /// Сцену отслеживаем по имени активной сцены в Update, а не через
     /// SceneManager.sceneLoaded: параметр LoadMode этого события в Unity 6
@@ -87,30 +88,52 @@ namespace ShellGame.Dialogue
                 return;
 
             _lastSceneName = scene.name;
+            if (scene.name == ShellGame.Run.RunManager.GameSceneName) return;
             BindDirectorsFor(scene.name);
         }
 
-        /// <summary>Поднимает директоров для всех конфигов, где указана эта сцена.</summary>
+        /// <summary>Поднимает директоров для конфигов, где эта сцена указана явно.</summary>
         public static void BindDirectorsFor(string sceneName)
         {
             var configs = EnemyReactionConfigLibrary.All;
             for (int i = 0; i < configs.Count; i++)
             {
                 var config = configs[i];
-                if (config == null || !config.AppliesToScene(sceneName))
+                if (config == null)
+                    continue;
+
+                // Конфиги врагов забега (без списка сцен) сюда не попадают:
+                // их создаёт EncounterHost.
+                if (config.Scenes == null || config.Scenes.Count == 0)
+                    continue;
+
+                if (!config.AppliesToScene(sceneName))
                     continue;
 
                 if (HasDirector(config))
                     continue;
 
-                // Создаём неактивным: Awake компонента должен увидеть уже
-                // назначенный конфиг, иначе он сначала пожалуется на пустой.
-                var host = new GameObject($"EnemyReactionDirector ({config.name})");
-                host.SetActive(false);
-                var director = host.AddComponent<EnemyReactionDirector>();
-                director.SetConfig(config);
-                host.SetActive(true);
+                CreateDirector(config);
             }
+        }
+
+        /// <summary>
+        /// Создаёт директора реплик для конфига. Вызывается EncounterHost при
+        /// входе в энкаунтер. Уничтожать надо gameObject директора.
+        /// </summary>
+        public static EnemyReactionDirector CreateDirector(EnemyReactionConfig config)
+        {
+            if (config == null)
+                return null;
+
+            // Создаём неактивным: Awake компонента должен увидеть уже
+            // назначенный конфиг, иначе он сначала пожалуется на пустой.
+            var host = new GameObject($"EnemyReactionDirector ({config.name})");
+            host.SetActive(false);
+            var director = host.AddComponent<EnemyReactionDirector>();
+            director.SetConfig(config);
+            host.SetActive(true);
+            return director;
         }
 
         private static bool HasDirector(EnemyReactionConfig config)

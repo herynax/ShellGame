@@ -371,7 +371,24 @@ namespace ShellGame.Items
 
             return leastUsed;
         }
-
+        /// <summary>Сброс перед новым энкаунтером: убирает предметы, обнуляет инвентари, разрешает новый спавн.</summary>
+        public void ResetForNewEncounter(ShellGame.Feedback.EnemyLookController enemyLook)
+        {
+            foreach (var item in _spawnedItems)
+            {
+                if (item == null) continue;
+                item.transform.DOKill();
+                Destroy(item);
+            }
+            _spawnedItems.Clear();
+            _playerSpawnCounts.Clear();
+            _enemySpawnCounts.Clear();
+            _playerInventory = new ItemInventory(TurnSide.Player);
+            _enemyInventory = new ItemInventory(TurnSide.Enemy);
+            _hasSpawned = false;
+            HasFinishedSpawning = false;
+            _enemyLookController = enemyLook;
+        }
         private bool SpawnItem(ItemSpawnPoint point, TurnSide owner, List<ItemDefinition> availableItems, Dictionary<ItemDefinition, int> sideCounts, out Vector3 spawnPosition)
         {
             spawnPosition = point.SpawnPosition;

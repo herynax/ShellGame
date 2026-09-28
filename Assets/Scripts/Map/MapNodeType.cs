@@ -6,6 +6,7 @@ namespace ShellGame.Map
         Enemy,
         Shop,
         Challenge,
-        Boss
+        Boss,
+        Tutorial
     }
 }

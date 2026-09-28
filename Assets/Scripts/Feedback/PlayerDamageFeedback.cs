@@ -39,8 +39,6 @@ namespace ShellGame.Feedback
         [SerializeField] private float _vignetteFadeInDuration = 0.08f;
         [SerializeField] private float _vignetteFadeOutDuration = 0.5f;
 
-        [SerializeField] private GameObject _bloodPS;
-
         [Header("Отладка")]
         [Tooltip("Логировать в консоль, когда игла реально укалывает игрока и когда урон обрабатывается только реакцией (виньетка/тряска). Удобно проверять, что игла играет ТОЛЬКО при уроне дозой (после поднятия наперстка с меткой).")]
         [SerializeField] private bool _logDamageFlow = true;
@@ -128,10 +126,6 @@ namespace ShellGame.Feedback
 
                 yield return new WaitForSeconds(_damageAnimDuration);
 
-                if (_bloodPS != null)
-                    _bloodPS.SetActive(false);
-                    _bloodPS.SetActive(true);
-
                 if (needleAnimator != null)
                     needleAnimator.SetTrigger(_returnAnimationName);
 
@@ -194,9 +188,16 @@ namespace ShellGame.Feedback
                 .Append(_vignetteCanvasGroup.DOFade(0f, _vignetteFadeOutDuration));
         }
 
+        public void BindRig(ShellGame.Run.EncounterRig rig)
+        {
+            if (rig != null && rig.EnemyCamera != null)
+                enemyCamera = rig.EnemyCamera;
+        }
+
         protected override void OnDisable()
         {
             base.OnDisable();
+            GameEvents.SideDied -= EnemyDeathCameraChange;
             _vignetteSequence?.Kill();
 
             if (_animationCoroutine != null)
@@ -215,21 +216,15 @@ namespace ShellGame.Feedback
 
         private void EnemyDeathCameraChange(TurnSide side)
         {
-            if (side == TurnSide.Enemy)
-            {
+            if (side == TurnSide.Enemy && enemyCamera != null)
                 enemyCamera.Priority = 2;
-            }
-            else
-            {
-                return;
-            }
         }
 
         private void ResetCameraPriority()
         {
-            enemyCamera.Priority = 0;
-            needleCamera.Priority = 0;
-            mainCamera.Priority = 1;
+            if (enemyCamera != null) enemyCamera.Priority = 0;
+            if (needleCamera != null) needleCamera.Priority = 0;
+            if (mainCamera != null) mainCamera.Priority = 1;
         }
     }
 }

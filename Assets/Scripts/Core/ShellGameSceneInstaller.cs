@@ -42,8 +42,6 @@ namespace ShellGame.Core
             BindSceneComponent<ItemSpawner>();
             BindSceneComponent<TurnSpotlightController>();
             BindSceneComponent<ShellGame.Feedback.PlayerDamageFeedback>();
-            BindSceneComponent<ShellGame.Feedback.EnemyDamageFeedback>();
-
             // --- �������� ����������� ��������� ---
             if (SceneLoader.Instance != null)
                 Container.Inject(SceneLoader.Instance);

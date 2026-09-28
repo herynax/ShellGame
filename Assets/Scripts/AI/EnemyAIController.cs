@@ -87,6 +87,20 @@ namespace ShellGame.AI
             Debug.Log($"[EnemyAI] ForceCorrectChoice CLEARED state={State}");
         }
 
+        public void ResetForNewEncounter(EnemyAIConfig config)
+        {
+            StopAllCoroutines();
+            ResetDrugEffects();
+            _config = config;
+            _forceCorrectChoice = false;
+            _forcedChoicePersistent = false;
+            _itemUsedThisDecision = false;
+            _currentHealthFraction = 1f;
+            _currentDifficultyIndex = 0f;
+            _knowledge.Reset();
+            State = EnemyAIState.Idle;
+        }
+
         /// <summary>
         /// Текущая доля HP противника (0..1), передаётся GameManager'ом перед
         /// каждым решением. Чем меньше HP — тем ниже точность решения (см.

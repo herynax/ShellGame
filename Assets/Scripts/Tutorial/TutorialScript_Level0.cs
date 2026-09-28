@@ -13,7 +13,6 @@ namespace ShellGame.Tutorial
         [SerializeField] private string _nextSceneName = "Level_1";
 
         [Header("--- CINEMACHINE КАМЕРЫ ---")]
-        [SerializeField] private CinemachineCamera _mainCamera;
         [SerializeField] private CinemachineCamera _hpCamera;
 
         [Header("--- 1. ВСТУПЛЕНИЕ ---")]
@@ -67,10 +66,10 @@ namespace ShellGame.Tutorial
             GameEvents.ActiveSideChanged += OnSideChanged;
             GameEvents.SideDied += OnSideDied;
 
-            // Переход на следующий уровень после смерти врага в обучении
-            // запускаем МЫ (в конце сценария, после предсмертной речи), а не
-            // SceneLoader по событию смерти. Иначе загрузка стартует в тот же
-            // кадр и реплики врага не успевают договорить.
+            // Переход после смерти врага в обучении запускаем МЫ (в конце
+            // сценария, после предсмертной речи), а не SceneLoader по событию
+            // смерти. Иначе переход стартует в тот же кадр и реплики врага не
+            // успевают договорить.
             TutorialSceneTransitionGate.HoldEnemyDeathTransition = true;
 
             // На всякий случай устанавливаем начальную камеру.
@@ -259,8 +258,10 @@ namespace ShellGame.Tutorial
                 yield return SayWithCameraReset(line);
             }
 
-            GoToNextLevel();
+            // Флаг прохождения ставим ДО перехода: карта после возврата
+            // и RunManager уже должны считать обучение пройденным.
             OnTutorialCompleted();
+            GoToNextLevel();
         }
 
 
@@ -270,19 +271,15 @@ namespace ShellGame.Tutorial
 
         private void SetMainCamera()
         {
-            if (_mainCamera == null || _hpCamera == null)
+            if (_hpCamera == null)
                 return;
-
-            _mainCamera.Priority = MainCameraPriority;
             _hpCamera.Priority = SecondaryCameraPriority;
         }
 
         private void SetHpCamera()
         {
-            if (_mainCamera == null || _hpCamera == null)
+            if (_hpCamera == null)
                 return;
-
-            _mainCamera.Priority = SecondaryCameraPriority;
             _hpCamera.Priority = MainCameraPriority;
         }
 
@@ -334,23 +331,22 @@ namespace ShellGame.Tutorial
         private void GoToNextLevel()
         {
             // Реплики предсмертной речи уже произнесены — холд нам больше не
-            // нужен, а снимаем его до загрузки, чтобы статик не уехал в
-            // следующую сцену.
+            // нужен, а снимаем его до перехода, чтобы статик не уехал дальше.
             TutorialSceneTransitionGate.HoldEnemyDeathTransition = false;
 
-            // RunManager уже продвинул карту в GameManager.OnSideDied (та же
-            // GameEvents.SideDied, что и мы слушаем) и запомнил следующую
-            // сцену. Если RunManager ран не ведёт (или сцена ещё не
-            // подключена) — используем старый инспекторный дефолт, поведение
-            // не меняется.
-            string scene = RunManager.Instance != null
-                ? RunManager.Instance.ConsumePendingNextScene()
-                : null;
+            // Обучение — обычный энкаунтер в сцене Game: возвращаемся на карту
+            // под чёрным экраном. Сцену не грузим.
+            var run = RunManager.Instance;
+            if (run != null && run.HasActiveRun && SceneLoader.Instance != null)
+            {
+                if (!SceneLoader.Instance.RunTransition(run.ReturnToMapRoutine()))
+                    Debug.LogWarning("[TutorialScenarioManager] Не удалось запустить возврат на карту: переход уже идёт.");
+                return;
+            }
 
-            if (string.IsNullOrEmpty(scene))
-                scene = _nextSceneName;
-
-            SceneLoader.Instance.LoadScene(scene);
+            // Забега нет (обучение запущено отдельной сценой) — старое поведение.
+            if (SceneLoader.Instance != null)
+                SceneLoader.Instance.LoadScene(_nextSceneName);
         }
 
         private void OnTutorialCompleted()

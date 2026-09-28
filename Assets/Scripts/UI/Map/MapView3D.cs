@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using ShellGame.Map;
+using Unity.Cinemachine;
 
 namespace ShellGame.Map.Presentation
 {
@@ -25,8 +26,7 @@ namespace ShellGame.Map.Presentation
         [SerializeField] private Color _unavailableColor = Color.gray;
 
         [Header("Camera")]
-        [SerializeField] private Camera _mapCamera;
-        [SerializeField] private bool _autoPositionCamera = true;
+        [SerializeField] private CinemachineCamera _mapCamera;
 
         public event Action<int> NodeSelected;
 
@@ -45,8 +45,7 @@ namespace ShellGame.Map.Presentation
             SpawnConnections();
             RefreshVisualStates();
 
-            if (_autoPositionCamera && _mapCamera != null)
-                PositionCamera();
+            _mapCamera.Priority = 5;
         }
 
         public void RefreshVisualStates()
@@ -114,14 +113,26 @@ namespace ShellGame.Map.Presentation
             return go;
         }
 
-        private void OnNodeClicked(int nodeId)
+        public void HandleNodeClicked(int nodeId)
         {
             if (!_state.CanMoveTo(_map, nodeId))
-                return; // клик по недоступному узлу — просто игнорируем
+                return;
 
-            _state.CompleteCurrentAndMoveTo(nodeId);
-            RefreshVisualStates();
             NodeSelected?.Invoke(nodeId);
+            _mapCamera.Priority = 0; // Сбрасываем при клике, чтобы не мешать энкаунтерной камере
+        }
+
+        private void OnNodeClicked(int nodeId) => HandleNodeClicked(nodeId);
+
+        public bool TryGetNodeWorldPosition(int nodeId, out Vector3 position)
+        {
+            if (_nodeViews.TryGetValue(nodeId, out var view))
+            {
+                position = view.transform.position;
+                return true;
+            }
+            position = default;
+            return false;
         }
 
         private Color ColorFor(MapNodeViewState viewState) => viewState switch
@@ -133,13 +144,6 @@ namespace ShellGame.Map.Presentation
             MapNodeViewState.Unavailable => _unavailableColor,
             _ => Color.magenta
         };
-
-        private void PositionCamera()
-        {
-            float totalDepth = (_map.Layers.Length - 1) * _layerSpacingZ;
-            _mapCamera.transform.position = new Vector3(0f, 8f, -6f);
-            _mapCamera.transform.LookAt(new Vector3(0f, 0f, totalDepth * 0.5f));
-        }
 
         private void Clear()
         {

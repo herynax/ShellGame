@@ -1,0 +1,17 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 29666386ab7e65be6842b1fe612ae215, type: 3}
+  m_Name: EncounterCatalog
+  m_EditorClassIdentifier: Assembly-CSharp::ShellGame.Run.EncounterCatalog
+  Encounters:
+  - {fileID: 11400000, guid: 38fe22313869a293cb2c75349339fbcb, type: 2}
+  - {fileID: 11400000, guid: 71cc98195ddd4fc86a4391aa4cd4ca90, type: 2}

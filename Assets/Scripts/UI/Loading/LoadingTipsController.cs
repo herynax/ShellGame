@@ -11,7 +11,6 @@ namespace ShellGame.UI
         [Header("Ссылки")]
         [SerializeField] private CanvasGroup tipCanvasGroup;
         [SerializeField] private TMP_Text tipText;
-        [SerializeField] private Image tipImage; // Ссылка на картинку UI
         [SerializeField] private LoadingTipsConfig tipsConfig;
 
         [Header("Тайминги")]
@@ -56,21 +55,6 @@ namespace ShellGame.UI
                 tipText.text = PickRandomTip();
             }
 
-            // Настраиваем случайную картинку
-            if (tipImage != null)
-            {
-                Sprite randomSprite = PickRandomImage();
-                if (randomSprite != null)
-                {
-                    tipImage.sprite = randomSprite;
-                    tipImage.gameObject.SetActive(true);
-                }
-                else
-                {
-                    tipImage.gameObject.SetActive(false); // Прячем Image, если картинок в конфиге нет
-                }
-            }
-
             activeTween?.Kill();
             tipCanvasGroup.alpha = 0f;
 
@@ -106,26 +90,6 @@ namespace ShellGame.UI
 
             lastTipIndex = index;
             return tipsConfig.tips[index];
-        }
-
-        private Sprite PickRandomImage()
-        {
-            if (tipsConfig == null || tipsConfig.images == null || tipsConfig.images.Length == 0)
-                return null;
-
-            if (tipsConfig.images.Length == 1)
-                return tipsConfig.images[0];
-
-            int index;
-            int safetyGuard = 10;
-            do
-            {
-                index = Random.Range(0, tipsConfig.images.Length);
-                safetyGuard--;
-            } while (index == lastImageIndex && safetyGuard > 0);
-
-            lastImageIndex = index;
-            return tipsConfig.images[index];
         }
     }
 }

@@ -1,166 +1,264 @@
+using System.Collections;
 using System.Collections.Generic;
-using UnityEngine;
-using ShellGame.Map;
 using ShellGame.Core;
+using ShellGame.Gameplay;
+using ShellGame.Map;
+using ShellGame.Meta;
+using ShellGame;
+using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace ShellGame.Run
 {
-    /// <summary>
-    /// DDOL-синглтон. Отвечает ТОЛЬКО за состояние карты текущего рана —
-    /// какой узел текущий, куда вести дальше. НЕ грузит сцены сам: момент
-    /// загрузки решает вызывающий код (TutorialScenarioManager ждёт финальные
-    /// реплики, обычный SceneLoader — свою обычную логику смерти). RunManager
-    /// только отвечает на вопрос "куда" через ConsumePendingNextScene().
-    ///
-    /// Сцены для сгенерированных (не заскриптованных) узлов карты пока не
-    /// сопоставлены — EncounterScenes содержит только "Fish"/"Wrath" для
-    /// первых двух узлов. Дальше по карте ConsumePendingNextScene() будет
-    /// возвращать null и логировать предупреждение, пока не появится
-    /// IEncounterResolver/EncounterRegistry (шаг 6 исходного плана).
-    /// </summary>
     public sealed class RunManager : MonoBehaviour
     {
-        private static RunManager _instance;
-        public static RunManager Instance => _instance;
+        public const string GameSceneName = "Game";
 
         private static readonly string[] FirstRunPrefix = { "Fish", "Wrath" };
+        private static readonly string[] ReturningPlayerPrefix = { "Wrath" };
 
-        // Сопоставление ForcedEncounterId → сцена. Пока только то, что нужно
-        // для скриптованного префикса первого рана.
-        private static readonly Dictionary<string, string> EncounterScenes = new()
-        {
-            { "Fish", "Tutorial" },
-            { "Wrath", "Level_1" },
-        };
+        public static RunManager Instance { get; private set; }
 
         public RunData CurrentRun { get; private set; }
         public RunState State { get; private set; } = RunState.None;
+        public string CurrentEncounterId { get; private set; }
+        public EncounterKind CurrentEncounterKind { get; private set; }
 
-        private string _pendingNextScene;
+        public bool HasActiveRun =>
+            CurrentRun != null && State != RunState.None && State != RunState.RunEnded;
+
+        public bool CurrentEncounterIsFinal =>
+            HasActiveRun &&
+            CurrentRun.Map.GetNode(CurrentRun.MapState.CurrentNodeId).Connections.Length == 0;
+
+        private MapSceneController _map;
+        private EncounterHost _host;
+        private EncounterCatalog _catalog;
+        private bool _resumeEncounterOnLoad;
 
         public static void EnsureExists()
         {
-            if (_instance != null) return;
-
-            var go = new GameObject(nameof(RunManager));
-            _instance = go.AddComponent<RunManager>();
-            DontDestroyOnLoad(go);
+            if (Instance != null) return;
+            new GameObject(nameof(RunManager)).AddComponent<RunManager>();
         }
 
         private void Awake()
         {
-            if (_instance != null && _instance != this)
-            {
-                Destroy(gameObject);
-                return;
-            }
-
-            _instance = this;
+            if (Instance != null && Instance != this) { Destroy(gameObject); return; }
+            Instance = this;
             DontDestroyOnLoad(gameObject);
         }
 
-        /// <summary>
-        /// Вызывать в точке старта новой попытки (где сейчас дергается
-        /// GameManager.GetNewRunSceneName() — вероятно MainMenuController, его
-        /// код я ещё не видел). Возвращает сцену первого узла, если RunManager
-        /// взял управление, иначе null — тогда решает старый код.
-        /// </summary>
-        public string StartNewRun()
+        private EncounterCatalog Catalog =>
+            _catalog != null ? _catalog : (_catalog = Resources.Load<EncounterCatalog>(EncounterCatalog.ResourcesPath));
+
+        public void RegisterMap(MapSceneController map) => _map = map;
+        public void RegisterHost(EncounterHost host) => _host = host;
+
+        // ---------------- жизненный цикл ----------------
+
+        public void StartNewRun()
         {
-            bool isFirstEverRun = !ShellGame.Gameplay.GameManager.IsTutorialCompleted();
+            GameSessionProgression.Instance?.Reset();
 
-            if (!isFirstEverRun)
-            {
-                Debug.LogWarning("[RunManager] Процедурный ран для НЕ-первого прохождения ещё не реализован — управление остаётся у старого флоу.");
-                CurrentRun = null;
-                State = RunState.None;
-                return null;
-            }
-
+            bool tutorialDone = GameManager.IsTutorialCompleted();
+            var prefix = tutorialDone ? ReturningPlayerPrefix : FirstRunPrefix;
             int seed = Random.Range(int.MinValue, int.MaxValue);
-            var config = new MapGenerationConfig(); // TODO: заменить на SO-конфиг, когда появится
 
-            var map = FirstRunMapFactory.BuildFirstRun(FirstRunPrefix, seed, config);
+            var map = FirstRunMapFactory.BuildFirstRun(prefix, seed, new MapGenerationConfig());
             CurrentRun = new RunData
             {
                 Map = map,
                 MapState = new MapState(map.StartNode.Id),
-                IsFirstRun = true
+                IsFirstRun = !tutorialDone
             };
 
-            State = RunState.EncounterActive;
-            _pendingNextScene = null;
-            return SceneFor(CurrentRun.MapState.CurrentNodeId);
+            _resumeEncounterOnLoad = false;
+            State = RunState.OnMap;
         }
 
-        /// <summary>
-        /// Вызывается из GameManager.OnSideDied. НЕ грузит сцену — только
-        /// продвигает состояние карты и запоминает, куда грузить дальше.
-        /// Если RunManager не ведёт ран (CurrentRun == null) — ничего не
-        /// делает, старое поведение отрабатывает как раньше.
-        /// </summary>
+        public void EndRun()
+        {
+            CurrentRun = null;
+            CurrentEncounterId = null;
+            _resumeEncounterOnLoad = false;
+            State = RunState.None;
+        }
+
+        /// <summary>Из GameManager.OnSideDied. Сцены не грузит, карту не двигает.</summary>
         public void NotifyEncounterFinished(TurnSide sideThatDied)
         {
-            if (CurrentRun == null || State != RunState.EncounterActive)
-                return;
-
-            bool playerWon = sideThatDied == TurnSide.Enemy;
-
-            if (!playerWon)
-            {
-                Debug.Log("[RunManager] Игрок погиб — смерть игрока пока не имеет отдельной логики здесь, отдаю старому флоу.");
-                State = RunState.RunEnded;
-                CurrentRun = null;
-                return;
-            }
-
-            var currentNode = CurrentRun.Map.GetNode(CurrentRun.MapState.CurrentNodeId);
-            if (currentNode.Connections.Length == 0)
-            {
-                Debug.Log("[RunManager] Карта пройдена до конца — отдаю управление существующему флоу.");
-                State = RunState.RunEnded;
-                CurrentRun = null;
-                return;
-            }
-
-            int nextNodeId = currentNode.Connections[0]; // на первых двух узлах путь линейный
-            CurrentRun.MapState.CompleteCurrentAndMoveTo(nextNodeId);
-
-            string nextScene = SceneFor(nextNodeId);
-            if (string.IsNullOrEmpty(nextScene))
-                Debug.LogWarning($"[RunManager] Нет сцены для узла {nextNodeId} — этот участок карты ещё не подключён к сценам.");
-
-            _pendingNextScene = nextScene;
-            State = RunState.AwaitingSceneLoad;
+            if (State == RunState.EncounterActive && sideThatDied == TurnSide.Enemy)
+                State = RunState.EncounterCleared;
         }
 
-        /// <summary>
-        /// Возвращает сцену, куда нужно перейти после последнего
-        /// NotifyEncounterFinished, и сбрасывает её. Вызывается тем кодом,
-        /// который реально решает МОМЕНТ перехода (TutorialScenarioManager
-        /// после финальных реплик, обычный SceneLoader — сразу). Возвращает
-        /// null, если RunManager не ведёт ран или сцена для узла ещё не
-        /// подключена — в этом случае вызывающий код должен использовать свой
-        /// дефолт (как _nextSceneName в TutorialScenarioManager).
-        /// </summary>
-        public string ConsumePendingNextScene()
+        // ---------------- вход после загрузки сцены Game ----------------
+
+        public static IEnumerator PostSceneLoad()
         {
-            var scene = _pendingNextScene;
-            _pendingNextScene = null;
-
-            if (!string.IsNullOrEmpty(scene))
-                State = RunState.EncounterActive;
-
-            return scene;
+            if (Instance != null)
+                yield return Instance.PostSceneLoadRoutine();
         }
 
-        private string SceneFor(int nodeId)
+        public IEnumerator PostSceneLoadRoutine()
+        {
+            if (SceneManager.GetActiveScene().name != GameSceneName) yield break;
+
+            yield return null; // Awake карты/хоста зарегистрировал ссылки, Zenject проинжектил
+
+            if (_map == null || _host == null)
+            {
+                Debug.LogError("[RunManager] В сцене Game нет MapSceneController или EncounterHost.");
+                yield break;
+            }
+
+            if (!HasActiveRun) StartNewRun();
+
+            var current = CurrentRun.Map.GetNode(CurrentRun.MapState.CurrentNodeId);
+
+            if (_resumeEncounterOnLoad)
+            {
+                _resumeEncounterOnLoad = false;
+                yield return EnterEncounterRoutine(current.Id, advanceMap: false);
+                yield break;
+            }
+
+            bool needsTutorial = current.Type == MapNodeType.Start
+                                 && !GameManager.IsTutorialCompleted()
+                                 && current.Connections.Length > 0;
+
+            if (needsTutorial) yield return EnterEncounterRoutine(current.Connections[0]);
+            else ShowMap();
+        }
+
+        // ---------------- карта -> энкаунтер ----------------
+
+        public bool SelectNode(int nodeId)
+        {
+            if (State != RunState.OnMap || CurrentRun == null || SceneLoader.Instance == null) return false;
+            if (!CurrentRun.MapState.CanMoveTo(CurrentRun.Map, nodeId)) return false;
+
+            var def = ResolveEncounter(CurrentRun.Map.GetNode(nodeId));
+            return SceneLoader.Instance.RunTransition(EnterEncounterRoutine(nodeId), def?.TipsGroup);
+        }
+
+        private IEnumerator EnterEncounterRoutine(int nodeId, bool advanceMap = true)
         {
             var node = CurrentRun.Map.GetNode(nodeId);
-            if (string.IsNullOrEmpty(node.ForcedEncounterId))
-                return null;
+            var def = ResolveEncounter(node);
 
-            return EncounterScenes.TryGetValue(node.ForcedEncounterId, out var scene) ? scene : null;
+            if (def == null || def.RigPrefab == null)
+            {
+                Debug.LogError($"[RunManager] Для узла {nodeId} нет EncounterDefinition с RigPrefab.");
+                ShowMap();
+                yield break;
+            }
+
+            if (advanceMap)
+                CurrentRun.MapState.CompleteCurrentAndMoveTo(nodeId);
+
+            CurrentEncounterId = def.Id;
+            CurrentEncounterKind = def.Kind;
+            State = RunState.EncounterLoading;
+            _map.Hide();
+
+            yield return _host.EnterRoutine(def);
+
+            State = RunState.EncounterActive;
+        }
+
+        private EncounterDefinition ResolveEncounter(MapNode node)
+        {
+            var catalog = Catalog;
+            if (catalog == null)
+            {
+                Debug.LogError($"[RunManager] Нет EncounterCatalog в Resources/{EncounterCatalog.ResourcesPath}.");
+                return null;
+            }
+
+            if (!string.IsNullOrEmpty(node.ForcedEncounterId) && catalog.TryGet(node.ForcedEncounterId, out var forced))
+                return forced;
+
+            // Детерминированно: повторный вход в узел (загрузка чекпоинта) даёт того же врага.
+            var rng = new SeededRandomSource(unchecked(CurrentRun.Map.Seed * 397 + node.Id));
+
+            // TODO: Shop и Challenge пока играются как обычный бой.
+            var kind = node.Type == MapNodeType.Boss ? EncounterKind.Boss : EncounterKind.Enemy;
+            return catalog.PickRandom(kind, rng) ?? catalog.PickRandom(EncounterKind.Enemy, rng);
+        }
+
+        // ---------------- энкаунтер -> карта (вызывает SceneLoader, экран чёрный) ----------------
+
+        public IEnumerator ReturnToMapRoutine()
+        {
+            yield return _host.ExitRoutine();
+            ShowMap();
+            SaveMapCheckpoint();
+        }
+
+        private void ShowMap()
+        {
+            if (_map == null) return;
+            _map.Show(CurrentRun.Map, CurrentRun.MapState);
+            State = RunState.OnMap;
+        }
+
+        // ---------------- чекпоинт ----------------
+        // Типы чекпоинта указаны полными именами: в проекте есть RunCheckpointData
+        // в глобальном namespace, и он перекрывает using ShellGame.Meta.
+
+        public void FillCheckpoint(ShellGame.Meta.RunCheckpointData data)
+        {
+            if (!HasActiveRun) return;
+
+            data.HasRunData = true;
+            data.OnMap = State == RunState.OnMap;
+            data.RunSeed = CurrentRun.Map.Seed;
+            data.RunIsFirstRun = CurrentRun.IsFirstRun;
+            data.MapCurrentNodeId = CurrentRun.MapState.CurrentNodeId;
+            data.MapCompletedNodeIds = new List<int>(CurrentRun.MapState.CompletedNodeIds);
+        }
+
+        private void SaveMapCheckpoint()
+        {
+            var p = GameSessionProgression.Instance;
+            var data = new ShellGame.Meta.RunCheckpointData
+            {
+                SceneName = GameSceneName,
+                LevelIndex = p != null ? p.CurrentLevelIndex : 0,
+                DifficultyIndex = p != null ? p.CurrentDifficultyIndex : 0f,
+                CompletedRoundsInSession = p != null ? p.CompletedRoundsInSession : 0,
+            };
+            FillCheckpoint(data);
+            ShellGame.Meta.RunCheckpointStorage.Save(data);
+        }
+
+        public void RestoreFromCheckpoint(ShellGame.Meta.RunCheckpointData data)
+        {
+            var prefix = data.RunIsFirstRun ? FirstRunPrefix : ReturningPlayerPrefix;
+            var map = FirstRunMapFactory.BuildFirstRun(prefix, data.RunSeed, new MapGenerationConfig());
+
+            CurrentRun = new RunData
+            {
+                Map = map,
+                MapState = new MapState(data.MapCurrentNodeId)
+                {
+                    CompletedNodeIds = new List<int>(data.MapCompletedNodeIds)
+                },
+                IsFirstRun = data.RunIsFirstRun
+            };
+
+            _resumeEncounterOnLoad = !data.OnMap;
+            State = data.OnMap ? RunState.OnMap : RunState.EncounterActive;
+
+            var p = GameSessionProgression.Instance;
+            if (p != null)
+            {
+                p.SetCurrentLevelIndex(data.LevelIndex);
+                p.SetDifficultyIndex(data.DifficultyIndex);
+                p.SetCompletedRounds(data.CompletedRoundsInSession);
+                p.SetMaxShellsPenalty(data.OnMap ? 0 : data.MaxShellsPenalty);
+            }
         }
     }
 }

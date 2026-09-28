@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: ab5ff5bfe1743264da5b03b624df636b, type: 3}
-  m_Name: LoadingTipsConfig
+  m_Name: GeneralLoadingTipsConfig
   m_EditorClassIdentifier: Assembly-CSharp::ShellGame.UI.LoadingTipsConfig
   tips:
   - "\u0418\u0441\u043A\u0443\u043F\u043B\u0435\u043D\u0438\u0435 \u043D\u0438\u043A\u043E\u0433\u0434\u0430

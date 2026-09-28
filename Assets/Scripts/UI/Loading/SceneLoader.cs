@@ -3,7 +3,6 @@ using System;
 using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using UnityEngine.UI;
 using DG.Tweening;
 using ShellGame.Core;
 using ShellGame.Feedback;
@@ -57,14 +56,23 @@ public class SceneLoader : MonoBehaviour
     public float minLoadingDuration = 2.0f;
     public float delayAfterFullProgress = 0.4f;
 
-    [Header("Яркость")]
-    [SerializeField] private Image brightnessOverlay;
-
     [Header("UI Контроллеры")]
     [SerializeField] private RunStatsScreenController runStatsScreen;
     [SerializeField] private UnlockNotificationScreenController unlockScreen; // НОВЫЙ ЭКРАН АНЛОКОВ
 
-    public Image BrightnessOverlay => brightnessOverlay;
+    /// <summary>
+    /// Группа лоадинг-типов для текущего RunTransition (EncounterDefinition.TipsGroup).
+    /// Выставляется ДО LoadingScreenShown, так что экран загрузки может прочитать её
+    /// в обработчике этого события. Пусто — группа не задана.
+    /// </summary>
+    public string CurrentTipsGroup { get; private set; }
+
+    /// <summary>
+    /// true, пока идёт любой переход: затемнение, загрузка, работа под чёрным
+    /// экраном и открытие. Становится false только когда экран полностью открыт.
+    /// Так враг может начать вступление не в темноте, а после появления картинки.
+    /// </summary>
+    public bool IsTransitioning => isLoading;
 
     private Canvas fadeCanvas;
     private bool isLoading = false;
@@ -331,6 +339,71 @@ public class SceneLoader : MonoBehaviour
     {
         if (isLoading) return;
         StartCoroutine(LoadSceneRoutine(sceneIndex: sceneIndex));
+    }
+
+    /// <summary>
+    /// Переход без смены сцены (карта -> энкаунтер): затемнение, экран загрузки,
+    /// выполнение <paramref name="routine"/> под чёрным экраном, открытие.
+    /// Пока routine работает, Time.timeScale = 0, поэтому внутри неё нельзя
+    /// использовать WaitForSeconds — только yield return null / Realtime.
+    /// Возвращает false, если переход не запущен (уже идёт другой или routine == null).
+    /// </summary>
+    public bool RunTransition(IEnumerator routine, string tipsGroup = null)
+    {
+        if (isLoading || routine == null || fadeCanvasGroup == null) return false;
+
+        CurrentTipsGroup = tipsGroup;
+        StartCoroutine(RunTransitionRoutine(routine));
+        return true;
+    }
+
+    private IEnumerator RunTransitionRoutine(IEnumerator routine)
+    {
+        isLoading = true;
+        SetPauseBlocked(true);
+        HideCursorForLoading();
+
+        if (blockInputDuringLoad) fadeCanvasGroup.blocksRaycasts = true;
+
+        ScreenGoingBlack?.Invoke(fadeDuration);
+        yield return fadeCanvasGroup.DOFade(1f, fadeDuration).SetUpdate(true).WaitForCompletion();
+
+        // ЗАМОРАЖИВАЕМ ВРЕМЯ НА ВРЕМЯ ПЕРЕХОДА
+        Time.timeScale = 0f;
+
+        ScreenFullyBlack?.Invoke();
+        LoadingScreenShown?.Invoke();
+        LoadProgressChanged?.Invoke(0f);
+
+        float startTime = Time.unscaledTime;
+
+        // Основная работа под чёрным экраном (вход в энкаунтер / возврат на карту).
+        yield return routine;
+
+        // Держим экран загрузки минимум minLoadingDuration, чтобы он не мигал.
+        while (minLoadingDuration > 0f)
+        {
+            float elapsed = Time.unscaledTime - startTime;
+            LoadProgressChanged?.Invoke(Mathf.Clamp01(elapsed / minLoadingDuration));
+            if (elapsed >= minLoadingDuration) break;
+            yield return null;
+        }
+
+        LoadProgressChanged?.Invoke(1f);
+        if (delayAfterFullProgress > 0f) yield return new WaitForSecondsRealtime(delayAfterFullProgress);
+
+        yield return new WaitForSecondsRealtime(delayBeforeFadeOut);
+        ScreenRevealing?.Invoke(fadeDuration);
+        yield return fadeCanvasGroup.DOFade(0f, fadeDuration).SetUpdate(true).WaitForCompletion();
+
+        // ВОЗВРАЩАЕМ ВРЕМЯ В НОРМУ ТОЛЬКО ПОЛНОСТЬЮ ЗАВЕРШИВ ПЕРЕХОД
+        Time.timeScale = 1f;
+
+        SceneRevealCompleted?.Invoke();
+        fadeCanvasGroup.blocksRaycasts = false;
+        CurrentTipsGroup = null;
+        isLoading = false;
+        SetPauseBlocked(false);
     }
 
     private IEnumerator LoadSceneRoutine(string sceneName = "", int sceneIndex = -1)

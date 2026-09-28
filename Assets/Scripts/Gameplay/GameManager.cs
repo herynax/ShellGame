@@ -52,6 +52,13 @@ namespace ShellGame.Gameplay
         [SerializeField] private float _roundEndDelay = 0.5f;
         [SerializeField] private float _shuffleDelay = 0.15f;
 
+        [SerializeField, Tooltip("true в сцене Game: уровень запускает EncounterHost. false — старое поведение (отдельная тестовая сцена).")]
+        private bool _manualStart = false;
+
+        private string _encounterId;
+        private bool _encounterIsTutorial;
+        private bool _hasEncounterContext;
+
 
         private RoundState _state = RoundState.Idle;
         private RoundParameters _currentParameters;
@@ -148,6 +155,8 @@ namespace ShellGame.Gameplay
 
         private bool IsTutorialScene()
         {
+            if (_hasEncounterContext) return _encounterIsTutorial;
+
             var currentSceneName = SceneManager.GetActiveScene().name;
             return currentSceneName.Equals("Tutorial", System.StringComparison.OrdinalIgnoreCase)
                 || currentSceneName.Contains("Tutorial", System.StringComparison.OrdinalIgnoreCase)
@@ -218,106 +227,51 @@ namespace ShellGame.Gameplay
 
         private void Start()
         {
-            if (_sessionProgression == null)
-            {
-                var progressionObject = new GameObject("GameSessionProgression");
-                _sessionProgression = progressionObject.AddComponent<GameSessionProgression>();
-            }
+            if (_manualStart) return;
 
-            RunStatsTracker.EnsureExists();
-            ShellGame.Run.RunManager.EnsureExists();
+            bool tutorialByName = SceneManager.GetActiveScene().name.Contains("Tutorial", System.StringComparison.OrdinalIgnoreCase);
+            BeginEncounter(SceneManager.GetActiveScene().name, tutorialByName);
+        }
 
-            // Забег живёт между уровнями, поэтому старт статистики здесь
-            // идемпотентный: новая попытка (обучение или Level_1 после него) —
-            // счёт с нуля, а переход на следующий уровень внутри того же забега
-            // ничего не обнуляет. Раньше сброс жил только в ветке Tutorial,
-            // из-за чего забег, начавшийся с Level_1, показывал статистику
-            // и время ПРЕДЫДУЩЕЙ попытки.
-            RunStatsTracker.Instance?.EnsureRunStarted();
+        public void StopEncounter()
+        {
+            StopAllCoroutines();
+            _gameSpeedTransition = null;
+            _state = RoundState.Idle;
+        }
 
-            // Одноразовый флаг — потребляем немедленно, чтобы случайная
-            // повторная загрузка этой же сцены (например, обычный переход
-            // между уровнями внутри забега) никогда не попыталась
-            // восстановиться повторно.
-            bool wantsRestore = _sessionProgression.PendingContinueFromCheckpoint;
-            _sessionProgression.PendingContinueFromCheckpoint = false;
-
-            ShellGame.Meta.RunCheckpointData checkpoint = null;
-            if (wantsRestore)
-            {
-                checkpoint = ShellGame.Meta.RunCheckpointStorage.Load();
-                if (checkpoint == null || !string.Equals(checkpoint.SceneName, SceneManager.GetActiveScene().name, System.StringComparison.OrdinalIgnoreCase))
-                {
-                    Debug.LogWarning("[GameManager] Запрошено продолжение, но чекпоинт отсутствует/не для этой сцены — стартую как обычно.");
-                    checkpoint = null;
-                }
-            }
-
-            if (checkpoint != null)
-            {
-                _tutorialPlayerChoiceLocked = false;
-                _completedRoundsInSession = checkpoint.CompletedRoundsInSession;
-                _levelIndex = checkpoint.LevelIndex;
-                _activeSide = checkpoint.ActiveSide;
-
-                _sessionProgression.SetCurrentLevelIndex(_levelIndex);
-                _sessionProgression.SetDifficultyIndex(checkpoint.DifficultyIndex);
-                _sessionProgression.SetCompletedRounds(checkpoint.CompletedRoundsInSession);
-                _sessionProgression.SetMaxShellsPenalty(checkpoint.MaxShellsPenalty);
-
-                _pendingCheckpointRestore = checkpoint;
-            }
-            else
-            {
-                if (IsTutorialScene())
-                {
-                    bool isTutorialRestartScene = SceneManager.GetActiveScene().buildIndex == 1;
-                    if (isTutorialRestartScene)
-                        _sessionProgression.Reset();
-
-                    _completedRoundsInSession = 0;
-                    _levelIndex = 0;
-                    _roundIndex = 0;
-
-                    if (!IsTutorialCompleted())
-                    {
-                        _firstRoundReadyWaited = false;
-                        _tutorialPlayerChoiceLocked = true;
-                    }
-                }
-                else
-                {
-                    _tutorialPlayerChoiceLocked = false;
-                }
-
-                _completedRoundsInSession = _sessionProgression.CompletedRoundsInSession;
-                if (_sessionProgression.CurrentLevelIndex > 0) _levelIndex = _sessionProgression.CurrentLevelIndex;
-                else if (_levelIndex < 0) _levelIndex = SceneManager.GetActiveScene().buildIndex;
-
-                _sessionProgression.SetCurrentLevelIndex(_levelIndex);
-                _activeSide = _startingSide;
-            }
-
+        private void ResetEncounterState()
+        {
+            _state = RoundState.Idle;
+            _roundIndex = 0;
+            _selectedShell = null;
+            _healthInitializedForLevel = -1;   // HealthController.Initialize отработает заново
+            _turnsCompletedInCurrentRound = 0;
+            _roundLayoutGenerated = false;
+            _firstRoundReadyWaited = false;
             _tutorialRevealPaused = false;
-            _turnIndicator?.SetImmediate(_activeSide);
+            _tutorialPlayerChoiceLocked = false;
+            _tutorialBeforeDamagePaused = false;
+            _tutorialAfterDamagePaused = false;
+            _tutorialGameplayPaused = false;
+            _skipEnemyTurn = false;
+            _enemySlowItemChoicesRemaining = 0;
+            _initiativeAnimationPending = false;
+            _playerShuffleCompleted = false;
+            _pendingCheckpointRestore = null;
 
-            // НОВОЕ: если мы загрузились на втором (или дальше) уровне — фиксируем
-            // это навсегда (PlayerPrefs), чтобы первый уровень больше не был "пустым".
-            // Если же мы сейчас как раз на первом уровне (не туториал, levelIndex == 1)
-            // и флаг уже стоит — включаем предметы через ItemSpawner.
-            if (_levelIndex >= 2)
+            // Time.timeScale не трогаем: под чёрным экраном им управляет SceneLoader.
+            _slowdownPendingForPlayer = false;
+            _gameSpeedEffectActive = false;
+            _activeGameSpeedMultiplier = 1f;
+
+            foreach (var side in new[] { TurnSide.Player, TurnSide.Enemy })
             {
-                MarkFirstLevelItemsUnlocked();
+                _extraTurnRequested[side] = false;
+                _extraTurnCooldown[side] = 0;
+                _nextHitMultiplier[side] = 1;
+                _nextShuffleDurationMultiplier[side] = 1f;
             }
-            else if (_levelIndex == 1 && !IsTutorialScene() && AreFirstLevelItemsUnlocked())
-            {
-                _itemSpawner?.SetItemsAvailable(true);
-            }
-
-            if (_roundStartButton == null) _roundStartButton = GetComponentInChildren<RoundStartButton>(true);
-            if (_roundStartButton != null) _roundStartButton.Hide();
-
-            StartRound();
         }
 
         public void StartRound()
@@ -351,6 +305,89 @@ namespace ShellGame.Gameplay
             _initiativeAnimationPending = false;
         }
 
+        public void BeginEncounter(string encounterId, bool isTutorial)
+        {
+            StopAllCoroutines();
+            ResetEncounterState();
+
+            _encounterId = encounterId;
+            _encounterIsTutorial = isTutorial;
+            _hasEncounterContext = true;
+
+            if (_sessionProgression == null)
+            {
+                var progressionObject = new GameObject("GameSessionProgression");
+                _sessionProgression = progressionObject.AddComponent<GameSessionProgression>();
+            }
+
+            RunStatsTracker.EnsureExists();
+            ShellGame.Run.RunManager.EnsureExists();
+            RunStatsTracker.Instance?.EnsureRunStarted();
+
+            bool wantsRestore = _sessionProgression.PendingContinueFromCheckpoint;
+            _sessionProgression.PendingContinueFromCheckpoint = false;
+
+            ShellGame.Meta.RunCheckpointData checkpoint = null;
+            if (wantsRestore)
+            {
+                checkpoint = ShellGame.Meta.RunCheckpointStorage.Load();
+                if (checkpoint == null || !string.Equals(checkpoint.SceneName, _encounterId, System.StringComparison.OrdinalIgnoreCase))
+                {
+                    Debug.LogWarning("[GameManager] Запрошено продолжение, но чекпоинт отсутствует/не для этого энкаунтера — стартую как обычно.");
+                    checkpoint = null;
+                }
+            }
+
+            if (checkpoint != null)
+            {
+                _completedRoundsInSession = checkpoint.CompletedRoundsInSession;
+                _levelIndex = checkpoint.LevelIndex;
+                _activeSide = checkpoint.ActiveSide;
+
+                _sessionProgression.SetCurrentLevelIndex(_levelIndex);
+                _sessionProgression.SetDifficultyIndex(checkpoint.DifficultyIndex);
+                _sessionProgression.SetCompletedRounds(checkpoint.CompletedRoundsInSession);
+                _sessionProgression.SetMaxShellsPenalty(checkpoint.MaxShellsPenalty);
+
+                _pendingCheckpointRestore = checkpoint;
+            }
+            else
+            {
+                _completedRoundsInSession = _sessionProgression.CompletedRoundsInSession;
+
+                if (isTutorial)
+                {
+                    _completedRoundsInSession = 0;
+                    _levelIndex = 0;
+                    if (!IsTutorialCompleted())
+                        _tutorialPlayerChoiceLocked = true;
+                }
+                else
+                {
+                    // Один GameManager на все энкаунтеры: уровень берём из прогрессии,
+                    // а не из поля в инспекторе (у вернувшегося игрока там 0 → минимум 1).
+                    _levelIndex = Mathf.Max(1, _sessionProgression.CurrentLevelIndex);
+                }
+
+                _sessionProgression.SetCurrentLevelIndex(_levelIndex);
+                _activeSide = _startingSide;
+            }
+
+            _turnIndicator?.SetImmediate(_activeSide);
+
+            if (_levelIndex >= 2)
+                MarkFirstLevelItemsUnlocked();
+
+            // Предметы: не в обучении, и на уровне 1 только после того, как игрок хоть раз дошёл до 2.
+            bool itemsOn = !IsTutorialScene() && (_levelIndex >= 2 || AreFirstLevelItemsUnlocked());
+            _itemSpawner?.SetItemsAvailable(itemsOn);
+
+            if (_roundStartButton == null) _roundStartButton = GetComponentInChildren<RoundStartButton>(true);
+            if (_roundStartButton != null) _roundStartButton.Hide();
+
+            StartRound();
+        }
+
         /// <summary>
         /// Сохраняет чекпоинт "начало раунда" — вызывается ровно один раз на
         /// цикл ход-игрока+ход-врага, сразу после того, как стол
@@ -364,7 +401,7 @@ namespace ShellGame.Gameplay
 
             var data = new ShellGame.Meta.RunCheckpointData
             {
-                SceneName = SceneManager.GetActiveScene().name,
+                SceneName = _hasEncounterContext ? _encounterId : SceneManager.GetActiveScene().name,
                 LevelIndex = _levelIndex,
                 DifficultyIndex = _currentParameters.DifficultyIndex,
                 CompletedRoundsInSession = _completedRoundsInSession,
@@ -387,7 +424,7 @@ namespace ShellGame.Gameplay
                 if (shell == null) continue;
                 data.Shells.Add(new ShellGame.Meta.ShellCheckpointData { SlotIndex = shell.SlotIndex, HasMarker = shell.HasMarker });
             }
-
+            ShellGame.Run.RunManager.Instance?.FillCheckpoint(data);
             ShellGame.Meta.RunCheckpointStorage.Save(data);
         }
 
