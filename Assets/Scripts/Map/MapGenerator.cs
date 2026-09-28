@@ -16,7 +16,17 @@ namespace ShellGame.Map
                 int trySeed = attempt == 0 ? seed : HashSeed(seed, attempt);
                 var random = new SeededRandomSource(trySeed);
 
-                var layers = LayerFactory.BuildLayers(config);
+                // Generate layout first (new system)
+                MapLayout layout = null;
+                if (config.StructureConfig != null && config.StructureConfig.UseNewLayoutSystem)
+                {
+                    layout = MapLayoutGenerator.Generate(trySeed, config);
+                }
+
+                // Store layout in config for ConnectionBuilder
+                config.Layout = layout;
+
+                var layers = LayerFactory.BuildLayersFromLayout(config, layout);
                 var nodes = NodeFactory.CreateNodes(layers);
 
                 ConnectionBuilder.BuildConnections(layers, nodes, config, random);

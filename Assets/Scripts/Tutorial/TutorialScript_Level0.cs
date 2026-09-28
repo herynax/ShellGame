@@ -41,7 +41,6 @@ namespace ShellGame.Tutorial
         [Header("--- 5. ФИНАЛ ---")]
         [SerializeField] private DialogueLine[] _finalLines;
 
-        private TurnSide _currentTurnSide = TurnSide.Player;
         private bool _isEnemyDead = false;
 
         private const int MainCameraPriority = 10;
@@ -55,15 +54,28 @@ namespace ShellGame.Tutorial
 
 
         [Inject]
-        private void InjectDependencies(GameManager gameManager, RoundGenerator roundGenerator)
+        private void InjectDependencies(GameManager gameManager)
         {
             _gameManager = gameManager;
-            _roundGenerator = roundGenerator;
+        }
+
+        private void Awake()
+        {
+            var rig = GetComponentInParent<EncounterRig>();
+
+            if (rig != null)
+            {
+                _roundGenerator = rig.RoundGenerator;
+            }
+            else
+            {
+                Debug.LogError(
+                    "[TutorialScenarioManager] Не удалось найти EncounterRig в родителях.");
+            }
         }
 
         private IEnumerator Start()
         {
-            GameEvents.ActiveSideChanged += OnSideChanged;
             GameEvents.SideDied += OnSideDied;
 
             // Переход после смерти врага в обучении запускаем МЫ (в конце
@@ -77,7 +89,6 @@ namespace ShellGame.Tutorial
 
             yield return StartCoroutine(RunTutorialSequence());
 
-            GameEvents.ActiveSideChanged -= OnSideChanged;
             GameEvents.SideDied -= OnSideDied;
         }
 
@@ -86,11 +97,6 @@ namespace ShellGame.Tutorial
             // Статик переживает смену сцены — обязательно снимаем холд,
             // иначе на обычных уровнях переход после смерти врага не случится.
             TutorialSceneTransitionGate.HoldEnemyDeathTransition = false;
-        }
-
-        private void OnSideChanged(TurnSide side)
-        {
-            _currentTurnSide = side;
         }
 
         private void OnSideDied(TurnSide side)
@@ -203,41 +209,42 @@ namespace ShellGame.Tutorial
             // (озвучиваем только эти два хода — по одному разу на сторону)
             // ==========================================
 
-            for (int turnNumber = 0; turnNumber < ReactedTurnsCount && !_isEnemyDead; turnNumber++)
+        for (int turnNumber = 0; turnNumber < ReactedTurnsCount && !_isEnemyDead; turnNumber++)
+        {
+            var result = new WaitForShellResult();
+
+            // Ждём конкретную пару:
+            // выбор напёрстка -> раскрытие именно выбранного напёрстка.
+            yield return result.Run(this);
+
+            if (_isEnemyDead)
+                break;
+
+            if (_gameManager != null)
+                _gameManager.PauseTutorialGameplay();
+
+            if (result.SelectedBy == TurnSide.Player)
             {
-                // После раскрытия GameManager может сразу переключить активную
-                // сторону, поэтому сохраняем сторону хода заранее.
-                var turnSide = _currentTurnSide;
-                var waitForReveal = new WaitForShellRevealed();
+                var lines = result.HasMarker
+                    ? _playerFoundMarkerLines
+                    : _playerFoundEmptyLines;
 
-                yield return waitForReveal.Run(this);
+                foreach (var line in lines)
+                    yield return SayWithCameraReset(line);
+            }
+            else
+            {
+                var lines = result.HasMarker
+                    ? _enemyFoundMarkerLines
+                    : _enemyFoundEmptyLines;
 
-                if (_isEnemyDead)
-                    break;
-
-                // Пока звучат реплики реакции на выбор, раунд-луп держим на
-                // паузе (не Time.timeScale) и блокируем игроку выбор следующего
-                // напёрстка. Возобновление — только после всех реплик этого хода.
-                if (_gameManager != null)
-                    _gameManager.PauseTutorialGameplay();
-
-                if (turnSide == TurnSide.Player)
-                {
-                    var lines = waitForReveal.HasMarker ? _playerFoundMarkerLines : _playerFoundEmptyLines;
-                    foreach (var line in lines)
-                        yield return SayWithCameraReset(line);
-                }
-                else
-                {
-                    var lines = waitForReveal.HasMarker ? _enemyFoundMarkerLines : _enemyFoundEmptyLines;
-                    foreach (var line in lines)
-                        yield return SayWithCameraReset(line);
-                }
-
-                if (_gameManager != null)
-                    _gameManager.ResumeTutorialGameplay();
+                foreach (var line in lines)
+                    yield return SayWithCameraReset(line);
             }
 
+            if (_gameManager != null)
+                _gameManager.ResumeTutorialGameplay();
+        }
 
             // ==========================================
             // ЭТАП 3.5: ТИШИНА — ИГРА ИДЁТ САМА ДО СМЕРТИ ВРАГА

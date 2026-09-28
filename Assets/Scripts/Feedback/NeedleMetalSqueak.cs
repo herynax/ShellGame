@@ -2,6 +2,7 @@ using System.Collections;
 using FMOD.Studio;
 using FMODUnity;
 using ShellGame.Health;
+using ShellGame.Run;
 using UnityEngine;
 using Zenject;
 
@@ -58,10 +59,10 @@ namespace ShellGame.Feedback
         private HealthController _healthController;
         private Coroutine _damageFallbackCoroutine;
 
-        [Inject]
-        private void InjectDependencies(HealthController healthController)
+
+        private void Awake()
         {
-            _healthController = healthController;
+            _healthController = GetComponentInParent<EncounterRig>().Health;
         }
 
         /// <summary>

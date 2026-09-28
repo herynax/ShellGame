@@ -96,7 +96,7 @@ namespace ShellGame.Gameplay
             _hoverTween = transform.DOScale(safeBaseScale, _hoverTweenDuration).SetEase(_hoverEase);
         }
 
-        public void Select()
+        public void Select(TurnSide selectedBy)
         {
             if (!gameObject.activeInHierarchy || !_isInteractable || _clickCollider == null || !_clickCollider.enabled)
                 return;

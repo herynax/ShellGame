@@ -75,7 +75,7 @@ namespace ShellGame.Items
                     TurnSide targetSide = targetShell.HasMarker ? Opposite(context.UserSide) : context.UserSide;
                     ExecuteStrike(context, activeKnife, targetSide, targetShell.HasMarker ? DamageToEnemy : DamageToPlayer);
                 });
-                context.EnemyAI.MakeDecisionAndAttack(context.ActiveShells, chosen => chosen.Select(), afterItemUse: true);
+                context.EnemyAI.MakeDecisionAndAttack(context.ActiveShells, chosen => chosen.Select(TurnSide.Enemy), afterItemUse: true);
                 return true;
             }
 

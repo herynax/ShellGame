@@ -9,9 +9,13 @@ namespace ShellGame.Feedback
 {
     /// <summary>
     /// Поворачивает прожектор по заданным локальным углам X во время смены хода.
+    /// Указатель хода живёт в EncounterRig и выдаётся через SetTurnIndicator
+    /// из EncounterHost; без него используется длительность по умолчанию.
     /// </summary>
     public sealed class TurnSpotlightController : MonoBehaviour
     {
+        private const float DefaultRotateDuration = 0.6f;
+
         [Header("Что поворачивать")]
         [SerializeField] private Transform _spotlightTransform;
 
@@ -21,20 +25,28 @@ namespace ShellGame.Feedback
         [Tooltip("Локальный угол X, когда ход врага.")]
         [SerializeField] private float _enemyAngleX;
 
-        [Header("Переход хода")]
-        [SerializeField] private TurnIndicatorController _turnIndicator;
-
+        private TurnIndicatorController _turnIndicator;
         private GameManager _gameManager;
         private Tween _rotationTween;
         private float _startY;
         private float _startZ;
 
         [Inject]
-        private void InjectDependencies(GameManager gameManager, TurnIndicatorController turnIndicator)
+        private void InjectDependencies(GameManager gameManager)
         {
             _gameManager = gameManager;
-            if (_turnIndicator == null)
-                _turnIndicator = turnIndicator;
+        }
+
+        /// <summary>
+        /// Вызывается EncounterHost при входе в энкаунтер (индикатор рига) и при
+        /// выходе (null). Сразу наводит прожектор на текущую сторону.
+        /// </summary>
+        public void SetTurnIndicator(TurnIndicatorController turnIndicator)
+        {
+            _turnIndicator = turnIndicator;
+
+            if (turnIndicator != null && _gameManager != null)
+                AimAt(_gameManager.ActiveSide);
         }
 
         private void Awake()
@@ -45,9 +57,6 @@ namespace ShellGame.Feedback
             Vector3 startAngles = _spotlightTransform.localEulerAngles;
             _startY = startAngles.y;
             _startZ = startAngles.z;
-
-            if (_turnIndicator == null)
-                _turnIndicator = GetComponentInParent<TurnIndicatorController>();
         }
 
         private void OnEnable()
@@ -78,7 +87,7 @@ namespace ShellGame.Feedback
             Vector3 targetAngles = new Vector3(angleX, _startY, _startZ);
             float duration = _turnIndicator != null
                 ? _turnIndicator.RotateDuration
-                : 0.6f;
+                : DefaultRotateDuration;
 
             _rotationTween?.Kill();
             _rotationTween = _spotlightTransform

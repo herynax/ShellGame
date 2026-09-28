@@ -118,7 +118,7 @@ namespace ShellGame.Items
                 // напёрток для обычной атаки, поэтому этот выбор откладываем
                 // через ConsumedExtraDelay, чтобы он не начался поверх удара.
                 context.ConsumedExtraDelay += ResolveEnemySettleSeconds(context);
-                context.EnemyAI.MakeDecisionAndPickEmpty(context.ActiveShells, chosen => chosen.Select());
+                context.EnemyAI.MakeDecisionAndPickEmpty(context.ActiveShells, chosen => chosen.Select(TurnSide.Enemy));
             }
 
             return true;

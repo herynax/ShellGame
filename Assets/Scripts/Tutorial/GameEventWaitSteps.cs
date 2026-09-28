@@ -37,48 +37,56 @@ namespace ShellGame.Tutorial
     }
 
     /// <summary>Ждёт выбор наперстка. После завершения доступен SelectedShell.</summary>
-    public sealed class WaitForShellSelected : TutorialStep
+public sealed class WaitForShellSelected : TutorialStep
+{
+    public Shell SelectedShell { get; private set; }
+    public TurnSide SelectedBy { get; private set; }
+
+    public override IEnumerator Run(MonoBehaviour runner)
     {
-        public Shell SelectedShell { get; private set; }
+        bool done = false;
 
-        public override IEnumerator Run(MonoBehaviour runner)
+        void Handler(Shell shell, TurnSide side)
         {
-            Debug.Log("[Tutorial] WaitForShellSelected: начал ждать ShellSelected");
-            bool done = false;
-            Shell result = null;
-            void Handler(Shell shell) { Debug.Log($"[Tutorial] WaitForShellSelected: поймал ShellSelected, slot={shell.SlotIndex}"); result = shell; done = true; }
-
-            GameEvents.ShellSelected += Handler;
-            while (!done)
-                yield return null;
-            GameEvents.ShellSelected -= Handler;
-
-            SelectedShell = result;
+            SelectedShell = shell;
+            SelectedBy = side;
+            done = true;
         }
+
+        GameEvents.ShellSelected += Handler;
+
+        while (!done)
+            yield return null;
+
+        GameEvents.ShellSelected -= Handler;
     }
+}
 
     /// <summary>Ждёт когда наперсток поднят и результат показан.</summary>
-    public sealed class WaitForShellRevealed : TutorialStep
+public sealed class WaitForShellRevealed : TutorialStep
+{
+    public Shell RevealedShell { get; private set; }
+    public bool HasMarker { get; private set; }
+
+    public override IEnumerator Run(MonoBehaviour runner)
     {
-        public Shell RevealedShell { get; private set; }
-        public bool HasMarker { get; private set; }
+        bool done = false;
 
-        public override IEnumerator Run(MonoBehaviour runner)
+        void Handler(Shell shell, bool hasMarker)
         {
-            bool done = false;
-            void Handler(Shell shell, bool hasMarker)
-            {
-                RevealedShell = shell;
-                HasMarker = hasMarker;
-                done = true;
-            }
-
-            GameEvents.ShellRevealed += Handler;
-            while (!done)
-                yield return null;
-            GameEvents.ShellRevealed -= Handler;
+            RevealedShell = shell;
+            HasMarker = hasMarker;
+            done = true;
         }
+
+        GameEvents.ShellRevealed += Handler;
+
+        while (!done)
+            yield return null;
+
+        GameEvents.ShellRevealed -= Handler;
     }
+}
 
     /// <summary>Ждёт момент нанесения урона. После завершения доступны параметры удара.</summary>
     public sealed class WaitForDamageTaken : TutorialStep
@@ -116,6 +124,46 @@ namespace ShellGame.Tutorial
             GameEvents.DamageTaken -= Handler;
         }
     }
+
+    public sealed class WaitForShellResult : TutorialStep
+{
+    public Shell SelectedShell { get; private set; }
+    public TurnSide SelectedBy { get; private set; }
+    public bool HasMarker { get; private set; }
+
+    public override IEnumerator Run(MonoBehaviour runner)
+    {
+        bool selected = false;
+        bool revealed = false;
+
+        void OnSelected(Shell shell, TurnSide side)
+        {
+            SelectedShell = shell;
+            SelectedBy = side;
+            selected = true;
+        }
+
+        void OnRevealed(Shell shell, bool hasMarker)
+        {
+            // Важно: принимаем reveal только того напёрстка,
+            // который был выбран этим ходом.
+            if (!selected || shell != SelectedShell)
+                return;
+
+            HasMarker = hasMarker;
+            revealed = true;
+        }
+
+        GameEvents.ShellSelected += OnSelected;
+        GameEvents.ShellRevealed += OnRevealed;
+
+        while (!selected || !revealed)
+            yield return null;
+
+        GameEvents.ShellSelected -= OnSelected;
+        GameEvents.ShellRevealed -= OnRevealed;
+    }
+}
 
     /// <summary>Ждёт смерти указанной стороны.</summary>
     public sealed class WaitForSideDeath : TutorialStep

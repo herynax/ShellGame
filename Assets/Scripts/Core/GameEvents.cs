@@ -15,7 +15,7 @@ namespace ShellGame.Core
     {
         public static event Action<Shell> ShellHoverEnter;
         public static event Action<Shell> ShellHoverExit;
-        public static event Action<Shell> ShellSelected;
+        public static event Action<Shell, TurnSide> ShellSelected;
 
         /// <summary>Наперсток поднят и показал, есть ли под ним метка.</summary>
         public static event Action<Shell, bool /*hasMarker*/> ShellRevealed;
@@ -59,7 +59,7 @@ namespace ShellGame.Core
 
         public static void RaiseShellHoverEnter(Shell shell) => ShellHoverEnter?.Invoke(shell);
         public static void RaiseShellHoverExit(Shell shell) => ShellHoverExit?.Invoke(shell);
-        public static void RaiseShellSelected(Shell shell) => ShellSelected?.Invoke(shell);
+        public static void RaiseShellSelected(Shell shell, TurnSide side) => ShellSelected?.Invoke(shell, side);
         public static void RaiseShellRevealed(Shell shell, bool hasMarker) => ShellRevealed?.Invoke(shell, hasMarker);
         public static void RaiseRoundSetupStarted() => RoundSetupStarted?.Invoke();
         public static void RaiseRoundStartConfirmed() => RoundStartConfirmed?.Invoke();

@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using ShellGame.AI;
 using ShellGame.Core;
 using ShellGame.Feedback;
+using ShellGame.Run;
 using ShellGame.Health;
 using ShellGame.Shells;
 using UnityEngine;
@@ -12,7 +13,7 @@ namespace ShellGame.Gameplay
     {
         [SerializeField] private Shell _shellPrefab;
         [SerializeField] private ShellConfig _shellConfig;
-        [SerializeField] private Camera _interactionCamera;
+
         [SerializeField] private LayerMask _shellLayerMask;
         [SerializeField] private Marker _markerPrefab;
         [SerializeField] private RoundProgressionConfig _progressionConfig;
@@ -31,11 +32,15 @@ namespace ShellGame.Gameplay
         [HideInInspector] private RoundStartButton _roundStartButton;
         [HideInInspector] private ShuffleSystem _shuffleSystem;
         [HideInInspector] private GameManager _gameManager;
-        [HideInInspector] private HealthController _healthController;
-        [HideInInspector] private EnemyAIController _enemyAI;
+        [SerializeField] private HealthController _healthController;
+        [SerializeField] private EnemyAIController _enemyAI;
+
+        private EncounterRig _rig; 
 
         private void Awake()
         {
+            _rig = GetComponentInParent<EncounterRig>();
+
             ResolveReferences();
 
             if (_roundGenerator == null)
@@ -44,10 +49,6 @@ namespace ShellGame.Gameplay
                 _roundStartButton = gameObject.AddComponent<RoundStartButton>();
             if (_shuffleSystem == null)
                 _shuffleSystem = gameObject.AddComponent<ShuffleSystem>();
-            if (_healthController == null)
-                _healthController = gameObject.AddComponent<HealthController>();
-            if (_enemyAI == null)
-                _enemyAI = gameObject.AddComponent<EnemyAIController>();
 
             // TurnIndicatorController сознательно НЕ авто-создаётся: ему
             // нужна модель стрелки + цели (_playerTarget/_enemyTarget),
@@ -56,7 +57,7 @@ namespace ShellGame.Gameplay
 
             _roundGenerator.Initialize(_shellPrefab, _shellConfig, _markerPrefab, _progressionConfig, _maxPrewarmCount);
             _shuffleSystem.Initialize(_shellConfig);
-            _inputSystem?.Initialize(_interactionCamera, _shellLayerMask, _roundStartButton);
+            _inputSystem?.Initialize(_rig._encounterHost._interactCamera, _shellLayerMask, _roundStartButton);
             _enemyAI.Initialize(_enemyAIConfig);
             _roundStartButton?.Hide();
             if (_gameManager != null)

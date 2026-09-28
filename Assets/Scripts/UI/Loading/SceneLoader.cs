@@ -5,6 +5,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using DG.Tweening;
 using ShellGame.Core;
+using ShellGame.Run;
 using ShellGame.Feedback;
 using ShellGame.Gameplay;
 using ShellGame.Health;
@@ -48,8 +49,6 @@ public class SceneLoader : MonoBehaviour
     [Header("Победа (Смерть Босса)")]
     [Tooltip("Если включено, смерть врага на этом уровне считается победой в игре.")]
     public bool isFinalLevel = false;
-    [Tooltip("Имя сцены, в которой смерть босса завершает забег.")]
-    public string finalLevelSceneName = "Final";
     public string mainMenuSceneName = "MainMenu"; // Куда кидать после победы/смерти
 
     [Header("Экран загрузки")]
@@ -190,18 +189,27 @@ public class SceneLoader : MonoBehaviour
         SetPauseBlocked(true);
         HideCursorForLoading();
 
+
         if (fadeCanvasGroup == null) yield break;
 
         // Экран загрузки (затемнение) начинается только после того, как анимация
         // смерти врага полностью закончилась — судороги, падение и растворение.
         if (deadSide == TurnSide.Enemy)
-            yield return WaitForEnemyDeathAnimation();
+
+yield return WaitForEnemyDeathAnimation();
+            
+            
+        var run = RunManager.Instance;
+        bool inRun = run != null && run.HasActiveRun;
+        if (inRun) run.NotifyEncounterFinished(deadSide);
 
         if (blockInputDuringLoad) fadeCanvasGroup.blocksRaycasts = true;
 
         // Определяем исход
-        bool isWin = deadSide == TurnSide.Enemy && IsFinalLevel();
-        bool isLoss = (deadSide == TurnSide.Player);
+        bool isBossEncounter = inRun && run.CurrentEncounterKind == EncounterKind.Boss;
+        bool isWin = deadSide == TurnSide.Enemy && (isBossEncounter);
+        bool isLoss = deadSide == TurnSide.Player;
+        bool returnToMap = false;
 
         // --- ШАГ 1: ВИЗУАЛЬНОЕ ЗАТЕМНЕНИЕ ---
         Light roomLight = FindRoomLight();
@@ -232,6 +240,8 @@ public class SceneLoader : MonoBehaviour
 
         if (isWin || isLoss)
         {
+
+            
             // 3.1 Статистика
             RunStatsTracker.Instance?.EndRun();
             if (runStatsScreen != null)
@@ -259,16 +269,18 @@ public class SceneLoader : MonoBehaviour
 
             Debug.Log($"[SceneLoader] Переход после {(isWin ? "победы" : "поражения")} на сцену '{targetScene}' " +
                       $"(обучение пройдено: {GameManager.IsTutorialCompleted()}).");
-
+            
+            run?.EndRun();   // следующий PostSceneLoad начнёт новый ран
             asyncLoad = SceneManager.LoadSceneAsync(targetScene);
         }
         else
         {
-            // --- ОБЫЧНЫЙ ПЕРЕХОД НА СЛЕДУЮЩИЙ УРОВЕНЬ ---
             RunStatsTracker.Instance?.RegisterEnemyDefeated();
             EnsureSessionProgression().AdvanceToNextLevel();
 
-            if (loadNextSceneByName)
+            if (inRun)
+                returnToMap = true;   // сцену не грузим, показываем карту
+            else if (loadNextSceneByName)
                 asyncLoad = SceneManager.LoadSceneAsync(nextSceneOnEnemyDeath);
             else
             {
@@ -277,15 +289,15 @@ public class SceneLoader : MonoBehaviour
             }
         }
 
-        // Экраны статистики/анлоков могли оставить курсор на себя — на
-        // загрузке уровня он уже не нужен.
-        HideCursorForLoading();
 
+        HideCursorForLoading();
         LoadingScreenShown?.Invoke();
         LoadProgressChanged?.Invoke(0f);
 
-        // --- ШАГ 4: ФОНОВАЯ ЗАГРУЗКА ---
-        yield return TrackAsyncLoading(asyncLoad);
+        if (returnToMap)
+            yield return run.ReturnToMapRoutine();   // под чёрным экраном: убрать риг, показать карту
+        else
+            yield return TrackAsyncLoading(asyncLoad);
 
         // --- ШАГ 5: ФЕЙД АУТ ---
         yield return new WaitForSecondsRealtime(delayBeforeFadeOut);
@@ -493,17 +505,9 @@ public class SceneLoader : MonoBehaviour
         return _sessionProgression;
     }
 
-    private bool IsFinalLevel()
-    {
-        return isFinalLevel ||
-               (!string.IsNullOrEmpty(finalLevelSceneName) &&
-                SceneManager.GetActiveScene().name == finalLevelSceneName);
-    }
-
     private void ApplySceneSettings(SceneLoader sceneLoader)
     {
         isFinalLevel = sceneLoader.isFinalLevel;
-        finalLevelSceneName = sceneLoader.finalLevelSceneName;
         loadNextSceneByName = sceneLoader.loadNextSceneByName;
         nextSceneOnEnemyDeath = sceneLoader.nextSceneOnEnemyDeath;
         firstSceneOnPlayerDeath = sceneLoader.firstSceneOnPlayerDeath;

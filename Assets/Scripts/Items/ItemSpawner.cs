@@ -10,6 +10,7 @@ using ShellGame.Gameplay;
 using ShellGame.Meta;
 using ShellGame.Shells;
 using UnityEngine;
+using ShellGame.Run;
 using Zenject;
 
 // Явный алиас, чтобы типы внутри ShellGame.Items не перекрывали тип из ShellGame.Meta
@@ -19,6 +20,8 @@ namespace ShellGame.Items
 {
     public sealed class ItemSpawner : MonoBehaviour
     {
+
+        [SerializeField] private EncounterRig _rig;
         [Header("Предметы")]
         [Tooltip("Если выключено, предметы игрока и врага не будут появляться на сцене.")]
         [SerializeField] private bool _itemsAvailable = true;
@@ -92,6 +95,9 @@ namespace ShellGame.Items
                 _audio = new FMODAudioService();
                 ServiceLocator.Register(_audio);
             }
+
+            _playerUseMessage = _rig._encounterHost._itemUseMessageView;
+            _enemyUseMessage = _rig._encounterHost._itemUseMessageView;
         }
 
         /// <summary>

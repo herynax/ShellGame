@@ -17,10 +17,18 @@ namespace ShellGame.Run
             return def != null;
         }
 
+        public EncounterDefinition GetTutorial()
+        {
+            return Encounters.Find(e =>
+                e != null &&
+                e.Kind == EncounterKind.Tutorial &&
+                e.RigPrefab != null);
+        }
         public EncounterDefinition PickRandom(EncounterKind kind, IRunRandom random)
         {
             var pool = Encounters.FindAll(e => e != null && e.Kind == kind && e.RigPrefab != null);
             return pool.Count == 0 ? null : pool[random.Next(pool.Count)];
         }
+
     }
 }

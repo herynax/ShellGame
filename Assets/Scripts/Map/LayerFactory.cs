@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace ShellGame.Map
 {
     public static class LayerFactory
@@ -15,6 +17,35 @@ namespace ShellGame.Map
             int bossLayerIndex = layers.Length - 1;
             layers[bossLayerIndex] = BuildLayer(bossLayerIndex, 1);
 
+            return layers;
+        }
+
+        public static MapLayer[] BuildLayersFromLayout(MapGenerationConfig config, MapLayout layout)
+        {
+            if (layout == null || layout.Layers == null || layout.Layers.Length == 0)
+                return BuildLayers(config);
+
+            var layers = new MapLayer[layout.Layers.Length];
+            var nodeIdMap = new Dictionary<int, int>(); // old nodeId -> new nodeId
+            int newId = 0;
+
+            for (int i = 0; i < layout.Layers.Length; i++)
+            {
+                var layerInfo = layout.Layers[i];
+                var ids = new int[layerInfo.NodeCount];
+
+                for (int j = 0; j < layerInfo.NodeCount; j++)
+                {
+                    int oldId = layerInfo.StartNodeId + j;
+                    ids[j] = newId;
+                    nodeIdMap[oldId] = newId;
+                    newId++;
+                }
+
+                layers[i] = new MapLayer(layerInfo.Index, ids);
+            }
+
+            // Store mapping for ConnectionBuilder if needed
             return layers;
         }
 

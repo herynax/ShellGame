@@ -1,6 +1,7 @@
 using System.Collections;
 using ShellGame.Core;
 using ShellGame.Health;
+using ShellGame.Run;
 using TMPro;
 using UnityEngine;
 using Zenject;
@@ -24,18 +25,23 @@ namespace ShellGame.UI
     /// </summary>
     public sealed class HpCounterText : MonoBehaviour
     {
+        [SerializeField] private EncounterRig _rig;
+
         [Header("Чьё ХП показывать")]
         public TurnSide side = TurnSide.Player;
 
         [Header("Куда выводить")]
         public TMP_Text hpText;
 
-        private HealthController _healthController;
+        public HealthController _healthController;
 
-        [Inject]
-        private void InjectHealthController(HealthController healthController)
+
+        private void Awake()
         {
-            _healthController = healthController;
+            if (side == TurnSide.Player)
+            {
+                _healthController = _rig._encounterHost.PlayerHealth;
+            }
         }
 
         private void OnEnable()

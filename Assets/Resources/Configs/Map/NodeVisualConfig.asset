@@ -1,0 +1,51 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6082230db01f5a11ab2c93c0635b32e4, type: 3}
+  m_Name: NodeVisualConfig
+  m_EditorClassIdentifier: Assembly-CSharp::ShellGame.Map.NodeVisualConfig
+  Entries:
+  - Type: 0
+    Mode: 0
+    Primitive: 2
+    Prefab: {fileID: 0}
+    ScaleMultiplier: 0.7
+    PositionOffset: {x: 0, y: -0.15, z: 0}
+  - Type: 1
+    Mode: 0
+    Primitive: 0
+    Prefab: {fileID: 0}
+    ScaleMultiplier: 1
+    PositionOffset: {x: 0, y: 0, z: 0}
+  - Type: 2
+    Mode: 0
+    Primitive: 3
+    Prefab: {fileID: 0}
+    ScaleMultiplier: 1
+    PositionOffset: {x: 0, y: 0, z: 0}
+  - Type: 4
+    Mode: 0
+    Primitive: 2
+    Prefab: {fileID: 0}
+    ScaleMultiplier: 1.5
+    PositionOffset: {x: 0, y: 0.1, z: 0}
+  - Type: 5
+    Mode: 0
+    Primitive: 2
+    Prefab: {fileID: 0}
+    ScaleMultiplier: 0.7
+    PositionOffset: {x: 0, y: -0.15, z: 0}
+  - Type: 3
+    Mode: 0
+    Primitive: 1
+    Prefab: {fileID: 0}
+    ScaleMultiplier: 1
+    PositionOffset: {x: 0, y: 0, z: 0}

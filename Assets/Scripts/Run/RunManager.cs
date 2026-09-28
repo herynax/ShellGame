@@ -12,9 +12,9 @@ namespace ShellGame.Run
 {
     public sealed class RunManager : MonoBehaviour
     {
-        public const string GameSceneName = "Game";
+        public const string GameSceneName = "GameScene";
 
-        private static readonly string[] FirstRunPrefix = { "Fish", "Wrath" };
+        private static readonly string[] FirstRunPrefix = { "Wrath" };
         private static readonly string[] ReturningPlayerPrefix = { "Wrath" };
 
         public static RunManager Instance { get; private set; }
@@ -39,11 +39,13 @@ namespace ShellGame.Run
         public static void EnsureExists()
         {
             if (Instance != null) return;
+            Debug.Log("[RunManager] EnsureExists: создаём RunManager.");
             new GameObject(nameof(RunManager)).AddComponent<RunManager>();
         }
 
         private void Awake()
         {
+            Debug.Log("[RunManager] Awake.");
             if (Instance != null && Instance != this) { Destroy(gameObject); return; }
             Instance = this;
             DontDestroyOnLoad(gameObject);
@@ -52,8 +54,8 @@ namespace ShellGame.Run
         private EncounterCatalog Catalog =>
             _catalog != null ? _catalog : (_catalog = Resources.Load<EncounterCatalog>(EncounterCatalog.ResourcesPath));
 
-        public void RegisterMap(MapSceneController map) => _map = map;
-        public void RegisterHost(EncounterHost host) => _host = host;
+        public void RegisterMap(MapSceneController map) { Debug.Log("[RunManager] RegisterMap."); _map = map; }
+        public void RegisterHost(EncounterHost host) { Debug.Log("[RunManager] RegisterHost."); _host = host; }
 
         // ---------------- жизненный цикл ----------------
 
@@ -96,15 +98,28 @@ namespace ShellGame.Run
 
         public static IEnumerator PostSceneLoad()
         {
-            if (Instance != null)
-                yield return Instance.PostSceneLoadRoutine();
+            if (Instance == null)
+            {
+                Debug.LogWarning("[RunManager] PostSceneLoad вызван, но Instance == null (не вызван EnsureExists?).");
+                yield break;
+            }
+            Debug.Log("[RunManager] PostSceneLoad: старт.");
+            yield return Instance.PostSceneLoadRoutine();
         }
 
         public IEnumerator PostSceneLoadRoutine()
         {
-            if (SceneManager.GetActiveScene().name != GameSceneName) yield break;
+            var sceneName = SceneManager.GetActiveScene().name;
+            Debug.Log($"[RunManager] PostSceneLoadRoutine: активная сцена = '{sceneName}', ожидается '{GameSceneName}'.");
+            if (sceneName != GameSceneName)
+            {
+                Debug.LogWarning("[RunManager] Имя сцены не совпадает, выходим.");
+                yield break;
+            }
 
-            yield return null; // Awake карты/хоста зарегистрировал ссылки, Zenject проинжектил
+            yield return null;
+
+            Debug.Log($"[RunManager] _map={(_map != null)}, _host={(_host != null)}, HasActiveRun={HasActiveRun}, State={State}");
 
             if (_map == null || _host == null)
             {
@@ -112,23 +127,58 @@ namespace ShellGame.Run
                 yield break;
             }
 
-            if (!HasActiveRun) StartNewRun();
+            if (!HasActiveRun)
+            {
+                Debug.Log("[RunManager] Активного рана нет, StartNewRun().");
+                StartNewRun();
+            }
 
             var current = CurrentRun.Map.GetNode(CurrentRun.MapState.CurrentNodeId);
+            Debug.Log($"[RunManager] Текущий узел: id={current.Id}, type={current.Type}, connections={current.Connections.Length}, resume={_resumeEncounterOnLoad}");
 
             if (_resumeEncounterOnLoad)
             {
+                Debug.Log("[RunManager] Возобновляем энкаунтер из чекпоинта.");
                 _resumeEncounterOnLoad = false;
                 yield return EnterEncounterRoutine(current.Id, advanceMap: false);
                 yield break;
             }
 
-            bool needsTutorial = current.Type == MapNodeType.Start
-                                 && !GameManager.IsTutorialCompleted()
-                                 && current.Connections.Length > 0;
+            bool tutorialDone = GameManager.IsTutorialCompleted();
+            bool needsTutorial =
+                !tutorialDone &&
+                current.Type == MapNodeType.Start;
 
-            if (needsTutorial) yield return EnterEncounterRoutine(current.Connections[0]);
-            else ShowMap();
+            Debug.Log($"[RunManager] tutorialDone={tutorialDone}, needsTutorial={needsTutorial}");
+
+            if (needsTutorial)
+            {
+                yield return EnterTutorialRoutine();
+                yield break;
+            }
+
+            ShowMap();
+        }
+
+        private IEnumerator EnterTutorialRoutine()
+        {
+            var tutorial = Catalog?.GetTutorial(); // конкретную реализацию надо посмотреть
+
+            if (tutorial == null || tutorial.RigPrefab == null)
+            {
+                Debug.LogError("[RunManager] Tutorial не найден в EncounterCatalog.");
+                yield break;
+            }
+
+            CurrentEncounterId = tutorial.Id;
+            CurrentEncounterKind = tutorial.Kind;
+            State = RunState.EncounterLoading;
+
+            _map.Hide();
+
+            yield return _host.EnterRoutine(tutorial);
+
+            State = RunState.EncounterActive;
         }
 
         // ---------------- карта -> энкаунтер ----------------
@@ -146,6 +196,7 @@ namespace ShellGame.Run
         {
             var node = CurrentRun.Map.GetNode(nodeId);
             var def = ResolveEncounter(node);
+            Debug.Log($"[RunManager] EnterEncounter: node={nodeId}, type={node.Type}, forced='{node.ForcedEncounterId}', def={(def != null ? def.Id : "NULL")}, rig={(def != null && def.RigPrefab != null)}");
 
             if (def == null || def.RigPrefab == null)
             {
@@ -162,7 +213,9 @@ namespace ShellGame.Run
             State = RunState.EncounterLoading;
             _map.Hide();
 
+            Debug.Log($"[RunManager] Вызываем _host.EnterRoutine({def.Id})...");
             yield return _host.EnterRoutine(def);
+            Debug.Log("[RunManager] _host.EnterRoutine завершён.");
 
             State = RunState.EncounterActive;
         }
@@ -183,8 +236,15 @@ namespace ShellGame.Run
             var rng = new SeededRandomSource(unchecked(CurrentRun.Map.Seed * 397 + node.Id));
 
             // TODO: Shop и Challenge пока играются как обычный бой.
-            var kind = node.Type == MapNodeType.Boss ? EncounterKind.Boss : EncounterKind.Enemy;
-            return catalog.PickRandom(kind, rng) ?? catalog.PickRandom(EncounterKind.Enemy, rng);
+            var kind = node.Type switch
+            {
+                MapNodeType.Boss => EncounterKind.Boss,
+                MapNodeType.Tutorial => EncounterKind.Tutorial,
+                _ => EncounterKind.Enemy
+            };
+            var result = catalog.PickRandom(kind, rng) ?? catalog.PickRandom(EncounterKind.Enemy, rng);
+            Debug.Log($"[RunManager] ResolveEncounter: node={node.Id}, kind={kind}, result={(result != null ? result.Id : "NULL")}");
+            return result;
         }
 
         // ---------------- энкаунтер -> карта (вызывает SceneLoader, экран чёрный) ----------------

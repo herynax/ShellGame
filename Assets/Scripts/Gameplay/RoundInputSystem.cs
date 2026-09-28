@@ -32,19 +32,22 @@ namespace ShellGame.Gameplay
         private Vector3 _smoothedRayDirection = Vector3.forward;
         private Vector3 _rayOriginVelocity;
 
-        [Inject]
-        private void InjectDependencies(Camera interactionCamera, RoundStartButton roundStartButton)
-        {
-            if (_interactionCamera == null)
-                _interactionCamera = interactionCamera;
-            if (_roundStartButton == null)
-                _roundStartButton = roundStartButton;
-        }
-
         public void Initialize(Camera interactionCamera, LayerMask shellLayerMask, RoundStartButton roundStartButton)
         {
             _interactionCamera = interactionCamera;
             _shellLayerMask = shellLayerMask;
+            _roundStartButton = roundStartButton;
+        }
+
+        /// <summary>
+        /// Кнопка старта живёт в EncounterRig и меняется с каждым энкаунтером
+        /// (null при выходе). Камера и маска слоёв остаются как в инспекторе.
+        /// </summary>
+        public void SetRoundStartButton(RoundStartButton roundStartButton)
+        {
+            if (_hoveredTarget != null && ReferenceEquals(_hoveredTarget, _roundStartButton))
+                _hoveredTarget = null;
+
             _roundStartButton = roundStartButton;
         }
 
@@ -276,7 +279,7 @@ namespace ShellGame.Gameplay
             if (!_isEnabled)
                 return;
 
-            _hoveredTarget?.Select();
+            _hoveredTarget?.Select(Core.TurnSide.Player);
         }
 
         private Camera ResolveInteractionCamera()

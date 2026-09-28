@@ -1,4 +1,3 @@
-// START OF FILE SettingsMenuController.cs
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -10,14 +9,7 @@ using SpankyBoy.JuiceUI.Free;
 namespace ShellGame.Meta
 {
     /// <summary>
-    /// Контроллер панели настроек в духе "Мор" — вкладки сверху (Дисплей / Графика / Аудио /
-    /// Другое / Управление), под ними сменяется контентная панель выбранной категории.
-    ///
-    /// ВАЖНО: сама панель настроек (тот GameObject, на котором висит этот скрипт) — это обычный
-    /// элемент стека меню MainMenuController/PauseController и открывается через их OpenSubmenu(...),
-    /// как любое другое подменю. А вот переключение вкладок ВНУТРИ настроек — уже локальная логика
-    /// этого скрипта и общий стек меню никак не трогает (Esc всё так же закрывает весь блок настроек
-    /// целиком, а не отдельную вкладку).
+    /// Контроллер панели настроек.
     /// </summary>
     public class SettingsMenuController : MonoBehaviour
     {
@@ -27,11 +19,10 @@ namespace ShellGame.Meta
             [Tooltip("Название вкладки — только для читаемости в инспекторе/логах")]
             public string tabName;
 
-            [Tooltip("Кнопка вкладки сверху (Дисплей / Графика / Аудио / ...)")]
+            [Tooltip("Кнопка вкладки сверху")]
             public Button tabButton;
 
-            [Tooltip("Текст на кнопке вкладки — перекрашивается при выборе. Если используете " +
-                     "обычный UI.Text, а не TMP — поменяйте тип поля ниже на Text.")]
+            [Tooltip("Текст на кнопке вкладки")]
             public TMP_Text tabLabel;
 
             [Tooltip("Панель с контентом этой вкладки")]
@@ -42,7 +33,7 @@ namespace ShellGame.Meta
         [SerializeField] private List<SettingsTab> tabs = new List<SettingsTab>();
 
         [Header("Цвет текста вкладки")]
-        [SerializeField] private Color activeTabColor = new Color(0.82f, 0.24f, 0.14f);   // как "ГРАФИКА" на скрине
+        [SerializeField] private Color activeTabColor = new Color(0.82f, 0.24f, 0.14f);
         [SerializeField] private Color inactiveTabColor = new Color(0.80f, 0.70f, 0.55f);
 
         [Header("Анимация смены контента")]
@@ -57,62 +48,99 @@ namespace ShellGame.Meta
         {
             foreach (var tab in tabs)
             {
-                if (tab.tabButton == null) continue;
+                if (tab.tabButton == null)
+                    continue;
 
-                var capturedTab = tab; // локальная копия — иначе все кнопки схватят последний tab из цикла
+                var capturedTab = tab;
+
                 tab.tabButton.onClick.AddListener(() => SelectTab(capturedTab));
             }
         }
 
         private void OnEnable()
         {
-            // Каждый раз, когда панель настроек снова становится активной (открыли через
-            // OpenSubmenu из главного меню или из паузы), возвращаемся на дефолтную вкладку.
-            // Если нужно, наоборот, помнить последнюю открытую вкладку между заходами —
-            // просто уберите вызов SelectTabImmediate отсюда.
-            if (tabs.Count == 0) return;
+            if (tabs.Count == 0)
+                return;
 
             int index = Mathf.Clamp(defaultTabIndex, 0, tabs.Count - 1);
             SelectTabImmediate(tabs[index]);
         }
 
-        /// <summary>
-        /// Переключение вкладки с фейдом. Уже подписано на кнопки в Awake, но метод публичный —
-        /// можно дёргать и вручную (например, стрелками с геймпада, см. пример ниже).
-        /// </summary>
         public void SelectTab(SettingsTab tab)
         {
-            if (tab == null || tab == _currentTab) return;
+            if (tab == null || tab == _currentTab)
+                return;
 
             var previous = _currentTab;
             _currentTab = tab;
 
             UpdateTabVisuals();
 
+            // --------------------------------------------------
+            // СНАЧАЛА ПРИНУДИТЕЛЬНО ЗАВЕРШАЕМ ВСЕ СТАРЫЕ TWEEN'Ы
+            // --------------------------------------------------
+
+            CompleteAllPanelTweens();
+
+            // --------------------------------------------------
+            // Теперь состояние всех панелей гарантированно чистое.
+            // Старые OnComplete больше не смогут неожиданно
+            // выключить панель после нашего переключения.
+            // --------------------------------------------------
+
             if (previous?.panel != null)
+            {
                 FadeOutPanel(previous.panel);
+            }
 
             if (tab.panel != null)
+            {
                 FadeInPanel(tab.panel);
+            }
         }
 
         /// <summary>
-        /// То же самое, но без анимации — нужно для мгновенной инициализации при каждом
-        /// открытии панели настроек (чтобы не было "вспышки" всех вкладок разом).
+        /// Принудительно завершает все текущие анимации панелей.
+        /// Это критично при быстром переключении вкладок.
         /// </summary>
+        private void CompleteAllPanelTweens()
+        {
+            foreach (var tab in tabs)
+            {
+                if (tab.panel == null)
+                    continue;
+
+                var panel = tab.panel;
+
+                // Сначала завершаем tween.
+                // DOComplete вызывает OnComplete старого tween'а.
+                panel.DOComplete();
+
+                // После завершения гарантированно убиваем tween,
+                // чтобы новый tween не конфликтовал со старым.
+                panel.DOKill();
+            }
+        }
+
         private void SelectTabImmediate(SettingsTab tab)
         {
-            if (tab == null) return;
+            if (tab == null)
+                return;
+
+            // При повторном открытии меню старые tween'ы не должны жить.
+            CompleteAllPanelTweens();
 
             _currentTab = tab;
 
             foreach (var t in tabs)
             {
-                if (t.panel == null) continue;
+                if (t.panel == null)
+                    continue;
 
                 bool isActive = t == tab;
 
                 t.panel.DOKill();
+
                 t.panel.gameObject.SetActive(isActive);
                 t.panel.alpha = isActive ? 1f : 0f;
                 t.panel.interactable = isActive;
@@ -124,23 +152,41 @@ namespace ShellGame.Meta
 
         private void FadeOutPanel(CanvasGroup panel)
         {
+            if (panel == null)
+                return;
+
             panel.interactable = false;
             panel.blocksRaycasts = false;
 
             if (panel.TryGetComponent<PanelAnimator_Free>(out var animator))
             {
                 animator.Hide();
+                return;
             }
-            else
-            {
-                panel.DOKill();
-                panel.DOFade(0f, fadeDuration).SetUpdate(true)
-                    .OnComplete(() => panel.gameObject.SetActive(false));
-            }
+
+            panel.DOKill();
+
+            panel.DOFade(0f, fadeDuration)
+                .SetUpdate(true)
+                .OnComplete(() =>
+                {
+                    // Дополнительная защита:
+                    // к моменту выполнения callback панель могла
+                    // уже снова стать активной.
+                    if (panel.alpha <= 0.001f)
+                    {
+                        panel.gameObject.SetActive(false);
+                    }
+                });
         }
 
         private void FadeInPanel(CanvasGroup panel)
         {
+            if (panel == null)
+                return;
+
+            panel.DOKill();
+
             panel.gameObject.SetActive(true);
             panel.interactable = true;
             panel.blocksRaycasts = true;
@@ -148,44 +194,49 @@ namespace ShellGame.Meta
             if (panel.TryGetComponent<PanelAnimator_Free>(out var animator))
             {
                 animator.Show();
+                return;
             }
-            else
-            {
-                panel.alpha = 0f;
-                panel.DOKill();
-                panel.DOFade(1f, fadeDuration).SetUpdate(true);
-            }
+
+            panel.alpha = 0f;
+
+            panel.DOFade(1f, fadeDuration)
+                .SetUpdate(true);
         }
 
         private void UpdateTabVisuals()
         {
             foreach (var t in tabs)
             {
-                if (t.tabLabel == null) continue;
-                t.tabLabel.color = (t == _currentTab) ? activeTabColor : inactiveTabColor;
+                if (t.tabLabel == null)
+                    continue;
+
+                t.tabLabel.color =
+                    (t == _currentTab)
+                        ? activeTabColor
+                        : inactiveTabColor;
             }
         }
 
-        // ==========================================
-        // Опционально: переключение вкладок бамперами геймпада / Q-E на клавиатуре.
-        // Если не нужно — просто не вызывайте эти методы и не подписывайте инпут.
-        // ==========================================
-
         public void SelectNextTab()
         {
-            if (tabs.Count == 0) return;
+            if (tabs.Count == 0)
+                return;
+
             int currentIndex = tabs.IndexOf(_currentTab);
             int nextIndex = (currentIndex + 1) % tabs.Count;
+
             SelectTab(tabs[nextIndex]);
         }
 
         public void SelectPreviousTab()
         {
-            if (tabs.Count == 0) return;
+            if (tabs.Count == 0)
+                return;
+
             int currentIndex = tabs.IndexOf(_currentTab);
             int prevIndex = (currentIndex - 1 + tabs.Count) % tabs.Count;
+
             SelectTab(tabs[prevIndex]);
         }
     }
 }
-// END OF FILE

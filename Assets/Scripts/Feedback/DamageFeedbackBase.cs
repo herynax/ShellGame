@@ -21,16 +21,6 @@ namespace ShellGame.Feedback
     {
         [SerializeField] private HealthController _healthController;
 
-        /// <summary>Здоровье нужно наследникам не только для лога — им же снимается отложенный урон, если иглы в сцене нет.</summary>
-        protected HealthController HealthController => _healthController;
-
-        [Inject]
-        private void InjectHealthController(HealthController healthController)
-        {
-            if (_healthController == null)
-                _healthController = healthController;
-        }
-
         protected abstract TurnSide WatchedSide { get; }
 
         /// <summary>Есть ли в сцене игла, которой можно уколоть эту сторону.</summary>

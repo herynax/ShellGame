@@ -45,14 +45,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0da06d6766b6e934d85e144fcd2a2b12, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ShellGame.Gameplay.GameManager
-  _roundGenerator: {fileID: 0}
-  _inputSystem: {fileID: 0}
-  _shuffleSystem: {fileID: 0}
-  _healthController: {fileID: 0}
-  _enemyAI: {fileID: 0}
   _healthProgressionConfig: {fileID: 11400000, guid: 6df08252be664414c97cb612b4453e0b,
     type: 2}
-  _turnIndicator: {fileID: 0}
   _startingSide: 0
   _levelIndex: 1
   _roundIndex: 1
@@ -60,6 +54,7 @@ MonoBehaviour:
   _revealHoldDuration: 1.4
   _roundEndDelay: 0.5
   _shuffleDelay: 0.15
+  _manualStart: 0
 --- !u!114 &2090439264675354120
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -101,11 +96,11 @@ MonoBehaviour:
       Data2: 1242184407
       Data3: 1688604338
       Data4: -225489601
-    Path: event:/SFX/Enemie/e_TakeDamage
+    Path: event:/SFX/Enemie/e_InjectionSound
   enemyDeathSound:
     Guid:
       Data1: -1553418983
       Data2: 1332672127
       Data3: 1739507863
       Data4: 1127369376
-    Path: event:/SFX/Enemie/e_Death
+    Path: event:/SFX/Enemie/e_TakeDagame

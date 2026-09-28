@@ -229,11 +229,9 @@ namespace ShellGame.Dialogue
         /// директора заметит смену хода, и тогда «первая» реплика уровня
         /// (MinTurn/MaxTurn = 1) потерялась бы.
         /// </summary>
-        private void OnShellSelected(Shell shell)
+        private void OnShellSelected(Shell shell, TurnSide selectedBy)
         {
-            var gameManager = GameManagerRef;
-            if (gameManager != null)
-                _choosingSide = gameManager.ActiveSide;
+            _choosingSide = selectedBy;
 
             if (_choosingSide != _lastChooser)
             {

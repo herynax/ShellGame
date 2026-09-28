@@ -120,22 +120,44 @@ namespace ShellGame.Gameplay
 
         private GameSessionProgression _sessionProgression;
 
+        /// <summary>
+        /// Из контейнера приходит только то, что постоянно лежит в сцене.
+        /// Всё, что живёт в EncounterRig, выдаёт EncounterHost через BindRig.
+        /// </summary>
         [Inject]
         private void InjectDependencies(
-            RoundGenerator roundGenerator,
             RoundInputSystem inputSystem,
-            ShuffleSystem shuffleSystem,
-            HealthController healthController,
-            EnemyAIController enemyAI,
-            RoundStartButton roundStartButton,
-            TurnIndicatorController turnIndicator,
-            ItemSpawner itemSpawner,
             GameSessionProgression sessionProgression)
         {
-            Initialize(roundGenerator, inputSystem, shuffleSystem, healthController, enemyAI,
-                roundStartButton, _healthProgressionConfig, _startingSide, turnIndicator);
-            _itemSpawner = itemSpawner;
+            _inputSystem = inputSystem;
             _sessionProgression = sessionProgression;
+        }
+
+        /// <summary>
+        /// Привязывает системы стола текущего рига (null — когда рига нет:
+        /// карта, магазин, выход из энкаунтера). Вызывается EncounterHost до
+        /// BeginEncounter и при выходе.
+        /// </summary>
+        public void BindRig(EncounterRig rig)
+        {
+            _roundGenerator = rig != null ? rig.RoundGenerator : null;
+            _shuffleSystem = rig != null ? rig.ShuffleSystem : null;
+            _healthController = rig != null ? rig.Health : null;
+            _enemyAI = rig != null ? rig.EnemyAI : null;
+            _roundStartButton = rig != null ? rig.RoundStartButton : null;
+            _itemSpawner = rig != null ? rig.ItemSpawner : null;
+            _turnIndicator = rig != null ? rig.TurnIndicator : null;
+
+            _inputSystem?.SetRoundStartButton(_roundStartButton);
+        }
+
+        /// <summary>
+        /// Выдаёт GameManager указатель хода отдельно от BindRig
+        /// (null — когда рига нет).
+        /// </summary>
+        public void SetTurnIndicator(TurnIndicatorController turnIndicator)
+        {
+            _turnIndicator = turnIndicator;
         }
 
         private readonly Dictionary<TurnSide, int> _nextHitMultiplier = new Dictionary<TurnSide, int>
@@ -945,7 +967,7 @@ namespace ShellGame.Gameplay
                                 if (_itemSpawner != null)
                                     yield return _itemSpawner.PlayEnemyLookAtShells(_roundGenerator.ActiveShells);
 
-                                _enemyAI.MakeDecisionAndAttack(_roundGenerator.ActiveShells, chosen => chosen.Select());
+                                _enemyAI.MakeDecisionAndAttack(_roundGenerator.ActiveShells, chosen => chosen.Select(TurnSide.Enemy));
                             }
                         }
                         while (_state == RoundState.PlayerTurn) yield return null;
@@ -1118,22 +1140,33 @@ namespace ShellGame.Gameplay
 
         private void OnSideDied(TurnSide side)
         {
-            ResetGameSpeedMultiplier();
-            _enemySlowItemChoicesRemaining = 0;
-            _enemyAI?.ResetDrugEffects();
+            if (side == TurnSide.Player)
+            {
+                ResetGameSpeedMultiplier();
+                _enemySlowItemChoicesRemaining = 0;
+                _enemyAI?.ResetDrugEffects();
+            }
+            else
+            {
+                ResetGameSpeedMultiplier();
+                _enemySlowItemChoicesRemaining = 0;
+                _enemyAI?.ResetDrugEffects();
+                _healthController?.ResetDose(TurnSide.Player);
+            }
 
             RunManager.Instance?.NotifyEncounterFinished(side);
         }
 
-        private void OnShellSelected(Shell shell)
+        private void OnShellSelected(Shell shell, TurnSide selectedBy)
         {
             if (_state != RoundState.PlayerTurn) return;
 
             if (_activeSide == TurnSide.Player && IsTutorialActive()
-                && _tutorialPlayerChoiceLocked) return;
-
+                && _tutorialPlayerChoiceLocked)
+                return;
 
             bool isTutorialForcedRound = IsTutorialScene() && _completedRoundsInSession == 0;
+
             if (!isTutorialForcedRound)
                 RunStatsTracker.Instance?.RegisterMove(_activeSide, shell.HasMarker);
 

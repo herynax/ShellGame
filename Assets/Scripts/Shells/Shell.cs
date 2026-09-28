@@ -180,7 +180,7 @@ namespace ShellGame.Shells
             }
         }
 
-        public void Select()
+        public void Select(TurnSide selectedBy)
         {
             if (State != ShellState.Idle) return;
 
@@ -231,7 +231,7 @@ namespace ShellGame.Shells
             }
 
             _audio?.PlayOneShot(_config.AudioEvents.Select, transform.position);
-            GameEvents.RaiseShellSelected(this);
+            GameEvents.RaiseShellSelected(this, selectedBy);
         }
 
         public void MoveToSlot(ShellSlot targetSlot, System.Action onComplete = null, float moveDuration = -1f)
