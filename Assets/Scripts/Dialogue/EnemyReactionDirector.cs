@@ -678,5 +678,23 @@ namespace ShellGame.Dialogue
 
             return Mathf.Clamp01(1f - (float)health.GetHealth(side) / max);
         }
+
+        /// <summary>
+        /// Принудительно показать реплику для указанного контекста.
+        /// Используется для магазина и других специальных случаев.
+        /// </summary>
+        public void ForceReaction(EnemyReactionContext context)
+        {
+            if (_config == null || _levelEnded)
+                return;
+
+            var query = BuildQuery(context, TurnSide.Enemy);
+            var group = SelectGroup(query, true);
+            
+            if (group != null)
+            {
+                StartCoroutine(PresentLines(group));
+            }
+        }
     }
 }

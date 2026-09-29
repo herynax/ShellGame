@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace ShellGame.Run
 {
-    public enum EncounterKind { Tutorial, Enemy, Boss }
+    public enum EncounterKind { Tutorial, Enemy, Boss, Shop }
 
     [CreateAssetMenu(fileName = "Encounter", menuName = "ShellGame/Run/Encounter Definition")]
     public sealed class EncounterDefinition : ScriptableObject
@@ -24,6 +24,12 @@ namespace ShellGame.Run
 
         [Tooltip("Группа лоадинг-типов. Пусто = берётся Id.")]
         public string LoadingTipsGroup;
+
+        [Tooltip("Конфиг выбора предметов на первом энкаунтере (только для Kind=Enemy, первый бой)")]
+        public FirstEncounterConfig FirstEncounterConfig;
+
+        [Tooltip("Конфиг магазина (только для Kind=Shop)")]
+        public ShopConfig ShopConfig;
 
         public string TipsGroup => string.IsNullOrEmpty(LoadingTipsGroup) ? Id : LoadingTipsGroup;
     }

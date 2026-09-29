@@ -212,7 +212,7 @@ namespace ShellGame.Items
             HasFinishedSpawning = true;
         }
 
-        private List<ItemSpawnPoint> GetPointsForSide(TurnSide side, int requestedCount)
+        public List<ItemSpawnPoint> GetPointsForSide(TurnSide side, int requestedCount)
         {
             var points = new List<ItemSpawnPoint>();
             foreach (var point in _spawnPoints)
@@ -222,6 +222,18 @@ namespace ShellGame.Items
             }
 
             points.Sort((left, right) => left.Index.CompareTo(right.Index));
+            
+            // Use PlayerInventorySO for max slots if available
+            if (requestedCount < 0)
+            {
+                var runManager = ShellGame.Run.RunManager.Instance;
+                if (runManager != null && runManager.CurrentRun != null && runManager.CurrentRun.PlayerInventory != null)
+                {
+                    var playerInv = runManager.CurrentRun.PlayerInventory;
+                    requestedCount = side == TurnSide.Player ? playerInv.MaxPlayerSlots : playerInv.MaxEnemySlots;
+                }
+            }
+            
             int count = requestedCount < 0 ? points.Count : Mathf.Min(requestedCount, points.Count);
             if (count < points.Count)
                 points.RemoveRange(count, points.Count - count);
@@ -255,6 +267,31 @@ namespace ShellGame.Items
 
             _playerSpawnCounts.Clear();
             _enemySpawnCounts.Clear();
+
+            // Restore to PlayerInventorySO
+            var runManager = ShellGame.Run.RunManager.Instance;
+            if (runManager != null && runManager.CurrentRun != null && runManager.CurrentRun.PlayerInventory != null)
+            {
+                var playerInv = runManager.CurrentRun.PlayerInventory;
+                if (playerItems != null)
+                {
+                    foreach (var stack in playerItems)
+                    {
+                        var definition = ResolveItemByName(stack.ItemAssetName);
+                        if (definition != null)
+                            playerInv.Add(definition, stack.Count, TurnSide.Player);
+                    }
+                }
+                if (enemyItems != null)
+                {
+                    foreach (var stack in enemyItems)
+                    {
+                        var definition = ResolveItemByName(stack.ItemAssetName);
+                        if (definition != null)
+                            playerInv.Add(definition, stack.Count, TurnSide.Enemy);
+                    }
+                }
+            }
 
             var playerPoints = GetPointsForSide(TurnSide.Player, _playerItemCount);
             var enemyPoints = GetPointsForSide(TurnSide.Enemy, _enemyItemCount);
@@ -334,6 +371,13 @@ namespace ShellGame.Items
             sideCounts.TryGetValue(definition, out var count);
             sideCounts[definition] = count + 1;
 
+            // Add to PlayerInventorySO
+            var runManager = ShellGame.Run.RunManager.Instance;
+            if (runManager != null && runManager.CurrentRun != null && runManager.CurrentRun.PlayerInventory != null)
+            {
+                runManager.CurrentRun.PlayerInventory.Add(definition, 1, owner);
+            }
+
             if (owner == TurnSide.Enemy)
                 _enemyInventory.Add(definition);
 
@@ -389,6 +433,8 @@ namespace ShellGame.Items
             _spawnedItems.Clear();
             _playerSpawnCounts.Clear();
             _enemySpawnCounts.Clear();
+            // Note: PlayerInventorySO is persistent and NOT cleared here.
+            // Local inventories are recreated for enemy AI logic.
             _playerInventory = new ItemInventory(TurnSide.Player);
             _enemyInventory = new ItemInventory(TurnSide.Enemy);
             _hasSpawned = false;
@@ -423,6 +469,13 @@ namespace ShellGame.Items
 
             sideCounts.TryGetValue(definition, out var currentCount);
             sideCounts[definition] = currentCount + 1;
+
+            // Add to PlayerInventorySO
+            var runManager = ShellGame.Run.RunManager.Instance;
+            if (runManager != null && runManager.CurrentRun != null && runManager.CurrentRun.PlayerInventory != null)
+            {
+                runManager.CurrentRun.PlayerInventory.Add(definition, 1, owner);
+            }
 
             if (owner == TurnSide.Enemy)
                 _enemyInventory.Add(definition);
@@ -476,6 +529,13 @@ namespace ShellGame.Items
 
             item.PlayUseFeedback(context, _audio, pickup.transform.position);
             item.ShowPlayerUseFeedback(_playerUseMessage);
+
+            // Remove from PlayerInventorySO
+            var runManager = ShellGame.Run.RunManager.Instance;
+            if (runManager != null && runManager.CurrentRun != null && runManager.CurrentRun.PlayerInventory != null)
+            {
+                runManager.CurrentRun.PlayerInventory.Remove(item, 1, TurnSide.Player);
+            }
 
             pickup.Used -= HandleItemUsed;
             _spawnedItems.Remove(pickup.gameObject);
@@ -609,6 +669,14 @@ namespace ShellGame.Items
                 pickup.Used -= HandleItemUsed;
                 _spawnedItems.Remove(itemObject);
                 Destroy(itemObject);
+
+                // Remove from PlayerInventorySO
+                var runManager = ShellGame.Run.RunManager.Instance;
+                if (runManager != null && runManager.CurrentRun != null && runManager.CurrentRun.PlayerInventory != null)
+                {
+                    runManager.CurrentRun.PlayerInventory.Remove(item, 1, TurnSide.Enemy);
+                }
+
                 return position;
             }
 

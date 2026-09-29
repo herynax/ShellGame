@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace ShellGame.Map
 {
@@ -6,6 +7,15 @@ namespace ShellGame.Map
     {
         public static MapLayer[] BuildLayers(MapGenerationConfig config)
         {
+            // Prefer new layout system if StructureConfig is available
+            if (config.StructureConfig != null && config.StructureConfig.UseNewLayoutSystem)
+            {
+                // Generate using the new layout system via MapLayoutGenerator
+                // Note: This requires a seed and may need additional setup
+                // For now, fall back to regular counts with a warning
+                Debug.LogWarning("[LayerFactory] New layout system requested but MapLayoutGenerator.Generate() should be used instead.");
+            }
+
             var regularCounts = config.RegularLayerNodeCounts;
             var layers = new MapLayer[regularCounts.Length + 2]; // + Start + Boss
 

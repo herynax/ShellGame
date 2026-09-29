@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using ShellGame.Core;
 using ShellGame.Gameplay;
+using ShellGame.Items;
 using ShellGame.Map;
 using ShellGame.Meta;
 using ShellGame;
@@ -68,11 +69,17 @@ namespace ShellGame.Run
             int seed = Random.Range(int.MinValue, int.MaxValue);
 
             var map = FirstRunMapFactory.BuildFirstRun(prefix, seed, new MapGenerationConfig());
+            
+            var playerInventory = ScriptableObject.CreateInstance<PlayerInventorySO>();
+            playerInventory.name = "PlayerInventory_Runtime";
+            DontDestroyOnLoad(playerInventory);
+
             CurrentRun = new RunData
             {
                 Map = map,
                 MapState = new MapState(map.StartNode.Id),
-                IsFirstRun = !tutorialDone
+                IsFirstRun = !tutorialDone,
+                PlayerInventory = playerInventory
             };
 
             _resumeEncounterOnLoad = false;
@@ -214,10 +221,30 @@ namespace ShellGame.Run
             _map.Hide();
 
             Debug.Log($"[RunManager] Вызываем _host.EnterRoutine({def.Id})...");
+            
+            // Subscribe to exit request for shop encounters
+            if (def.Kind == EncounterKind.Shop && _host != null)
+            {
+                _host.OnExitRequested += OnShopExitRequested;
+            }
+            
             yield return _host.EnterRoutine(def);
+            
+            // Unsubscribe
+            if (_host != null)
+            {
+                _host.OnExitRequested -= OnShopExitRequested;
+            }
+            
             Debug.Log("[RunManager] _host.EnterRoutine завершён.");
 
             State = RunState.EncounterActive;
+        }
+
+        private void OnShopExitRequested()
+        {
+            // Called when player exits shop - return to map
+            StartCoroutine(ReturnToMapRoutine());
         }
 
         private EncounterDefinition ResolveEncounter(MapNode node)
@@ -235,15 +262,15 @@ namespace ShellGame.Run
             // Детерминированно: повторный вход в узел (загрузка чекпоинта) даёт того же врага.
             var rng = new SeededRandomSource(unchecked(CurrentRun.Map.Seed * 397 + node.Id));
 
-            // TODO: Shop и Challenge пока играются как обычный бой.
             var kind = node.Type switch
             {
                 MapNodeType.Boss => EncounterKind.Boss,
+                MapNodeType.Shop => EncounterKind.Shop,
                 MapNodeType.Tutorial => EncounterKind.Tutorial,
                 _ => EncounterKind.Enemy
             };
             var result = catalog.PickRandom(kind, rng) ?? catalog.PickRandom(EncounterKind.Enemy, rng);
-            Debug.Log($"[RunManager] ResolveEncounter: node={node.Id}, kind={kind}, result={(result != null ? result.Id : "NULL")}");
+            Debug.Log($"[RunManager] ResolveEncounter: node={node.Id}, type={node.Type}, kind={kind}, result={(result != null ? result.Id : "NULL")}");
             return result;
         }
 
@@ -298,6 +325,23 @@ namespace ShellGame.Run
             var prefix = data.RunIsFirstRun ? FirstRunPrefix : ReturningPlayerPrefix;
             var map = FirstRunMapFactory.BuildFirstRun(prefix, data.RunSeed, new MapGenerationConfig());
 
+            var playerInventory = ScriptableObject.CreateInstance<PlayerInventorySO>();
+            playerInventory.name = "PlayerInventory_Runtime";
+            DontDestroyOnLoad(playerInventory);
+            
+            // Restore coins
+            playerInventory.Coins = data.PlayerCoins;
+            
+            // Restore items - we need a resolver function
+            // The resolver will be set up when ItemSpawner restores
+            // For now, store the checkpoint data to be applied later
+            playerInventory.RestoreFromCheckpoint(data.PlayerItems, data.EnemyItems, name => 
+            {
+                // This will be properly resolved when ItemSpawner restores
+                // For now, return null - items will be restored by ItemSpawner
+                return null;
+            });
+
             CurrentRun = new RunData
             {
                 Map = map,
@@ -305,7 +349,8 @@ namespace ShellGame.Run
                 {
                     CompletedNodeIds = new List<int>(data.MapCompletedNodeIds)
                 },
-                IsFirstRun = data.RunIsFirstRun
+                IsFirstRun = data.RunIsFirstRun,
+                PlayerInventory = playerInventory
             };
 
             _resumeEncounterOnLoad = !data.OnMap;

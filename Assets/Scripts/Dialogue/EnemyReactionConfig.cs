@@ -20,6 +20,12 @@ namespace ShellGame.Dialogue
         [InspectorName("Кто-то промахнулся предметом")] ItemSelfHit = 7,
         [InspectorName("Уровень пройден (враг мёртв)")] LevelEndVictory = 8,
         [InspectorName("Уровень проигран (игрок мёртв)")] LevelEndDefeat = 9,
+        [InspectorName("Вход в магазин")] ShopEnter = 24,
+        [InspectorName("Покупка в магазине")] ShopPurchase = 25,
+        [InspectorName("Продажа в магазине")] ShopSell = 26,
+        [InspectorName("Выход из магазина")] ShopExit = 27,
+        [InspectorName("Нет денег")] ShopNoMoney = 28,
+        [InspectorName("Нет места")] ShopNoSpace = 29,
     }
 
     /// <summary>
@@ -63,7 +69,9 @@ namespace ShellGame.Dialogue
         {
             return context == EnemyReactionContext.GameStart
                    || context == EnemyReactionContext.LevelEndVictory
-                   || context == EnemyReactionContext.LevelEndDefeat;
+                   || context == EnemyReactionContext.LevelEndDefeat
+                   || context == EnemyReactionContext.ShopEnter
+                   || context == EnemyReactionContext.ShopExit;
         }
     }
 

@@ -19,6 +19,14 @@ namespace ShellGame.Meta
     }
 
     [System.Serializable]
+    public sealed class CoinPileCheckpointData
+    {
+        public Vector3 Position;     // Local position within coin zone
+        public int CoinCount;
+        public bool IsStacked;
+    }
+
+    [System.Serializable]
     public sealed class RunCheckpointData
     {
         public string SceneName;
@@ -36,6 +44,10 @@ namespace ShellGame.Meta
         public List<ItemStackCheckpointData> PlayerItems = new List<ItemStackCheckpointData>();
         public List<ItemStackCheckpointData> EnemyItems = new List<ItemStackCheckpointData>();
         public List<ShellCheckpointData> Shells = new List<ShellCheckpointData>();
+
+        // Coins & Coin Piles
+        public int PlayerCoins = 0;
+        public List<CoinPileCheckpointData> CoinPiles = new List<CoinPileCheckpointData>();
 
         // ---- данные забега (карта) ----
         public bool HasRunData;

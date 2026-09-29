@@ -43,6 +43,7 @@ namespace ShellGame.Gameplay
         [HideInInspector] private TurnIndicatorController _turnIndicator;
         [HideInInspector] private ItemSpawner _itemSpawner;
         [HideInInspector] private EnemyLookController _enemyLookController;
+        [HideInInspector] private EncounterRig _currentRig;
         [SerializeField] private TurnSide _startingSide = TurnSide.Player;
 
         [SerializeField] private int _levelIndex = 0;
@@ -140,6 +141,7 @@ namespace ShellGame.Gameplay
         /// </summary>
         public void BindRig(EncounterRig rig)
         {
+            _currentRig = rig;
             _roundGenerator = rig != null ? rig.RoundGenerator : null;
             _shuffleSystem = rig != null ? rig.ShuffleSystem : null;
             _healthController = rig != null ? rig.Health : null;
@@ -319,6 +321,20 @@ namespace ShellGame.Gameplay
 
             _itemSpawner?.RestoreFromCheckpoint(data.PlayerItems, data.EnemyItems);
 
+            // Restore coins to PlayerInventorySO
+            var runManager = ShellGame.Run.RunManager.Instance;
+            if (runManager != null && runManager.CurrentRun != null && runManager.CurrentRun.PlayerInventory != null)
+            {
+                runManager.CurrentRun.PlayerInventory.Coins = data.PlayerCoins;
+            }
+
+            // Restore coin piles
+            var coinPileController = CoinPileController.Instance;
+            if (coinPileController != null)
+            {
+                coinPileController.RestoreFromCheckpoint(data.CoinPiles);
+            }
+
             if (_roundGenerator != null)
                 _currentParameters = _roundGenerator.RestoreRound(data.Shells, data.DifficultyIndex, _levelIndex, _roundIndex);
 
@@ -439,6 +455,21 @@ namespace ShellGame.Gameplay
             {
                 data.PlayerItems = BuildItemStacks(_itemSpawner.GetOwnedItemDefinitions(TurnSide.Player));
                 data.EnemyItems = BuildItemStacks(_itemSpawner.GetOwnedItemDefinitions(TurnSide.Enemy));
+            }
+
+            // Save coins from PlayerInventorySO
+            var runManager = ShellGame.Run.RunManager.Instance;
+            if (runManager != null && runManager.CurrentRun != null && runManager.CurrentRun.PlayerInventory != null)
+            {
+                var playerInv = runManager.CurrentRun.PlayerInventory;
+                data.PlayerCoins = playerInv.Coins;
+            }
+
+            // Save coin piles
+            var coinPileController = CoinPileController.Instance;
+            if (coinPileController != null)
+            {
+                data.CoinPiles = coinPileController.GetCheckpointData();
             }
 
             foreach (var shell in _roundGenerator.ActiveShells)
@@ -1148,6 +1179,29 @@ namespace ShellGame.Gameplay
             }
             else
             {
+                // Enemy died - award coins equal to player's current HP
+                int coinsAwarded = _healthController != null ? _healthController.GetHealth(TurnSide.Player) : 0;
+                
+                if (coinsAwarded > 0)
+                {
+                    // Add to persistent inventory
+                    var runManager = RunManager.Instance;
+                    if (runManager != null && runManager.CurrentRun != null && runManager.CurrentRun.PlayerInventory != null)
+                    {
+                        runManager.CurrentRun.PlayerInventory.Coins += coinsAwarded;
+                    }
+
+                    // Spawn physical coins animation
+                    var coinReward = CoinRewardController.Instance;
+                    var pileController = CoinPileController.Instance;
+                    if (coinReward != null && pileController != null && pileController.CoinZone != null)
+                    {
+                        // Find enemy position
+                        Vector3 enemyPos = _currentRig?.EnemyPos?.transform.position ?? transform.position;
+                        coinReward.SpawnCoins(coinsAwarded, enemyPos, pileController.CoinZone);
+                    }
+                }
+
                 ResetGameSpeedMultiplier();
                 _enemySlowItemChoicesRemaining = 0;
                 _enemyAI?.ResetDrugEffects();

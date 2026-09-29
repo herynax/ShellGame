@@ -40,6 +40,10 @@ namespace ShellGame.Run
 
         private EncounterRig _rig;
         private EnemyReactionDirector _director;
+        private FirstEncounterItemSelector _firstEncounterSelector;
+        private ShopEncounterController _shopController;
+
+        public event System.Action OnExitRequested;
 
         private void Awake()
         {
@@ -86,7 +90,48 @@ namespace ShellGame.Run
             if (def.ReactionConfig != null)
                 _director = EnemyReactionBootstrap.CreateDirector(def.ReactionConfig);
 
+            // Check for shop controller
+            _shopController = _rig.GetComponentInChildren<ShopEncounterController>(true);
+            if (_shopController != null)
+            {
+                _shopController.OnShopExited += RequestExit;
+            }
+
+            // Check for first encounter item selection
+            bool isFirstEncounter = IsFirstEncounter(def);
+            if (isFirstEncounter && def.FirstEncounterConfig != null)
+            {
+                _firstEncounterSelector = _rig.GetComponentInChildren<FirstEncounterItemSelector>(true);
+                if (_firstEncounterSelector != null)
+                {
+                    _firstEncounterSelector.OnSelectionComplete += () => StartEncounter(def);
+                    _firstEncounterSelector.StartSelection();
+                    yield break; // Wait for selection to complete
+                }
+            }
+
+            StartEncounter(def);
+        }
+
+        private bool IsFirstEncounter(EncounterDefinition def)
+        {
+            if (def.Kind != EncounterKind.Enemy) return false;
+            
+            var runManager = RunManager.Instance;
+            if (runManager == null || runManager.CurrentRun == null) return false;
+            
+            // First encounter if no nodes completed yet (first enemy node)
+            return runManager.CurrentRun.MapState.CompletedNodeIds.Count == 0;
+        }
+
+        private void StartEncounter(EncounterDefinition def)
+        {
             _gameManager.BeginEncounter(def.Id, def.Kind == EncounterKind.Tutorial);
+        }
+
+        public void RequestExit()
+        {
+            OnExitRequested?.Invoke();
         }
 
         public IEnumerator ExitRoutine()
@@ -95,6 +140,12 @@ namespace ShellGame.Run
             {
                 Destroy(_director.gameObject);
                 _director = null;
+            }
+
+            if (_shopController != null)
+            {
+                _shopController.OnShopExited -= RequestExit;
+                _shopController = null;
             }
 
             if (_rig == null) yield break;

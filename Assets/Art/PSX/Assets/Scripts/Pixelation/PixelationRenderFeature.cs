@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 
@@ -13,6 +14,7 @@ namespace PSX
             pixelationPass = new PixelationPass(RenderPassEvent.BeforeRenderingPostProcessing);
         }
 
+        [Obsolete]
         public override void SetupRenderPasses(ScriptableRenderer renderer, in RenderingData renderingData)
         {
             pixelationPass.Setup(renderer.cameraColorTargetHandle);
@@ -34,10 +36,11 @@ namespace PSX
         static readonly int WidthPixelation = Shader.PropertyToID("_WidthPixelation");
         static readonly int HeightPixelation = Shader.PropertyToID("_HeightPixelation");
         static readonly int ColorPrecison = Shader.PropertyToID("_ColorPrecision");
-
+ 
         Pixelation pixelation;
         Material pixelationMaterial;
         RTHandle currentTarget;
+        RTHandle tempTarget;
     
         public PixelationPass(RenderPassEvent evt)
         {
@@ -51,6 +54,21 @@ namespace PSX
             this.pixelationMaterial = CoreUtils.CreateEngineMaterial(shader);
         }
     
+        [Obsolete]
+        public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
+        {
+            var desc = renderingData.cameraData.cameraTargetDescriptor;
+            desc.depthBufferBits = 0;
+            RTHandles.Release(tempTarget);
+            tempTarget = RTHandles.Alloc(desc, FilterMode.Point, TextureWrapMode.Clamp, name: "_TempTargetPixelation");
+        }
+    
+        public void Dispose()
+        {
+            tempTarget?.Release();
+        }
+    
+        [Obsolete]
         public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
         {
             if (this.pixelationMaterial == null)
@@ -61,7 +79,7 @@ namespace PSX
             {
                 return;
             }
-
+ 
             var stack = VolumeManager.instance.stack;
             this.pixelation = stack.GetComponent<Pixelation>();
             if (this.pixelation == null)
@@ -72,7 +90,7 @@ namespace PSX
             {
                 return;
             }
-
+ 
             var cmd = CommandBufferPool.Get(k_RenderTag);
             Render(cmd, ref renderingData);
             context.ExecuteCommandBuffer(cmd);
@@ -84,25 +102,18 @@ namespace PSX
             this.currentTarget = currentTarget;
         }
     
-        void Render(CommandBuffer cmd, ref RenderingData renderingData)
+void Render(CommandBuffer cmd, ref RenderingData renderingData)
         {
             ref var cameraData = ref renderingData.cameraData;
             var source = currentTarget;
-            int destination = TempTargetId;
-    
-            var w = cameraData.camera.scaledPixelWidth;
-            var h = cameraData.camera.scaledPixelHeight;
             
-            cameraData.camera.depthTextureMode = cameraData.camera.depthTextureMode | DepthTextureMode.Depth;
             this.pixelationMaterial.SetFloat(WidthPixelation, this.pixelation.widthPixelation.value);
             this.pixelationMaterial.SetFloat(HeightPixelation, this.pixelation.heightPixelation.value);
             this.pixelationMaterial.SetFloat(ColorPrecison, this.pixelation.colorPrecision.value);
-
+    
             int shaderPass = 0;
-            cmd.SetGlobalTexture(MainTexId, source);
-            cmd.GetTemporaryRT(destination, w, h, 0, FilterMode.Point, RenderTextureFormat.Default);
-            cmd.Blit(source, destination);
-            cmd.Blit(destination, source, this.pixelationMaterial, shaderPass);
+            cmd.Blit(source, tempTarget);
+            cmd.Blit(tempTarget, source, this.pixelationMaterial, shaderPass);
         }
     }
 }

@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 
@@ -13,6 +14,7 @@ namespace PSX
             fogPass = new FogPass(RenderPassEvent.BeforeRenderingPostProcessing);
         }
 
+        [Obsolete]
         public override void SetupRenderPasses(ScriptableRenderer renderer, in RenderingData renderingData)
         {
             fogPass.Setup(renderer.cameraColorTargetHandle);
@@ -66,16 +68,15 @@ namespace PSX
             this.currentTarget = currentTarget;
         }
 
+        [Obsolete]
         public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
         {
-            // ВАЖНО: правильный URP-способ запросить текстуру глубины для этого пасса.
-            // Замена старого camera.depthTextureMode, который в Execute срабатывает слишком поздно
-            // и приводит к рассинхрону между Scene View и Game View / билдом.
             ConfigureInput(ScriptableRenderPassInput.Depth);
 
             var desc = renderingData.cameraData.cameraTargetDescriptor;
             desc.depthBufferBits = 0;
-            RenderingUtils.ReAllocateIfNeeded(ref tempTarget, desc, FilterMode.Point, TextureWrapMode.Clamp, name: "_TempTargetFog");
+            RTHandles.Release(tempTarget);
+            tempTarget = RTHandles.Alloc(desc, FilterMode.Point, TextureWrapMode.Clamp, name: "_TempTargetFog");
         }
 
         public void Dispose()
@@ -83,6 +84,7 @@ namespace PSX
             tempTarget?.Release();
         }
 
+        [Obsolete]
         public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
         {
             if (this.fogMaterial == null) return;

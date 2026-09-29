@@ -62,15 +62,6 @@ namespace SpankyBoy.JuiceUI.Free
         // Каждый новый Show/Hide инвалидирует предыдущий callback.
         private int animationVersion;
 
-        private enum AnimationState
-        {
-            None,
-            Showing,
-            Hiding
-        }
-
-        private AnimationState currentState = AnimationState.None;
-
         private void Awake()
         {
             rectTransform = GetComponent<RectTransform>();
@@ -122,7 +113,6 @@ namespace SpankyBoy.JuiceUI.Free
             CancelCurrentAnimation();
 
             int version = ++animationVersion;
-            currentState = AnimationState.Showing;
 
             PlaySound(inSound);
 
@@ -202,11 +192,10 @@ namespace SpankyBoy.JuiceUI.Free
                     if (version != animationVersion)
                         return;
 
-                    currentState = AnimationState.None;
-                    currentSequence = null;
+currentSequence = null;
 
-                    // Гарантируем конечное состояние.
-                    ApplyVisibleState();
+            // Гарантируем конечное состояние.
+            ApplyVisibleState();
                 });
         }
 
@@ -220,7 +209,6 @@ namespace SpankyBoy.JuiceUI.Free
             CancelCurrentAnimation();
 
             int version = ++animationVersion;
-            currentState = AnimationState.Hiding;
 
             PlaySound(outSound);
 
@@ -279,10 +267,9 @@ namespace SpankyBoy.JuiceUI.Free
                     if (version != animationVersion)
                         return;
 
-                    currentState = AnimationState.None;
-                    currentSequence = null;
+currentSequence = null;
 
-                    if (resetStateAfterOut)
+            if (resetStateAfterOut)
                     {
                         ApplyResetState();
                     }
@@ -314,8 +301,6 @@ namespace SpankyBoy.JuiceUI.Free
             rectTransform.DOKill(false);
             transform.DOKill(false);
             canvasGroup.DOKill(false);
-
-            currentState = AnimationState.None;
         }
 
         // =========================================================

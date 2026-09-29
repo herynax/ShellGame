@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEditor;
 using ShellGame.Map;
 using Unity.Cinemachine;
 
@@ -504,11 +505,70 @@ namespace ShellGame.Map.Presentation
         private void OnDrawGizmosSelected()
         {
             DrawGizmoBox(new Color(0.1f, 0.7f, 1f, 0.15f), new Color(0.1f, 0.9f, 1f, 0.95f));
+            DrawPathIdGizmos();
         }
 
         private void OnDrawGizmos()
         {
             DrawGizmoBox(new Color(0.1f, 0.7f, 1f, 0.05f), new Color(0.1f, 0.7f, 1f, 0.4f));
+            DrawPathIdGizmos();
+        }
+
+        private void DrawPathIdGizmos()
+        {
+            // Use _layout for PathId info (MapLayout has LayerInfo with PathIds)
+            var layout = _layout;
+            if (layout == null) return;
+            
+            Gizmos.color = Color.yellow;
+            for (int i = 0; i < layout.Layers.Length; i++)
+            {
+                var layer = layout.Layers[i];
+                if (layer.NodeIds == null) continue;
+                
+                int[] pathIds = layer.PathIds;
+                if (pathIds == null) continue;
+                
+                for (int j = 0; j < layer.NodeIds.Length; j++)
+                {
+                    int nodeId = layer.NodeIds[j];
+                    int pathId = pathIds[j];
+                    
+                    if (!_nodeViews.TryGetValue(nodeId, out var view)) continue;
+                    
+                    Vector3 pos = view.transform.position;
+                    
+                    // Draw PathId label above the node
+                    Handles.color = Color.white;
+                    Handles.Label(pos + Vector3.up * 2, $"P{pathId}");
+                    
+                    // Draw connection lines to next layer
+                    if (i < layout.Layers.Length - 1)
+                    {
+                        var nextLayer = layout.Layers[i + 1];
+                        if (nextLayer.NodeIds != null)
+                        {
+                            for (int k = 0; k < nextLayer.NodeIds.Length; k++)
+                            {
+                                if (_nodeViews.TryGetValue(nextLayer.NodeIds[k], out var nextView))
+                                {
+                                    Vector3 nextPos = nextView.transform.position;
+                                    Color lineColor = GetPathIdColor(pathId);
+                                    Gizmos.color = lineColor;
+                                    Gizmos.DrawLine(pos, nextPos);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        private Color GetPathIdColor(int pathId)
+        {
+            // Color map for PathIds: left-to-right rainbow
+            float hue = (pathId % 7) * 0.15f;
+            return Color.HSVToRGB(hue, 0.8f, 1f);
         }
 
         private void DrawGizmoBox(Color fillColor, Color wireColor)

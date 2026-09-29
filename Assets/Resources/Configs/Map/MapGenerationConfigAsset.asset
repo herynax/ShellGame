@@ -13,9 +13,9 @@ MonoBehaviour:
   m_Name: MapGenerationConfigAsset
   m_EditorClassIdentifier: Assembly-CSharp::ShellGame.Map.MapGenerationConfigAsset
   StructureConfig: {fileID: 11400000, guid: 561d7f0de0c368e3b809ff40eec3219c, type: 2}
-  RegularLayerNodeCounts: 0300000003000000040000000300000002000000
+  RegularLayerNodeCounts: 
   MinConnections: 1
-  MaxConnections: 2
+  MaxConnections: 3
   WideForkChance: 0.15
   EarlyWeights:
     Enemy: 0.75
@@ -32,6 +32,6 @@ MonoBehaviour:
     Shop: 0.15
     Challenge: 0.2
     Event: 0
-  MaxEnemyStreak: 3
+  MaxEnemyStreak: 2
   MaxSameTypeRegenAttempts: 5
   MaxFullRegenerationAttempts: 8

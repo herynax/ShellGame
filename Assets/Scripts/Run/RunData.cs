@@ -1,3 +1,4 @@
+using ShellGame.Items;
 using ShellGame.Map;
 
 namespace ShellGame.Run
@@ -7,5 +8,6 @@ namespace ShellGame.Run
         public MapData Map;
         public MapState MapState;
         public bool IsFirstRun;
+        public PlayerInventorySO PlayerInventory;
     }
 }

@@ -683,7 +683,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 2827848858169251235, guid: 96ac7d0b169680e4ea19543a45591f2a, type: 3}
+    - {fileID: 3746127654465746846, guid: 96ac7d0b169680e4ea19543a45591f2a, type: 3}
+    - {fileID: 6463870585206002903, guid: 96ac7d0b169680e4ea19543a45591f2a, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []
@@ -699,7 +702,6 @@ GameObject:
   - component: {fileID: 2095260388}
   - component: {fileID: 2095260391}
   - component: {fileID: 2095260390}
-  - component: {fileID: 2095260389}
   m_Layer: 0
   m_Name: MapCamera
   m_TagString: MainCamera
@@ -722,26 +724,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 1535299597451168818}
   m_LocalEulerAnglesHint: {x: 52.783, y: 0, z: 0}
---- !u!114 &2095260389
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2095260387}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 648228781f981df4c8f9659c055373c1, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CinemachineStationaryLook
-  cameraTransform: {fileID: 2095260388}
-  mouseSensitivity: 0.15
-  minPitch: -10
-  maxPitch: 10
-  minYaw: -15
-  maxYaw: 15
-  lookSmoothTime: 0.05
-  invertY: 0
 --- !u!114 &2095260390
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -10878,7 +10860,6 @@ MonoBehaviour:
   roomDarkenDuration: 1.5
   enemyDeathWaitTimeout: 10
   isFinalLevel: 0
-  finalLevelSceneName: Final_Level
   mainMenuSceneName: MainMenu
   minLoadingDuration: 3
   delayAfterFullProgress: 1

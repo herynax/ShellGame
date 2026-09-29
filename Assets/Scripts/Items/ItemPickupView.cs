@@ -46,11 +46,46 @@ namespace ShellGame.Items
             _usageWindowFilter = filter;
         }
 
+        /// <summary>
+        /// Режим продажи: все предметы игрока становятся кликабельными для продажи.
+        /// Устанавливается ShopEncounterController при входе в режим продажи.
+        /// </summary>
+        private static bool _isInSellMode = false;
+
+        public static bool IsInSellMode => _isInSellMode;
+
+        public static void SetSellMode(bool enabled)
+        {
+            _isInSellMode = enabled;
+        }
+
+        /// <summary>
+        /// Событие клика по предмету в режиме продажи.
+        /// Подписывается ShopEncounterController для обработки продажи.
+        /// </summary>
+        public static event Action<ItemPickupView> OnSellModeClick;
+
+        public void TryUse()
+        {
+            if (!IsInteractive) return;
+            StopTooltipTimer();
+            ItemTooltipView.Instance?.Hide(this);
+            
+            if (_isInSellMode && Owner == TurnSide.Player)
+            {
+                OnSellModeClick?.Invoke(this);
+            }
+            else
+            {
+                Used?.Invoke(this);
+            }
+        }
+
         public ItemDefinition Item => _item;
         public TurnSide Owner => _owner;
 
         /// <summary>Может ли игрок взаимодействовать с предметом (ховер и использование).</summary>
-        public bool IsInteractive => _owner == TurnSide.Player && IsUsageWindowOpenNow();
+        public bool IsInteractive => _owner == TurnSide.Player && (IsUsageWindowOpenNow() || _isInSellMode);
 
         private bool IsUsageWindowOpenNow()
         {
@@ -116,14 +151,6 @@ namespace ShellGame.Items
                 StopTooltipTimer();
                 ItemTooltipView.Instance?.Hide(this);
             }
-        }
-
-        public void TryUse()
-        {
-            if (!IsInteractive) return;
-            StopTooltipTimer();
-            ItemTooltipView.Instance?.Hide(this);
-            Used?.Invoke(this);
         }
 
         private void PlayHoverSound(FMODUnity.EventReference sound)

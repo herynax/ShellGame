@@ -20,7 +20,6 @@ namespace ShellGame.UI
 
         private Tween activeTween;
         private int lastTipIndex = -1;
-        private int lastImageIndex = -1; // Чтобы картинки не повторялись подряд
 
         private void Awake()
         {

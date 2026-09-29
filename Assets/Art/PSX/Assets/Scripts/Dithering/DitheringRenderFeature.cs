@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 
@@ -13,6 +14,7 @@ namespace PSX
             ditheringPass = new DitheringPass(RenderPassEvent.BeforeRenderingPostProcessing);
         }
 
+        [Obsolete]
         public override void SetupRenderPasses(ScriptableRenderer renderer, in RenderingData renderingData)
         {
             ditheringPass.Setup(renderer.cameraColorTargetHandle);
@@ -56,19 +58,22 @@ namespace PSX
         {
             this.currentTarget = currentTarget;
         }
-
+ 
+        [Obsolete]
         public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
         {
             var desc = renderingData.cameraData.cameraTargetDescriptor;
             desc.depthBufferBits = 0;
-            RenderingUtils.ReAllocateIfNeeded(ref tempTarget, desc, FilterMode.Point, TextureWrapMode.Clamp, name: "_TempTargetDithering");
+            RTHandles.Release(tempTarget);
+            tempTarget = RTHandles.Alloc(desc, FilterMode.Point, TextureWrapMode.Clamp, name: "_TempTargetDithering");
         }
-
+ 
         public void Dispose()
         {
             tempTarget?.Release();
         }
     
+        [Obsolete]
         public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
         {
             if (this.ditheringMaterial == null) return;
@@ -87,13 +92,12 @@ namespace PSX
         void Render(CommandBuffer cmd, ref RenderingData renderingData)
         {
             ref var cameraData = ref renderingData.cameraData;
-            cameraData.camera.depthTextureMode = cameraData.camera.depthTextureMode | DepthTextureMode.Depth;
             
             this.ditheringMaterial.SetInt(PatternIndex, this.dithering.patternIndex.value);
             this.ditheringMaterial.SetFloat(DitherThreshold, this.dithering.ditherThreshold.value);
             this.ditheringMaterial.SetFloat(DitherStrength, this.dithering.ditherStrength.value);
             this.ditheringMaterial.SetFloat(DitherScale, this.dithering.ditherScale.value);
-
+ 
             cmd.Blit(currentTarget, tempTarget);
             cmd.Blit(tempTarget, currentTarget, this.ditheringMaterial, 0);
         }
