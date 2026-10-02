@@ -10,15 +10,14 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a7df2f4f15e986226812e0ba8bdc707d, type: 3}
-  m_Name: Gnev
+  m_Name: Shop
   m_EditorClassIdentifier: Assembly-CSharp::ShellGame.Run.EncounterDefinition
-  Id: Gnev
-  Kind: 1
-  RigPrefab: {fileID: 462877004863512704, guid: 1de77bc2594e85ddc902d54d4a0cc920,
-    type: 3}
+  Id: Shop
+  Kind: 3
+  RigPrefab: {fileID: 6417249839592806827, guid: b2ef61f21be3db7f4a70b16622fea173, type: 3}
   EnemyAIConfig: {fileID: 11400000, guid: c9e075ede1468d240ab6933d926890e9, type: 2}
-  ReactionConfig: {fileID: 11400000, guid: e6c3f4275534cd05526cdf8873250da3, type: 2}
+  ReactionConfig: {fileID: 0}
   LoadingTipsGroup: GeneralLoadingTipsConfig
   FirstEncounterConfig: {fileID: 11400000, guid: 4c5447c938b68c395bdbd5d357f05134,
     type: 2}
-  ShopConfig: {fileID: 0}
+  ShopConfig: {fileID: 11400000, guid: 0b62ac7e73bb0367189c348fe55df04f, type: 2}

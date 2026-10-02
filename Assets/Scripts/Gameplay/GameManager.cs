@@ -41,7 +41,8 @@ namespace ShellGame.Gameplay
                  "Задержка возврата хода — в HealthProgressionConfig.")]
         [SerializeField] private HealthProgressionConfig _healthProgressionConfig;
         [HideInInspector] private TurnIndicatorController _turnIndicator;
-        [HideInInspector] private ItemSpawner _itemSpawner;
+        [HideInInspector] private PlayerItemSpawner _playerItemSpawner;
+        [HideInInspector] private EnemyItemSpawner _enemyItemSpawner;
         [HideInInspector] private EnemyLookController _enemyLookController;
         [HideInInspector] private EncounterRig _currentRig;
         [SerializeField] private TurnSide _startingSide = TurnSide.Player;
@@ -147,7 +148,8 @@ namespace ShellGame.Gameplay
             _healthController = rig != null ? rig.Health : null;
             _enemyAI = rig != null ? rig.EnemyAI : null;
             _roundStartButton = rig != null ? rig.RoundStartButton : null;
-            _itemSpawner = rig != null ? rig.ItemSpawner : null;
+            _playerItemSpawner = rig != null ? rig.PlayerItemSpawner : null;
+            _enemyItemSpawner = rig != null ? rig.EnemyItemSpawner : null;
             _turnIndicator = rig != null ? rig.TurnIndicator : null;
 
             _inputSystem?.SetRoundStartButton(_roundStartButton);
@@ -319,7 +321,11 @@ namespace ShellGame.Gameplay
             _healthController?.RestoreState(TurnSide.Enemy, data.EnemyHealth, data.EnemyMaxHealth);
             _healthInitializedForLevel = _levelIndex;
 
-            _itemSpawner?.RestoreFromCheckpoint(data.PlayerItems, data.EnemyItems);
+            // Restore player items via PlayerItemSpawner
+            _playerItemSpawner?.RestoreFromCheckpoint(data.PlayerItems);
+            // Enemy items are also restored via PlayerItemSpawner since they're in PlayerInventorySO
+            // But we also need to spawn them visually for the enemy side
+            _enemyItemSpawner?.RestoreFromCheckpoint(data.EnemyItems);
 
             // Restore coins to PlayerInventorySO
             var runManager = ShellGame.Run.RunManager.Instance;
@@ -334,6 +340,9 @@ namespace ShellGame.Gameplay
             {
                 coinPileController.RestoreFromCheckpoint(data.CoinPiles);
             }
+
+            // Чекпоинт куч мог не попасть в данные — тогда визуал должен догнать счётчик Coins.
+            SyncCoinPileWithWallet();
 
             if (_roundGenerator != null)
                 _currentParameters = _roundGenerator.RestoreRound(data.Shells, data.DifficultyIndex, _levelIndex, _roundIndex);
@@ -418,12 +427,31 @@ namespace ShellGame.Gameplay
 
             // Предметы: не в обучении, и на уровне 1 только после того, как игрок хоть раз дошёл до 2.
             bool itemsOn = !IsTutorialScene() && (_levelIndex >= 2 || AreFirstLevelItemsUnlocked());
-            _itemSpawner?.SetItemsAvailable(itemsOn);
+            _playerItemSpawner?.SetItemsAvailable(itemsOn);
+            _enemyItemSpawner?.SetItemsAvailable(itemsOn);
 
             if (_roundStartButton == null) _roundStartButton = GetComponentInChildren<RoundStartButton>(true);
             if (_roundStartButton != null) _roundStartButton.Hide();
 
+            // Физические монеты на столе — визуализация счётчика Coins в PlayerInventorySO.
+            // На новом ране здесь появляются стартовые монеты, дальше только догоняет расхождения.
+            SyncCoinPileWithWallet();
+
             StartRound();
+        }
+
+        /// <summary>
+        /// Приводит количество монет на столе к значению Coins в инвентаре игрока.
+        /// </summary>
+        private void SyncCoinPileWithWallet()
+        {
+            var pile = CoinPileController.Instance;
+            if (pile == null) return;
+
+            var run = ShellGame.Run.RunManager.Instance;
+            if (run == null || run.CurrentRun == null || run.CurrentRun.PlayerInventory == null) return;
+
+            pile.SyncToCount(run.CurrentRun.PlayerInventory.Coins);
         }
 
         /// <summary>
@@ -451,10 +479,13 @@ namespace ShellGame.Gameplay
                 EnemyMaxHealth = _healthController.GetMaxHealth(TurnSide.Enemy),
             };
 
-            if (_itemSpawner != null)
+            if (_playerItemSpawner != null)
             {
-                data.PlayerItems = BuildItemStacks(_itemSpawner.GetOwnedItemDefinitions(TurnSide.Player));
-                data.EnemyItems = BuildItemStacks(_itemSpawner.GetOwnedItemDefinitions(TurnSide.Enemy));
+                data.PlayerItems = BuildItemStacks(_playerItemSpawner.GetOwnedItemDefinitions());
+            }
+            if (_enemyItemSpawner != null)
+            {
+                data.EnemyItems = BuildItemStacks(_enemyItemSpawner.GetOwnedItemDefinitions());
             }
 
             // Save coins from PlayerInventorySO
@@ -829,8 +860,13 @@ namespace ShellGame.Gameplay
                         break;
 
                 case RoundState.WaitForStart:
-                    if (_itemSpawner != null)
-                        yield return _itemSpawner.SpawnItems();
+                    // Spawn player items
+                    if (_playerItemSpawner != null)
+                        yield return _playerItemSpawner.SpawnItems();
+                    
+                    // Spawn enemy items
+                    if (_enemyItemSpawner != null)
+                        yield return _enemyItemSpawner.SpawnItems();
 
                     // Проверяем, проходим ли мы обучение прямо сейчас
                     bool isTutorialActive = IsTutorialActive();
@@ -960,10 +996,10 @@ namespace ShellGame.Gameplay
                             _skipEnemyTurn = false;
                             float itemExtraDelay = 0f;
                             bool enemyTurnResolvedByItem = false;
-                            if (_itemSpawner != null)
+                            if (_enemyItemSpawner != null)
                             {
                                 var itemUseResult = new EnemyItemUseResult();
-                                yield return _itemSpawner.TryUseEnemyItemsRoutine(this, _currentParameters.DifficultyIndex, itemUseResult);
+                                yield return _enemyItemSpawner.TryUseEnemyItemsRoutine(this, _currentParameters.DifficultyIndex, itemUseResult);
                                 _skipEnemyTurn = itemUseResult.SkippedTurn;
                                 itemExtraDelay = itemUseResult.ExtraDelaySeconds;
                                 enemyTurnResolvedByItem = itemUseResult.TurnResolvedByItem;
@@ -995,8 +1031,8 @@ namespace ShellGame.Gameplay
                                 if (_healthController != null)
                                     _enemyAI.SetHealthFraction(1f - _healthController.GetDoseFraction(TurnSide.Enemy));
 
-                                if (_itemSpawner != null)
-                                    yield return _itemSpawner.PlayEnemyLookAtShells(_roundGenerator.ActiveShells);
+                                if (_enemyItemSpawner != null)
+                                    yield return _enemyItemSpawner.PlayEnemyLookAtShells(_roundGenerator.ActiveShells);
 
                                 _enemyAI.MakeDecisionAndAttack(_roundGenerator.ActiveShells, chosen => chosen.Select(TurnSide.Enemy));
                             }
@@ -1199,6 +1235,12 @@ namespace ShellGame.Gameplay
                         // Find enemy position
                         Vector3 enemyPos = _currentRig?.EnemyPos?.transform.position ?? transform.position;
                         coinReward.SpawnCoins(coinsAwarded, enemyPos, pileController.CoinZone);
+                    }
+                    else
+                    {
+                        // Нет контроллера награды/зоны — догоняем счётчик без анимации,
+                        // иначе физические монеты разойдутся с Coins.
+                        SyncCoinPileWithWallet();
                     }
                 }
 

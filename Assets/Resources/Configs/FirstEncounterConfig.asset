@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8997d5d45adfd6e64952a7eb276aa396, type: 3}
+  m_Name: FirstEncounterConfig
+  m_EditorClassIdentifier: Assembly-CSharp::ShellGame.Run.FirstEncounterConfig
+  UseUnlockedItems: 1
+  StartingItemPool:
+  - {fileID: 11400000, guid: cf73e36396a33ce47841e09feac7050d, type: 2}
+  - {fileID: 11400000, guid: 52e1d144e5d4fae49bc3595858685e16, type: 2}
+  - {fileID: 11400000, guid: 801e684fcbf0b414eb097544d4373b11, type: 2}
+  - {fileID: 11400000, guid: 47a37eca24d58854097db80807067fed, type: 2}
+  - {fileID: 11400000, guid: 13d9c5a3ad4687d49be5927c4492a51a, type: 2}
+  - {fileID: 11400000, guid: 192bd04e99d693d4d9a1b65333ca03f7, type: 2}
+  ItemsToPick: 2
+  UseRandomSelection: 0
+  MinRandomItems: 2
+  MaxRandomItems: 2
+  SelectionIndicatorPrefab: {fileID: 5413855323393444088, guid: 6e4ca1a29bae0d74f9862336019269c2,
+    type: 3}

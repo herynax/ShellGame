@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 153077534bfa423759b3dd0b6f37d393, type: 3}
+  m_Name: ShopConfig
+  m_EditorClassIdentifier: Assembly-CSharp::ShellGame.Run.ShopConfig
+  MerchantDialogue: {fileID: 11400000, guid: c0060be2681bfb936af45bb202144920, type: 2}
+  UseUnlockedItems: 1
+  MaxShopItemsPerVisit: 4
+  OnlySellableItems: 1
+  GrantFreeUnlockedItemOnEntry: 1
+  SellPriceMultiplier: 0.5
+  SellMarkerItemAsset: {fileID: 11400000, guid: 7b1e4c0a9d2f4e6b8c3a5d1f0e97b42, type: 2}

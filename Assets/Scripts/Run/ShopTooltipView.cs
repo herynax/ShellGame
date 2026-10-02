@@ -72,8 +72,8 @@ namespace ShellGame.Run
             _currentOwner = shopItem;
             _currentShopItem = shopItem;
 
-            if (_nameText != null && shopItem != null && shopItem.Entry != null && shopItem.Entry.Item != null)
-                _nameText.text = shopItem.Entry.Item.DisplayName;
+            if (_nameText != null && shopItem != null && shopItem.Item != null && shopItem.Item.DisplayName != null)
+                _nameText.text = shopItem.Item.DisplayName;
 
             if (_priceText != null)
                 _priceText.text = $"{price}$";

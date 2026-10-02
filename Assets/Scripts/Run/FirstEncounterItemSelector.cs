@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using DG.Tweening;
 using ShellGame.Core;
 using ShellGame.Items;
@@ -10,7 +11,7 @@ namespace ShellGame.Run
     public sealed class FirstEncounterItemSelector : MonoBehaviour
     {
         [SerializeField] private FirstEncounterConfig _config;
-        [SerializeField] private ItemSpawner _itemSpawner;
+        [SerializeField] private PlayerItemSpawner _playerItemSpawner;
         [SerializeField] private EncounterHost _encounterHost;
 
         private List<GameObject> _spawnedItems = new List<GameObject>();
@@ -23,17 +24,17 @@ namespace ShellGame.Run
 
         private void Awake()
         {
-            if (_itemSpawner == null)
-                _itemSpawner = FindFirstObjectByType<ItemSpawner>();
+            if (_playerItemSpawner == null)
+                _playerItemSpawner = FindFirstObjectByType<PlayerItemSpawner>();
             if (_encounterHost == null)
                 _encounterHost = FindFirstObjectByType<EncounterHost>();
         }
 
         public void StartSelection()
         {
-            if (_config == null || _itemSpawner == null)
+            if (_config == null || _playerItemSpawner == null)
             {
-                Debug.LogWarning("[FirstEncounterItemSelector] Config or ItemSpawner not set");
+                Debug.LogWarning("[FirstEncounterItemSelector] Config or PlayerItemSpawner not set");
                 CompleteSelection();
                 return;
             }
@@ -55,10 +56,9 @@ namespace ShellGame.Run
         private IEnumerator SpawnItemsForSelection()
         {
             // Disable normal item spawning
-            _itemSpawner.SetItemsAvailable(false);
+            _playerItemSpawner.SetItemsAvailable(false);
 
-            var availableItems = new List<ItemDefinition>(_config.StartingItemPool);
-            availableItems.RemoveAll(item => item == null);
+            var availableItems = GetAvailableItems();
 
             if (availableItems.Count == 0)
             {
@@ -68,8 +68,8 @@ namespace ShellGame.Run
             }
 
             // Get player spawn points
-            var playerPoints = _itemSpawner.GetPointsForSide(TurnSide.Player, _config.StartingItemPool.Count);
-            
+            var playerPoints = _playerItemSpawner.GetPointsForSide(_config.StartingItemPool.Count);
+
             // Spawn items for selection
             for (int i = 0; i < Mathf.Min(availableItems.Count, playerPoints.Count); i++)
             {
@@ -78,7 +78,7 @@ namespace ShellGame.Run
 
                 var point = playerPoints[i];
                 var itemObject = Instantiate(definition.WorldPrefab, point.SpawnPosition, point.Rotation, transform);
-                
+
                 if (itemObject == null) continue;
 
                 // Add selection behavior
@@ -88,7 +88,7 @@ namespace ShellGame.Run
 
                 pickup.SetItem(definition);
                 pickup.SetOwner(TurnSide.Player);
-                
+
                 // Add selection component
                 var selector = itemObject.AddComponent<FirstEncounterItemPickup>();
                 selector.Initialize(this, definition);
@@ -107,9 +107,37 @@ namespace ShellGame.Run
             ItemPickupView.SetUsageWindowFilter(item => _selectedItems.Contains(item) == false && _itemsPicked < _config.ItemsToPick);
         }
 
+        private List<ItemDefinition> GetAvailableItems()
+        {
+            if (_config.UseUnlockedItems)
+            {
+                // Get unlocked items from UnlockManager
+                var unlockManager = _playerItemSpawner.UnlockManager;
+                var unlocksConfig = _playerItemSpawner.UnlocksConfigAsset;
+
+                if (unlockManager != null && unlocksConfig != null)
+                {
+                    var unlocked = new List<ItemDefinition>();
+                    foreach (var entry in unlocksConfig.Entries)
+                    {
+                        if (entry.Item != null && unlockManager.IsUnlocked(entry.Item))
+                        {
+                            unlocked.Add(entry.Item);
+                        }
+                    }
+                    return unlocked;
+                }
+            }
+
+            // Fallback to manual list
+            var availableItems = new List<ItemDefinition>(_config.StartingItemPool);
+            availableItems.RemoveAll(item => item == null);
+            return availableItems;
+        }
+
         private IEnumerator GrantRandomItems()
         {
-            var availableItems = new List<ItemDefinition>(_config.StartingItemPool);
+            var availableItems = GetAvailableItems();
             availableItems.RemoveAll(item => item == null);
 
             if (availableItems.Count == 0)
@@ -118,7 +146,7 @@ namespace ShellGame.Run
                 yield break;
             }
 
-            int count = Random.Range(_config.MinRandomItems, _config.MaxRandomItems + 1);
+            int count = UnityEngine.Random.Range(_config.MinRandomItems, _config.MaxRandomItems + 1);
             count = Mathf.Min(count, availableItems.Count);
 
             var runManager = RunManager.Instance;
@@ -127,7 +155,7 @@ namespace ShellGame.Run
                 var playerInv = runManager.CurrentRun.PlayerInventory;
                 for (int i = 0; i < count; i++)
                 {
-                    int idx = Random.Range(0, availableItems.Count);
+                    int idx = UnityEngine.Random.Range(0, availableItems.Count);
                     playerInv.Add(availableItems[idx], 1, TurnSide.Player);
                     availableItems.RemoveAt(idx);
                     if (availableItems.Count == 0) break;
@@ -166,10 +194,10 @@ namespace ShellGame.Run
             }
         }
 
-        private void CompleteSelection()
+private void CompleteSelection()
         {
             _isActive = false;
-            
+
             // Clean up remaining items
             foreach (var item in _spawnedItems)
             {
@@ -179,8 +207,8 @@ namespace ShellGame.Run
             _spawnedItems.Clear();
 
             // Re-enable normal item spawning for future encounters
-            _itemSpawner.SetItemsAvailable(true);
-            
+            _playerItemSpawner.SetItemsAvailable(true);
+
             // Reset usage filter
             ItemPickupView.SetUsageWindowFilter(null);
 

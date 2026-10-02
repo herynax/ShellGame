@@ -19,3 +19,6 @@ MonoBehaviour:
   EnemyAIConfig: {fileID: 11400000, guid: c9e075ede1468d240ab6933d926890e9, type: 2}
   ReactionConfig: {fileID: 0}
   LoadingTipsGroup: GeneralLoadingTipsConfig
+  FirstEncounterConfig: {fileID: 11400000, guid: 4c5447c938b68c395bdbd5d357f05134,
+    type: 2}
+  ShopConfig: {fileID: 0}

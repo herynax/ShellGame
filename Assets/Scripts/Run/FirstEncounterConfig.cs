@@ -8,7 +8,10 @@ namespace ShellGame.Run
     public class FirstEncounterConfig : ScriptableObject
     {
         [Header("Starting Items")]
-        [Tooltip("Пул предметов, из которых игрок выбирает/получает на первом энкаунтере")]
+        [Tooltip("Использовать разблокированные предметы из UnlocksConfig вместо ручного пула")]
+        public bool UseUnlockedItems = true;
+
+        [Tooltip("Пул предметов, из которых игрок выбирает/получает на первом энкаунтере (если UseUnlockedItems = false)")]
         public List<ItemDefinition> StartingItemPool = new List<ItemDefinition>();
 
         [Tooltip("Сколько предметов игрок должен выбрать/получить")]

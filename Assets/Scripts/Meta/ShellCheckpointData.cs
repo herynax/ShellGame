@@ -8,10 +8,3 @@ public sealed class ShellCheckpointData
     public bool HasMarker;
 }
 
-[System.Serializable]
-public sealed class ItemStackCheckpointData
-{
-    public string ItemAssetName; // ItemDefinition.name � ���������� ������� ����� UnlocksConfig
-    public int Count;
-}
-

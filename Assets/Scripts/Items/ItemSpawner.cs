@@ -95,9 +95,10 @@ namespace ShellGame.Items
                 _audio = new FMODAudioService();
                 ServiceLocator.Register(_audio);
             }
-
-            _playerUseMessage = _rig._encounterHost._itemUseMessageView;
-            _enemyUseMessage = _rig._encounterHost._itemUseMessageView;
+            if(_rig != null){
+                _playerUseMessage = _rig._encounterHost._itemUseMessageView;
+                _enemyUseMessage = _rig._encounterHost._itemUseMessageView;
+            }
         }
 
         /// <summary>

@@ -12,6 +12,10 @@ namespace ShellGame.Items
         [SerializeField] private int _maxPlayerSlots = 4;
         [SerializeField] private int _maxEnemySlots = 4;
 
+        [Header("Starting Wallet")]
+        [Tooltip("Сколько монет игрок получает в начале рана (значение из конфига Resources/Configs/PlayerInventory)")]
+        [SerializeField] private int _startingCoins = 20;
+
         [Header("Runtime State")]
         [SerializeField] private List<ItemStack> _playerItems = new List<ItemStack>();
         [SerializeField] private List<ItemStack> _enemyItems = new List<ItemStack>();
@@ -19,9 +23,32 @@ namespace ShellGame.Items
 
         public int MaxPlayerSlots => _maxPlayerSlots;
         public int MaxEnemySlots => _maxEnemySlots;
+        public int StartingCoins => _startingCoins;
         public int Coins { get => _coins; set => _coins = Mathf.Max(0, value); }
         public IReadOnlyList<ItemStack> PlayerItems => _playerItems;
         public IReadOnlyList<ItemStack> EnemyItems => _enemyItems;
+
+        /// <summary>
+        /// Копирует стартовые настройки (слоты + начальное число монет) из конфиг-ассета.
+        /// Вызывается рантайм-инвентарём, который создаётся через CreateInstance.
+        /// </summary>
+        public void ApplyStartingSettings(PlayerInventorySO template)
+        {
+            if (template == null) return;
+            _maxPlayerSlots = template._maxPlayerSlots;
+            _maxEnemySlots = template._maxEnemySlots;
+            _startingCoins = template._startingCoins;
+        }
+
+        /// <summary>
+        /// Сбрасывает рантайм-состояние под новый раунд: пустой инвентарь и стартовое число монет.
+        /// </summary>
+        public void BeginNewRun()
+        {
+            _playerItems.Clear();
+            _enemyItems.Clear();
+            _coins = Mathf.Max(0, _startingCoins);
+        }
 
         public int GetCount(ItemDefinition item, TurnSide side = TurnSide.Player)
         {
@@ -142,6 +169,7 @@ namespace ShellGame.Items
         {
             _maxPlayerSlots = Mathf.Max(1, _maxPlayerSlots);
             _maxEnemySlots = Mathf.Max(1, _maxEnemySlots);
+            _startingCoins = Mathf.Max(0, _startingCoins);
         }
     }
 }

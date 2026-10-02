@@ -140,10 +140,19 @@ namespace ShellGame.Items
 
                 var coin = Instantiate(_coinPrefab, targetPos, Quaternion.identity, _pileController.transform);
                 coin.name = $"InstantCoin_{i}";
-                
+
                 _pileController.RegisterCoin(coin);
                 _pileController.TryAddCoin(coin);
             }
+        }
+
+        /// <summary>
+        /// Добавить N монет в кучу (используется магазином при продаже).
+        /// Делегирует CoinPileController, чтобы не дублировать логику зоны.
+        /// </summary>
+        public int GiveCoins(int count)
+        {
+            return _pileController != null ? _pileController.AddCoinsInstant(count) : 0;
         }
     }
 }

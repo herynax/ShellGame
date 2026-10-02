@@ -11,20 +11,23 @@ using UnityEngine;
 namespace ShellGame.Run
 {
     /// <summary>
-    /// Риг для энкаунтера магазина. Минимальный набор компонентов:
-    /// - ItemSpawner для отображения товаров на столе
+    /// Риг для энкаунтера магазина.
+    /// - PlayerItemSpawner для предметов игрока (постоянные)
+    /// - ShopItemSpawner для товаров магазина
     /// - ShopEncounterController для логики магазина
-    /// - CoinPileController для монет
+    /// - CoinPileController для монет (persistent)
     /// - Зоны для монет, продажи и выхода
     /// </summary>
     public sealed class ShopEncounterRig : MonoBehaviour
     {
         [Header("Core Systems")]
-        [SerializeField] private ItemSpawner _itemSpawner;
+        [SerializeField] private PlayerItemSpawner _playerItemSpawner;
+        [SerializeField] private ShopItemSpawner _shopItemSpawner;
         [SerializeField] private ShopEncounterController _shopController;
-        [SerializeField] private CoinPileController _coinPileController;
+        [SerializeField] private EncounterHost _encounterHost;
 
         [Header("Table Zones")]
+        [Tooltip("Зона монет в магазине. На неё переезжает персистентная куча CoinPileController. Должна быть назначена явно.")]
         [SerializeField] private BoxCollider _coinZone;
         [SerializeField] private Transform _sellZonePosition;
         [SerializeField] private Transform _exitButtonPosition;
@@ -33,9 +36,9 @@ namespace ShellGame.Run
         [SerializeField] private GameObject _merchantVisual;
         [SerializeField] private Transform _merchantLookTarget;
 
-        public ItemSpawner ItemSpawner => _itemSpawner;
+        public PlayerItemSpawner PlayerItemSpawner => _playerItemSpawner;
+        public ShopItemSpawner ShopItemSpawner => _shopItemSpawner;
         public ShopEncounterController ShopController => _shopController;
-        public CoinPileController CoinPileController => _coinPileController;
         public BoxCollider CoinZone => _coinZone;
         public Transform SellZonePosition => _sellZonePosition;
         public Transform ExitButtonPosition => _exitButtonPosition;
@@ -44,15 +47,19 @@ namespace ShellGame.Run
 
         private void Awake()
         {
+            _encounterHost = GetComponentInParent<EncounterHost>();
+
             // Auto-find components if not set
-            if (_itemSpawner == null)
-                _itemSpawner = GetComponentInChildren<ItemSpawner>(true);
+            if (_playerItemSpawner == null)
+                _playerItemSpawner = GetComponentInChildren<PlayerItemSpawner>(true);
+            if (_shopItemSpawner == null)
+                _shopItemSpawner = GetComponentInChildren<ShopItemSpawner>(true);
             if (_shopController == null)
                 _shopController = GetComponentInChildren<ShopEncounterController>(true);
-            if (_coinPileController == null)
-                _coinPileController = GetComponentInChildren<CoinPileController>(true);
-            if (_coinZone == null)
-                _coinZone = GetComponentInChildren<BoxCollider>(true);
+
+            // _coinZone намеренно НЕ ищется автоматически: GetComponentInChildren<BoxCollider>
+            // может подхватить любой коллайдер стола (например зону предметов) и куча монет
+            // уедет не туда. Зона назначается в инспекторе на объект с именем CoinZone.
         }
     }
 }

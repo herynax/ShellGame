@@ -29,7 +29,8 @@ namespace ShellGame.Run
         [SerializeField] private RoundGenerator _roundGenerator;
         [SerializeField] private ShuffleSystem _shuffleSystem;
         [SerializeField] private RoundStartButton _roundStartButton;
-        [SerializeField] private ItemSpawner _itemSpawner;
+        [SerializeField] private PlayerItemSpawner _playerItemSpawner;
+        [SerializeField] private EnemyItemSpawner _enemyItemSpawner;
 
         [SerializeField] private GameObject _enemyPos;
 
@@ -40,7 +41,8 @@ namespace ShellGame.Run
         public RoundGenerator RoundGenerator => _roundGenerator;
         public ShuffleSystem ShuffleSystem => _shuffleSystem;
         public RoundStartButton RoundStartButton => _roundStartButton;
-        public ItemSpawner ItemSpawner => _itemSpawner;
+        public PlayerItemSpawner PlayerItemSpawner => _playerItemSpawner;
+        public EnemyItemSpawner EnemyItemSpawner => _enemyItemSpawner;
 
         public GameObject EnemyPos => _enemyPos;
 
@@ -48,14 +50,14 @@ namespace ShellGame.Run
         {
             _encounterHost = GetComponentInParent<EncounterHost>();
 
-
             _encounterHost.HealthSoundProvider.enemyTransform = EnemyPos.transform;
             if (_enemyAI == null) _enemyAI = GetComponentInChildren<EnemyAIController>(true);
             if (_health == null) _health = GetComponentInChildren<HealthController>(true);
             if (_roundGenerator == null) _roundGenerator = GetComponentInChildren<RoundGenerator>(true);
             if (_shuffleSystem == null) _shuffleSystem = GetComponentInChildren<ShuffleSystem>(true);
             if (_roundStartButton == null) _roundStartButton = GetComponentInChildren<RoundStartButton>(true);
-            if (_itemSpawner == null) _itemSpawner = GetComponentInChildren<ItemSpawner>(true);
+            if (_playerItemSpawner == null) _playerItemSpawner = GetComponentInChildren<PlayerItemSpawner>(true);
+            if (_enemyItemSpawner == null) _enemyItemSpawner = GetComponentInChildren<EnemyItemSpawner>(true);
         }
     }
 }

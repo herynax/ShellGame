@@ -170,6 +170,7 @@ GameObject:
   m_Component:
   - component: {fileID: 7615637125054824264}
   - component: {fileID: 5540499889843692663}
+  - component: {fileID: 8464479902570958341}
   m_Layer: 0
   m_Name: EnemieEncouterRig
   m_TagString: Untagged
@@ -202,6 +203,7 @@ Transform:
   - {fileID: 285618860017040575}
   - {fileID: 9144102150649579759}
   - {fileID: 1894060951201414999}
+  - {fileID: 8573732222358847101}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &5540499889843692663
@@ -226,9 +228,44 @@ MonoBehaviour:
   _roundGenerator: {fileID: 5692141246408593510}
   _shuffleSystem: {fileID: 1761371143984069484}
   _roundStartButton: {fileID: 481034781547461861}
-  _itemSpawner: {fileID: 4971948835872660038}
+  _playerItemSpawner: {fileID: 8464479902570958341}
+  _enemyItemSpawner: {fileID: 5536977560870547284}
   _enemyPos: {fileID: 2543726514550967231}
   _encounterHost: {fileID: 0}
+--- !u!114 &8464479902570958341
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 462877004863512704}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fad95f31e67a6f56ca47ed84cb0ea64a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ShellGame.Items.PlayerItemSpawner
+  _spawnPoints:
+  - {fileID: 4650454220084281237}
+  - {fileID: 3363308487048008145}
+  - {fileID: 7263383088157277175}
+  - {fileID: 1502149748447071644}
+  _itemCount: -1
+  _spawnSound:
+    Guid:
+      Data1: -1840157329
+      Data2: 1333936529
+      Data3: 1352753539
+      Data4: -1065162649
+    Path: event:/SFX/Items/I_MetalItemsHower
+  _maxDuplicatesPerSide: 2
+  _spawnAnimationDuration: 0.3
+  _spawnDelay: 1.2
+  _spawnEase: 27
+  _playerUseMessage: {fileID: 8693647709618711139}
+  _enemyUseMessage: {fileID: 8693647709618711139}
+  _enemyLookController: {fileID: 1989587692269053301}
+  _fallbackAvailableItems: []
+  _spawnFromPersistentInventory: 1
 --- !u!1 &620623518212024418
 GameObject:
   m_ObjectHideFlags: 0
@@ -1287,6 +1324,7 @@ GameObject:
   - component: {fileID: 697456210021477955}
   - component: {fileID: 1989587692269053301}
   - component: {fileID: 1765690495637733635}
+  - component: {fileID: 5536977560870547284}
   m_Layer: 0
   m_Name: Enemie
   m_TagString: Untagged
@@ -1439,6 +1477,39 @@ MonoBehaviour:
     DissipationDistance: 100
     PropagationSpeed: 343
   DefaultVelocity: {x: 0, y: -1, z: 0}
+--- !u!114 &5536977560870547284
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2543726514550967231}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 56258c812fdda90a6aae25abe85b4f94, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ShellGame.Items.EnemyItemSpawner
+  _spawnPoints:
+  - {fileID: 5468520924164842559}
+  - {fileID: 2922603915578391776}
+  - {fileID: 5786154816868846454}
+  - {fileID: 5949655495239012482}
+  _itemCount: -1
+  _spawnSound:
+    Guid:
+      Data1: -1840157329
+      Data2: 1333936529
+      Data3: 1352753539
+      Data4: -1065162649
+    Path: event:/SFX/Items/I_MetalItemsHower
+  _maxDuplicatesPerSide: 2
+  _spawnAnimationDuration: 0.3
+  _spawnDelay: 1.2
+  _spawnEase: 27
+  _playerUseMessage: {fileID: 8693647709618711139}
+  _enemyUseMessage: {fileID: 8693647709618711139}
+  _enemyLookController: {fileID: 1989587692269053301}
+  _fallbackAvailableItems: []
 --- !u!1 &2705067216917700501
 GameObject:
   m_ObjectHideFlags: 0
@@ -1837,7 +1908,6 @@ GameObject:
   - component: {fileID: 3132656268616755268}
   - component: {fileID: 5692141246408593510}
   - component: {fileID: 5468434302781458038}
-  - component: {fileID: 4971948835872660038}
   - component: {fileID: 3718048200835452224}
   - component: {fileID: 4172479906490144486}
   - component: {fileID: 1761371143984069484}
@@ -1923,46 +1993,6 @@ MonoBehaviour:
   _startingSide: 0
   _healthController: {fileID: 4172479906490144486}
   _enemyAI: {fileID: 3718048200835452224}
---- !u!114 &4971948835872660038
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2956389470274096881}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a621b81fb782a4145a860f1bb0733c0b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ShellGame.Items.ItemSpawner
-  _rig: {fileID: 5540499889843692663}
-  _itemsAvailable: 1
-  _fallbackAvailableItems: []
-  _spawnPoints:
-  - {fileID: 3363308487048008145}
-  - {fileID: 4650454220084281237}
-  - {fileID: 1502149748447071644}
-  - {fileID: 7263383088157277175}
-  - {fileID: 5468520924164842559}
-  - {fileID: 2922603915578391776}
-  - {fileID: 5786154816868846454}
-  - {fileID: 5949655495239012482}
-  _playerItemCount: -1
-  _enemyItemCount: -1
-  _spawnSound:
-    Guid:
-      Data1: -1840157329
-      Data2: 1333936529
-      Data3: 1352753539
-      Data4: -1065162649
-    Path: event:/SFX/Items/I_MetalItemsHower
-  _maxDuplicatesPerSide: 2
-  _spawnAnimationDuration: 0.3
-  _spawnDelay: 0.75
-  _spawnEase: 27
-  _playerUseMessage: {fileID: 0}
-  _enemyUseMessage: {fileID: 0}
-  _enemyLookController: {fileID: 1989587692269053301}
 --- !u!114 &3718048200835452224
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6009,3 +6039,139 @@ Transform:
   - {fileID: 1829154415972456763}
   m_Father: {fileID: 3132656268616755268}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1001 &893413570475745039
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 7615637125054824264}
+    m_Modifications:
+    - target: {fileID: 2786827771331026356, guid: 69b31e1d2800c62ef8502158b7af318e,
+        type: 3}
+      propertyPath: m_Name
+      value: ItemUsageCanvas
+      objectReference: {fileID: 0}
+    - target: {fileID: 8834390040592032114, guid: 69b31e1d2800c62ef8502158b7af318e,
+        type: 3}
+      propertyPath: m_Pivot.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8834390040592032114, guid: 69b31e1d2800c62ef8502158b7af318e,
+        type: 3}
+      propertyPath: m_Pivot.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8834390040592032114, guid: 69b31e1d2800c62ef8502158b7af318e,
+        type: 3}
+      propertyPath: m_AnchorMax.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8834390040592032114, guid: 69b31e1d2800c62ef8502158b7af318e,
+        type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8834390040592032114, guid: 69b31e1d2800c62ef8502158b7af318e,
+        type: 3}
+      propertyPath: m_AnchorMin.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8834390040592032114, guid: 69b31e1d2800c62ef8502158b7af318e,
+        type: 3}
+      propertyPath: m_AnchorMin.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8834390040592032114, guid: 69b31e1d2800c62ef8502158b7af318e,
+        type: 3}
+      propertyPath: m_SizeDelta.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8834390040592032114, guid: 69b31e1d2800c62ef8502158b7af318e,
+        type: 3}
+      propertyPath: m_SizeDelta.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8834390040592032114, guid: 69b31e1d2800c62ef8502158b7af318e,
+        type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8834390040592032114, guid: 69b31e1d2800c62ef8502158b7af318e,
+        type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8834390040592032114, guid: 69b31e1d2800c62ef8502158b7af318e,
+        type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8834390040592032114, guid: 69b31e1d2800c62ef8502158b7af318e,
+        type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8834390040592032114, guid: 69b31e1d2800c62ef8502158b7af318e,
+        type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8834390040592032114, guid: 69b31e1d2800c62ef8502158b7af318e,
+        type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8834390040592032114, guid: 69b31e1d2800c62ef8502158b7af318e,
+        type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8834390040592032114, guid: 69b31e1d2800c62ef8502158b7af318e,
+        type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8834390040592032114, guid: 69b31e1d2800c62ef8502158b7af318e,
+        type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8834390040592032114, guid: 69b31e1d2800c62ef8502158b7af318e,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8834390040592032114, guid: 69b31e1d2800c62ef8502158b7af318e,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8834390040592032114, guid: 69b31e1d2800c62ef8502158b7af318e,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 69b31e1d2800c62ef8502158b7af318e, type: 3}
+--- !u!224 &8573732222358847101 stripped
+RectTransform:
+  m_CorrespondingSourceObject: {fileID: 8834390040592032114, guid: 69b31e1d2800c62ef8502158b7af318e,
+    type: 3}
+  m_PrefabInstance: {fileID: 893413570475745039}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &8693647709618711139 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8412724581869974892, guid: 69b31e1d2800c62ef8502158b7af318e,
+    type: 3}
+  m_PrefabInstance: {fileID: 893413570475745039}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 487e0ece3c452fa4386c77ac4071f050, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ShellGame.Items.ItemUseMessageView

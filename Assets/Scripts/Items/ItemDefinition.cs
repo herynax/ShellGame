@@ -49,6 +49,13 @@ namespace ShellGame.Items
         [Tooltip("То же самое для аниматора противника.")]
         public string EnemyUseAnimationTrigger = "EnemyUseItem";
 
+        [Header("Экономика")]
+        [Tooltip("Цена покупки в магазине. 0 = не продаётся в магазине. По умолчанию 5.")]
+        public int BuyPrice = 5;
+
+        [Tooltip("Множитель цены продажи (от цены покупки). 0.5 = продажа за половину цены.")]
+        [Range(0f, 1f)] public float SellPriceMultiplier = 0.5f;
+
         /// <summary>Можно ли вообще применить предмет сейчас (например, хилка бесполезна на полном ХП).</summary>
         public virtual bool CanUse(ItemEffectContext context) => true;
 

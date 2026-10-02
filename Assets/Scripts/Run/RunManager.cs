@@ -70,9 +70,8 @@ namespace ShellGame.Run
 
             var map = FirstRunMapFactory.BuildFirstRun(prefix, seed, new MapGenerationConfig());
             
-            var playerInventory = ScriptableObject.CreateInstance<PlayerInventorySO>();
-            playerInventory.name = "PlayerInventory_Runtime";
-            DontDestroyOnLoad(playerInventory);
+            var playerInventory = CreateRuntimeInventory();
+            playerInventory.BeginNewRun();
 
             CurrentRun = new RunData
             {
@@ -84,6 +83,31 @@ namespace ShellGame.Run
 
             _resumeEncounterOnLoad = false;
             State = RunState.OnMap;
+        }
+
+        /// <summary>
+        /// Путь к конфиг-ассету с начальными слотами и стартовым кошельком.
+        /// </summary>
+        public const string PlayerInventoryConfigResourcePath = "Configs/PlayerInventory";
+
+        /// <summary>
+        /// Создаёт рантайм-инвентарь, применяя стартовые настройки из конфиг-ассета.
+        /// Рантайм-инвентарь всегда новый (CreateInstance), поэтому значения ассета
+        /// нужно скопировать вручную — иначе он не участвует в игре.
+        /// </summary>
+        private static PlayerInventorySO CreateRuntimeInventory()
+        {
+            var playerInventory = ScriptableObject.CreateInstance<PlayerInventorySO>();
+            playerInventory.name = "PlayerInventory_Runtime";
+
+            var template = Resources.Load<PlayerInventorySO>(PlayerInventoryConfigResourcePath);
+            if (template != null)
+                playerInventory.ApplyStartingSettings(template);
+            else
+                Debug.LogWarning($"[RunManager] Не найден конфиг инвентаря по пути Resources/{PlayerInventoryConfigResourcePath} — используются значения по умолчанию.");
+
+            DontDestroyOnLoad(playerInventory);
+            return playerInventory;
         }
 
         public void EndRun()
@@ -325,10 +349,8 @@ namespace ShellGame.Run
             var prefix = data.RunIsFirstRun ? FirstRunPrefix : ReturningPlayerPrefix;
             var map = FirstRunMapFactory.BuildFirstRun(prefix, data.RunSeed, new MapGenerationConfig());
 
-            var playerInventory = ScriptableObject.CreateInstance<PlayerInventorySO>();
-            playerInventory.name = "PlayerInventory_Runtime";
-            DontDestroyOnLoad(playerInventory);
-            
+            var playerInventory = CreateRuntimeInventory();
+
             // Restore coins
             playerInventory.Coins = data.PlayerCoins;
             
