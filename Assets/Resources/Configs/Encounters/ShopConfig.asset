@@ -18,4 +18,4 @@ MonoBehaviour:
   OnlySellableItems: 1
   GrantFreeUnlockedItemOnEntry: 1
   SellPriceMultiplier: 0.5
-  SellMarkerItemAsset: {fileID: 11400000, guid: 7b1e4c0a9d2f4e6b8c3a5d1f0e97b42, type: 2}
+  SellMarkerItemAsset: {fileID: 11400000, guid: 242259eb7884dac729c5abf4e0ae1485, type: 2}

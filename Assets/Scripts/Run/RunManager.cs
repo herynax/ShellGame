@@ -291,6 +291,7 @@ namespace ShellGame.Run
                 MapNodeType.Boss => EncounterKind.Boss,
                 MapNodeType.Shop => EncounterKind.Shop,
                 MapNodeType.Tutorial => EncounterKind.Tutorial,
+                MapNodeType.Challenge => EncounterKind.MiniBoss,
                 _ => EncounterKind.Enemy
             };
             var result = catalog.PickRandom(kind, rng) ?? catalog.PickRandom(EncounterKind.Enemy, rng);
@@ -339,6 +340,8 @@ namespace ShellGame.Run
                 LevelIndex = p != null ? p.CurrentLevelIndex : 0,
                 DifficultyIndex = p != null ? p.CurrentDifficultyIndex : 0f,
                 CompletedRoundsInSession = p != null ? p.CompletedRoundsInSession : 0,
+                EncountersClearedInRun = p != null ? p.EncountersClearedInRun : 0,
+                RoundsInCurrentEncounter = p != null ? p.RoundsInCurrentEncounter : 0,
             };
             FillCheckpoint(data);
             ShellGame.Meta.RunCheckpointStorage.Save(data);
@@ -385,6 +388,14 @@ namespace ShellGame.Run
                 p.SetDifficultyIndex(data.DifficultyIndex);
                 p.SetCompletedRounds(data.CompletedRoundsInSession);
                 p.SetMaxShellsPenalty(data.OnMap ? 0 : data.MaxShellsPenalty);
+
+                // Совместимость со старыми чекпоинтами: если прогресс рана не
+                // сохранён, восстанавливаем его по индексу уровня.
+                int encounters = data.EncountersClearedInRun > 0
+                    ? data.EncountersClearedInRun
+                    : Mathf.Max(0, data.LevelIndex);
+                p.SetEncountersClearedInRun(encounters);
+                p.SetRoundsInCurrentEncounter(data.RoundsInCurrentEncounter);
             }
         }
     }

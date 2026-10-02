@@ -1,6 +1,7 @@
-﻿using System;
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.Rendering;
+using UnityEngine.Rendering.RenderGraphModule;
+using UnityEngine.Rendering.RenderGraphModule.Util;
 using UnityEngine.Rendering.Universal;
 
 namespace PSX
@@ -14,12 +15,6 @@ namespace PSX
             fogPass = new FogPass(RenderPassEvent.BeforeRenderingPostProcessing);
         }
 
-        [Obsolete]
-        public override void SetupRenderPasses(ScriptableRenderer renderer, in RenderingData renderingData)
-        {
-            fogPass.Setup(renderer.cameraColorTargetHandle);
-        }
-
         public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
         {
             renderer.EnqueuePass(fogPass);
@@ -27,14 +22,15 @@ namespace PSX
 
         protected override void Dispose(bool disposing)
         {
-            fogPass?.Dispose();
+            CoreUtils.Destroy(fogPass?.Material);
+            fogPass = null;
         }
     }
 
     public class FogPass : ScriptableRenderPass
     {
         private static readonly string shaderPath = "PostEffect/Fog";
-        static readonly string k_RenderTag = "Render Fog Effects";
+        private const string k_RenderTag = "Render Fog Effects";
 
         static readonly int FogDensity = Shader.PropertyToID("_FogDensity");
         static readonly int FogDistance = Shader.PropertyToID("_FogDistance");
@@ -48,12 +44,18 @@ namespace PSX
 
         Fog fog;
         Material fogMaterial;
-        RTHandle currentTarget;
-        RTHandle tempTarget;
+
+        public Material Material => fogMaterial;
 
         public FogPass(RenderPassEvent evt)
         {
             renderPassEvent = evt;
+
+            // Глубина читается в шейдере через SampleSceneDepth (_CameraDepthTexture).
+            // В Render Graph требования собираются ДО записи пассов, поэтому флаг
+            // нужно выставить здесь, а не в RecordRenderGraph.
+            ConfigureInput(ScriptableRenderPassInput.Depth);
+
             var shader = Shader.Find(shaderPath);
             if (shader == null)
             {
@@ -63,45 +65,20 @@ namespace PSX
             this.fogMaterial = CoreUtils.CreateEngineMaterial(shader);
         }
 
-        public void Setup(RTHandle currentTarget)
-        {
-            this.currentTarget = currentTarget;
-        }
-
-        [Obsolete]
-        public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
-        {
-            ConfigureInput(ScriptableRenderPassInput.Depth);
-
-            var desc = renderingData.cameraData.cameraTargetDescriptor;
-            desc.depthBufferBits = 0;
-            RTHandles.Release(tempTarget);
-            tempTarget = RTHandles.Alloc(desc, FilterMode.Point, TextureWrapMode.Clamp, name: "_TempTargetFog");
-        }
-
-        public void Dispose()
-        {
-            tempTarget?.Release();
-        }
-
-        [Obsolete]
-        public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
+        public override void RecordRenderGraph(RenderGraph renderGraph, ContextContainer frameData)
         {
             if (this.fogMaterial == null) return;
-            if (!renderingData.cameraData.postProcessEnabled) return;
+
+            UniversalResourceData resourceData = frameData.Get<UniversalResourceData>();
+            UniversalCameraData cameraData = frameData.Get<UniversalCameraData>();
+
+            if (!cameraData.postProcessEnabled) return;
 
             var stack = VolumeManager.instance.stack;
             this.fog = stack.GetComponent<Fog>();
-            if (this.fog == null || !this.fog.IsActive()) return;
+            if (this.fog == null) return;
+            if (!this.fog.IsActive()) return;
 
-            var cmd = CommandBufferPool.Get(k_RenderTag);
-            Render(cmd, ref renderingData);
-            context.ExecuteCommandBuffer(cmd);
-            CommandBufferPool.Release(cmd);
-        }
-
-        void Render(CommandBuffer cmd, ref RenderingData renderingData)
-        {
             this.fogMaterial.SetFloat(FogDensity, this.fog.fogDensity.value);
             this.fogMaterial.SetFloat(FogDistance, this.fog.fogDistance.value);
             this.fogMaterial.SetColor(FogColor, this.fog.fogColor.value);
@@ -112,8 +89,23 @@ namespace PSX
             this.fogMaterial.SetFloat(NoiseScale, this.fog.noiseScale.value);
             this.fogMaterial.SetFloat(NoiseStrength, this.fog.noiseStrength.value);
 
-            cmd.Blit(currentTarget, tempTarget);
-            cmd.Blit(tempTarget, currentTarget, this.fogMaterial, 0);
+            var descriptor = cameraData.cameraTargetDescriptor;
+            descriptor.depthBufferBits = 0;
+
+            TextureHandle source = resourceData.activeColorTexture;
+            TextureHandle temp = UniversalRenderer.CreateRenderGraphTexture(
+                renderGraph, descriptor, "_TempTargetFog", false);
+
+            // Render Graph не даёт читать и писать одну текстуру в одном пассе,
+            // поэтому эффект пишем во временную текстуру и копируем её обратно.
+            RenderGraphUtils.BlitMaterialParameters effectParams =
+                new RenderGraphUtils.BlitMaterialParameters(source, temp, this.fogMaterial, 0);
+            renderGraph.AddBlitPass(effectParams, k_RenderTag);
+
+            // Копия обязана быть point-семплинговой: дефолт AddBlitPass — ClampBilinear,
+            // из-за чего весь кадр размывался после каждого эффекта.
+            renderGraph.AddBlitPass(temp, source, Vector2.one, Vector2.zero,
+                filterMode: RenderGraphUtils.BlitFilterMode.ClampNearest, passName: $"{k_RenderTag} Copy Back");
         }
     }
 }

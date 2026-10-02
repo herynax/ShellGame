@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace ShellGame.Run
 {
-    public enum EncounterKind { Tutorial, Enemy, Boss, Shop }
+    public enum EncounterKind { Tutorial, Enemy, Boss, Shop, MiniBoss }
 
     [CreateAssetMenu(fileName = "Encounter", menuName = "ShellGame/Run/Encounter Definition")]
     public sealed class EncounterDefinition : ScriptableObject

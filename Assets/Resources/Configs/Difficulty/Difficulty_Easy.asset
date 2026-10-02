@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e0f4900305d7427b899adb611b590d29, type: 3}
+  m_Name: Difficulty_Easy
+  m_EditorClassIdentifier: Assembly-CSharp::ShellGame.Gameplay.DifficultyPreset
+  Id: Easy
+  DisplayName: Простой
+  Description: Прощающий ран — больше HP, враг ошибается чаще и быстрее забывает метку.
+  PlayerHealth: 6
+  EnemyHealth: 4
+  MinCorrectChance: 0.18
+  MaxCorrectChance: 0.65
+  TrackingK: 0.0058
+  DifficultyAtRunEnd: 40
+  MiniBossHealthMultiplier: 1.5
+  BossHealthMultiplier: 1.7
+  MiniBossSpikeMultiplier: 1.08
+  MiniBossSpikeFlatBonus: 1
+  BossSpikeMultiplier: 1.15
+  BossSpikeFlatBonus: 2

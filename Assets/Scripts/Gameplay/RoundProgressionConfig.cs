@@ -52,9 +52,9 @@ namespace ShellGame.Gameplay
 
         private RoundParameters CalculateParameters(int levelIndex, int roundIndex, float difficultyIndex)
         {
-            int cupCount = Mathf.Clamp(3 + Mathf.FloorToInt(difficultyIndex / 2.2f), 3, 8);
-            int maxMarkers = 1 + Mathf.FloorToInt((cupCount - 2) / 2f);
-            float maxMarkerProbability = Mathf.Min(0.15f * difficultyIndex, 0.85f);
+            int cupCount = EvaluateCupCount(difficultyIndex);
+            int maxMarkers = EvaluateMaxMarkers(cupCount);
+            float maxMarkerProbability = EvaluateMaxMarkerProbability(difficultyIndex);
             int markerCount = Random.value < maxMarkerProbability ? maxMarkers : Mathf.Max(1, maxMarkers - 1);
 
             return new RoundParameters
@@ -65,6 +65,36 @@ namespace ShellGame.Gameplay
                 MarkerCount = markerCount,
                 DifficultyIndex = difficultyIndex,
             };
+        }
+
+        // ============================================================
+        //  Публичные расчёты раскладки — единый источник истины для
+        //  игры и окна баланса (Assets/Editor/Balance/BalanceWindow.cs).
+        // ============================================================
+
+        /// <summary>Число чашек на столе: C = clamp(3 + floor(D / 2.2), 3, 8).</summary>
+        public static int EvaluateCupCount(float difficultyIndex) =>
+            Mathf.Clamp(3 + Mathf.FloorToInt(difficultyIndex / 2.2f), 3, 8);
+
+        /// <summary>Максимум меток для C чашек: 1 + floor((C - 2) / 2).</summary>
+        public static int EvaluateMaxMarkers(int cupCount) =>
+            1 + Mathf.FloorToInt((cupCount - 2) / 2f);
+
+        /// <summary>Шанс, что выпадет максимальное число меток: min(0.15 * D, 0.85).</summary>
+        public static float EvaluateMaxMarkerProbability(float difficultyIndex) =>
+            Mathf.Min(0.15f * difficultyIndex, 0.85f);
+
+        /// <summary>
+        /// Ожидаемое число меток (матожидание случайного выбора максимума).
+        /// Используется окном баланса и таблицей — в игре метки выбираются
+        /// рулеткой Random.value.
+        /// </summary>
+        public static float EvaluateExpectedMarkerCount(float difficultyIndex)
+        {
+            int cupCount = EvaluateCupCount(difficultyIndex);
+            int maxMarkers = EvaluateMaxMarkers(cupCount);
+            float p = EvaluateMaxMarkerProbability(difficultyIndex);
+            return p * maxMarkers + (1f - p) * Mathf.Max(1, maxMarkers - 1);
         }
     }
 

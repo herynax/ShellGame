@@ -12,21 +12,25 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 670d021b026ddfb40b1a778759a5a288, type: 3}
   m_Name: EnemyAIConfig
   m_EditorClassIdentifier: Assembly-CSharp::ShellGame.AI.EnemyAIConfig
-  TrackingPbase: 0.3
-  TrackingPmin: 0.1
-  TrackingK: 0.01
-  MinCorrectChance: 0.3
+  TrackingPbase: 0.5
+  TrackingPmin: 0.05
+  TrackingK: 0.0089
+  MinCorrectChance: 0.25
   MaxCorrectChance: 0.75
-  DifficultyForMaxCorrect: 5
-  DecisionDelayBase: 0.4
-  DecisionDelayMin: 0.1
-  DecisionDelayK: 0.08
+  DifficultyForMaxCorrect: 45
+  DecisionDelayBase: 1.7
+  DecisionDelayMin: 0.474
+  DecisionDelayK: 0.02724
   ItemUseThinkingDuration: 0.5
   HealthPenaltyStartLostFraction: 0.5
-  HealthPenaltyMaxReduction: 0.4
+  HealthPenaltyMaxReduction: 0.3
   HealthPenaltyCurvePower: 2
   MinCorrectChanceFloor: 0.05
   FirstLevelCorrectChanceMultiplier: 0.5
-  ItemUseDesireThresholdEasy: 0.5
-  ItemUseDesireThresholdHard: 0.2
-  ItemUseDesireThresholdForHardAtDifficulty: 8
+  DifficultyMultiplier: 1
+  DifficultyFlatBonus: 0
+  HealthMultiplier: 1
+  HealthFlatBonus: 0
+  ItemUseDesireThresholdEasy: 0.55
+  ItemUseDesireThresholdHard: 0.15
+  ItemUseDesireThresholdForHardAtDifficulty: 45

@@ -9,8 +9,12 @@ namespace ShellGame.Gameplay
 {
     public sealed class ShuffleSystem : MonoBehaviour
     {
+        [Tooltip("Аварийное число обменов. Используется только если не удалось получить ShellConfig (см. ResolveSwapCount).")]
         [SerializeField] private int _swapCount = 6;
+
+        [Tooltip("Пауза между соседними обменами, сек. Если не задана в ShellConfig — берётся отсюда.")]
         [SerializeField] private float _betweenSwapDelay = 0.1f;
+
         [SerializeField] private ShellConfig _shellConfig;
 
         private List<Shell> _shells = new List<Shell>();
@@ -21,6 +25,8 @@ namespace ShellGame.Gameplay
         private float _currentDifficultyIndex;
         private float _moveDurationMultiplier = 1f;
         private bool _isEnemyTurn;
+        private int _activeSwapCount = 6;
+        private float _activeBetweenSwapDelay = 0.1f;
         private System.Action _onComplete;
 
         // === ПЕРЕМЕННЫЕ ДЛЯ ОБУЧЕНИЯ ===
@@ -61,9 +67,13 @@ namespace ShellGame.Gameplay
             _currentDifficultyIndex = difficultyIndex;
             _isEnemyTurn = isEnemyTurn;
 
-            Debug.Log($"[ShuffleSystem] START isEnemy={_isEnemyTurn}, swapCount={_swapCount}, " +
+            _activeSwapCount = ResolveSwapCount();
+            _activeBetweenSwapDelay = ResolveBetweenSwapDelay();
+
+            Debug.Log($"[ShuffleSystem] START isEnemy={_isEnemyTurn}, swapCount={_activeSwapCount} " +
+                      $"(вместо прежнего фиксированного {_swapCount}), betweenSwapDelay={_activeBetweenSwapDelay:F3}, " +
                       $"baseDuration={_shellConfig?.ShuffleMoveDurationBase}, minDuration={_shellConfig?.ShuffleMoveDurationMin}, " +
-                      $"enemyMult={_shellConfig?.EnemyShuffleSpeedMultiplier}");
+                      $"enemyMult={_shellConfig?.EnemyShuffleSpeedMultiplier}, difficulty={_currentDifficultyIndex:F2}");
 
             GameEvents.RaiseRoundShuffleStarted();
 
@@ -75,7 +85,7 @@ namespace ShellGame.Gameplay
 
         private void PerformNextSwap()
         {
-            if (!_isRunning || _currentStep >= _swapCount)
+            if (!_isRunning || _currentStep >= _activeSwapCount)
             {
                 Finish();
                 return;
@@ -116,7 +126,7 @@ namespace ShellGame.Gameplay
                     return;
                 }
 
-                if (_betweenSwapDelay > 0f) Invoke(nameof(PerformNextSwap), _betweenSwapDelay);
+                if (_activeBetweenSwapDelay > 0f) Invoke(nameof(PerformNextSwap), _activeBetweenSwapDelay);
                 else PerformNextSwap();
             }
 
@@ -136,36 +146,43 @@ namespace ShellGame.Gameplay
             }
         }
 
+        /// <summary>
+        /// Число обменов берётся из ShellConfig и зависит от сложности рана
+        /// (EvaluateShuffleSwapCount). Раньше было фиксированное поле
+        /// _swapCount = 6 на префабе, и количество обменов не менялось за ран.
+        /// </summary>
+        private int ResolveSwapCount()
+        {
+            if (_shellConfig == null) return _swapCount;
+            return _shellConfig.EvaluateShuffleSwapCount(_currentDifficultyIndex, _isEnemyTurn);
+        }
+
+        private float ResolveBetweenSwapDelay()
+        {
+            if (_shellConfig != null && _shellConfig.BetweenSwapDelay > 0f)
+                return _shellConfig.BetweenSwapDelay;
+            return _betweenSwapDelay;
+        }
+
         private float ResolveShuffleMoveDuration()
         {
             if (_shellConfig == null) return 0.22f;
-            float difficultyReduction = (_shellConfig.ShuffleRoundReduction + _shellConfig.ShuffleLevelReduction)
-                * Mathf.Max(0f, _currentDifficultyIndex);
-            // Сложность может вычесть больше, чем есть базы — не даём уйти в минус.
-            float reducedDuration = Mathf.Max(0f, _shellConfig.ShuffleMoveDurationBase - difficultyReduction);
-            float duration = reducedDuration * _moveDurationMultiplier;
+
+            float duration = _shellConfig.EvaluateShuffleMoveDuration(
+                _currentDifficultyIndex, _isEnemyTurn, _moveDurationMultiplier);
 
             if (_isEnemyTurn)
             {
-                duration *= Mathf.Clamp(_shellConfig.EnemyShuffleSpeedMultiplier, 0.05f, 1f);
-
-                // У врага СВОЙ минимальный порог: множитель скорости не должен
-                // доводить перемещение до мгновенного телепорта. Раньше нижний
-                // порог не применялся вовсе, и на высокой сложности наперстки
-                // просто телепортировались (длительность уходила в ноль).
-                float enemyMin = Mathf.Max(0.01f, _shellConfig.EnemyShuffleMoveDurationMin);
-                float finalEnemyDuration = Mathf.Max(enemyMin, duration);
-                Debug.Log($"[ShuffleSystem] ENEMY base={_shellConfig.ShuffleMoveDurationBase}, " +
-                          $"reduced={reducedDuration:F3}, afterMult={duration:F3}, enemyMin={enemyMin:F3}, " +
-                          $"FINAL={finalEnemyDuration:F3}");
-                return finalEnemyDuration;
+                Debug.Log($"[ShuffleSystem] ENEMY reduced={_shellConfig.EvaluateShuffleReducedDuration(_currentDifficultyIndex):F3}, " +
+                          $"enemyMin={_shellConfig.EnemyShuffleMoveDurationMin:F3}, FINAL={duration:F3}, " +
+                          $"difficulty={_currentDifficultyIndex:F2}");
+                return duration;
             }
 
-            float finalDuration = Mathf.Max(_shellConfig.ShuffleMoveDurationMin, duration);
-            Debug.Log($"[ShuffleSystem] PLAYER base={_shellConfig.ShuffleMoveDurationBase}, " +
-                      $"reduced={reducedDuration:F3}, afterMult={duration:F3}, min={_shellConfig.ShuffleMoveDurationMin}, " +
-                      $"FINAL={finalDuration:F3}");
-            return finalDuration;
+            Debug.Log($"[ShuffleSystem] PLAYER reduced={_shellConfig.EvaluateShuffleReducedDuration(_currentDifficultyIndex):F3}, " +
+                      $"min={_shellConfig.ShuffleMoveDurationMin:F3}, FINAL={duration:F3}, " +
+                      $"difficulty={_currentDifficultyIndex:F2}");
+            return duration;
         }
 
         public void SetMoveDurationMultiplier(float multiplier)

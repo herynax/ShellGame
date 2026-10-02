@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d8b54ee0fecb442ca1e6c9660f8ce3e0, type: 3}
+  m_Name: DifficultyCatalog
+  m_EditorClassIdentifier: Assembly-CSharp::ShellGame.Gameplay.DifficultyCatalog
+  Presets:
+  - {fileID: 11400000, guid: 78b2d1663d994c07ac2332889b648569, type: 2}
+  - {fileID: 11400000, guid: a7181366a8044e7f8112fbf44a941f49, type: 2}
+  - {fileID: 11400000, guid: ce315b442697473f91b1448229f7a90d, type: 2}
+  - {fileID: 11400000, guid: 77ce146a5a3a47729789e32d380de911, type: 2}
+  DefaultPresetId: Medium

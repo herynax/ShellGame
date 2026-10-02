@@ -466,8 +466,15 @@ public class PauseController : MonoBehaviour
         Time.timeScale = 1f;
         IsPaused = false;
 
+        // Рестарт сохраняет выбранную сложность: Reset() сбрасывает пресет,
+        // поэтому запоминаем его и восстанавливаем после сброса.
         if (GameSessionProgression.Instance != null)
+        {
+            string presetId = GameSessionProgression.Instance.SelectedPreset?.Id;
             GameSessionProgression.Instance.Reset();
+            if (!string.IsNullOrEmpty(presetId))
+                GameSessionProgression.Instance.SetSelectedPresetById(presetId);
+        }
 
         // Рестарт = новая попытка, статистика предыдущей больше неактуальна.
         RunStatsTracker.Instance?.EndRun();

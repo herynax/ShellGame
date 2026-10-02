@@ -2,6 +2,8 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using ShellGame.Core;
+using ShellGame.Gameplay;
+using ShellGame.Run;
 using ShellGame.Shells;
 using UnityEngine;
 
@@ -25,6 +27,10 @@ namespace ShellGame.AI
     {
         [SerializeField] private EnemyAIConfig _config;
 
+        // Рантайм-копия _config с наложенным пресетом сложности. Живёт до
+        // конца энкаунтера (уничтожается в OnDestroy вместе с ригом).
+        private EnemyAIConfig _runtimeConfig;
+
         [Tooltip("Множитель задержки принятия решения врагом. <1 = решение принимается быстрее (сейчас: враг в целом чуть расторопнее игрока).")]
         [SerializeField, Range(0.1f, 1.5f)] private float _decisionSpeedMultiplier = 0.9f;
 
@@ -33,6 +39,7 @@ namespace ShellGame.AI
 
         private readonly EnemyKnowledgeModel _knowledge = new EnemyKnowledgeModel();
         private float _currentDifficultyIndex;
+        private float _baseDifficultyIndex;
         private bool _isFirstLevel;
         private float _currentHealthFraction = 1f;
 
@@ -48,6 +55,9 @@ namespace ShellGame.AI
         private bool _forcedChoicePersistent;
 
         public EnemyAIState State { get; private set; } = EnemyAIState.Idle;
+
+        /// <summary>Активный конфиг врага (в т.ч. HealthMultiplier для минибоссов/босса).</summary>
+        public EnemyAIConfig Config => _config;
 
         public void Initialize(EnemyAIConfig config)
         {
@@ -89,16 +99,52 @@ namespace ShellGame.AI
 
         public void ResetForNewEncounter(EnemyAIConfig config)
         {
+            ResetForNewEncounter(config, EncounterKind.Enemy, null);
+        }
+
+        /// <summary>
+        /// Новый энкаунтер. Если задан пресет сложности — конфиг врага
+        /// клонируется, и на клон накладываются точность/забывание/HP-спайк
+        /// пресета под тип боя. Оригинальный ассет не мутируется.
+        /// </summary>
+        public void ResetForNewEncounter(EnemyAIConfig config, EncounterKind kind, DifficultyPreset preset)
+        {
             StopAllCoroutines();
             ResetDrugEffects();
-            _config = config;
+            _config = BuildEffectiveConfig(config, kind, preset);
             _forceCorrectChoice = false;
             _forcedChoicePersistent = false;
             _itemUsedThisDecision = false;
             _currentHealthFraction = 1f;
             _currentDifficultyIndex = 0f;
+            _baseDifficultyIndex = 0f;
             _knowledge.Reset();
             State = EnemyAIState.Idle;
+        }
+
+        private EnemyAIConfig BuildEffectiveConfig(EnemyAIConfig baseConfig, EncounterKind kind, DifficultyPreset preset)
+        {
+            if (baseConfig == null || preset == null)
+                return baseConfig;
+
+            if (_runtimeConfig != null)
+            {
+                Destroy(_runtimeConfig);
+                _runtimeConfig = null;
+            }
+
+            _runtimeConfig = baseConfig.CreateRuntimeClone();
+            preset.ApplyTo(_runtimeConfig, kind);
+            return _runtimeConfig;
+        }
+
+        private void OnDestroy()
+        {
+            if (_runtimeConfig != null)
+            {
+                Destroy(_runtimeConfig);
+                _runtimeConfig = null;
+            }
         }
 
         /// <summary>
@@ -117,7 +163,15 @@ namespace ShellGame.AI
         public void EnterObserveMarkers(IReadOnlyList<Shell> shells, float difficultyIndex, bool isFirstLevel = false)
         {
             State = EnemyAIState.ObserveMarkers;
-            _currentDifficultyIndex = difficultyIndex;
+            // Накладываем спайк врага (EnemyAIConfig.DifficultyMultiplier /
+            // DifficultyFlatBonus) на базовый индекс сложности рана. Дальше все
+            // Evaluate* в этом контроллере работают уже со спайкнутым значением,
+            // поэтому минибосс/босс автоматически оказываются сложнее линии —
+            // отдельного кода для них не нужно.
+            _baseDifficultyIndex = Mathf.Max(0f, difficultyIndex);
+            _currentDifficultyIndex = _config != null
+                ? _config.ApplyDifficultySpike(_baseDifficultyIndex)
+                : _baseDifficultyIndex;
             _isFirstLevel = isFirstLevel;
             _knowledge.Reset();
             _knowledge.Observe(shells);

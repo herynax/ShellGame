@@ -4,6 +4,9 @@ using ShellGame.Core;
 using ShellGame.Gameplay;
 using ShellGame.Feedback;
 using UnityEngine;
+#if ENABLE_INPUT_SYSTEM
+using UnityEngine.InputSystem;
+#endif
 using Zenject;
 
 namespace ShellGame.Health
@@ -78,6 +81,18 @@ namespace ShellGame.Health
 
         private void Update()
         {
+#if ENABLE_INPUT_SYSTEM
+            // Отладочная дозировка цифрами: 1 — по игроку, 2 — по врагу.
+            var keyboard = Keyboard.current;
+            if (keyboard == null)
+                return;
+
+            if (keyboard.digit1Key.wasPressedThisFrame)
+                ApplyDamage(TurnSide.Player, 1, true);
+
+            if (keyboard.digit2Key.wasPressedThisFrame)
+                ApplyDamage(TurnSide.Enemy, 1, true);
+#else
             if (Input.GetKeyDown(KeyCode.Alpha1))
             {
                 ApplyDamage(TurnSide.Player, 1, true);
@@ -87,6 +102,7 @@ namespace ShellGame.Health
             {
                 ApplyDamage(TurnSide.Enemy, 1, true);
             }
+#endif
         }
 
         /// <summary>

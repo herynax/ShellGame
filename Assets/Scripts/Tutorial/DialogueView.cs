@@ -55,22 +55,16 @@ namespace ShellGame.Tutorial
                 bool inputTriggered = false;
 
 #if ENABLE_INPUT_SYSTEM
-                // �������� ������ ����� ������ ���� (���)
+                // Закрыть реплику: левая кнопка мыши (или тап).
                 if (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
                     inputTriggered = true;
 
-                // �������� ������ ������ � Enter
+                // Закрыть реплику: пробел или Enter.
                 if (Keyboard.current != null && (Keyboard.current.spaceKey.wasPressedThisFrame || Keyboard.current.enterKey.wasPressedThisFrame))
                     inputTriggered = true;
 
-                // ��� �� ������ (�������������� � ��� ��� �������/���������)
+                // Тач: primary touch, если устройство вообще их сообщает.
                 if (Touchscreen.current != null && Touchscreen.current.primaryTouch.press.wasPressedThisFrame)
-                    inputTriggered = true;
-#endif
-
-#if ENABLE_LEGACY_INPUT_MANAGER
-                // ������ ������� �����: ������ ���(0), ������ � Enter/Return
-                if (Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Return))
                     inputTriggered = true;
 #endif
 

@@ -23,6 +23,7 @@ namespace ShellGame.Run
 
         [Inject] private DiContainer _container = null;
         [Inject] private GameManager _gameManager = null;
+        [Inject] private GameSessionProgression _sessionProgression = null;
         [Inject] private PlayerDamageFeedback _playerFeedback = null;
         [Inject] private TurnSpotlightController _spotlight = null;
 
@@ -98,7 +99,10 @@ namespace ShellGame.Run
             _playerFeedback.BindRig(_rig);
             _playerItemSpawner.ResetForNewEncounter(_rig.EnemyLook);
             _enemyItemSpawner.ResetForNewEncounter(_rig.EnemyLook);
-            _enemyAI.ResetForNewEncounter(def.EnemyAIConfig);
+            _enemyAI.ResetForNewEncounter(
+                def.EnemyAIConfig,
+                def.Kind,
+                _sessionProgression != null ? _sessionProgression.SelectedPreset : null);
 
             // Всё, что живёт в риге, раздаём тем, кто остался в сцене,
             // ДО BeginEncounter (там вызывается SetImmediate и StartRound).

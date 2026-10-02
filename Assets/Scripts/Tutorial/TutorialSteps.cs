@@ -2,6 +2,9 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+#if ENABLE_INPUT_SYSTEM
+using UnityEngine.InputSystem;
+#endif
 
 namespace ShellGame.Tutorial
 {
@@ -91,8 +94,25 @@ namespace ShellGame.Tutorial
             // Один кадр не позволяет тому же клику, который закрыл реплику,
             // случайно подтвердить следующий этап.
             yield return null;
-            while (!Input.GetMouseButtonDown(0) && !Input.GetKeyDown(KeyCode.Space))
+            while (!IsAdvancePressed())
                 yield return null;
+        }
+
+        /// <summary>
+        /// Нажатие, подтверждающее этап: левая кнопка мыши, тап или пробел.
+        /// </summary>
+        private static bool IsAdvancePressed()
+        {
+#if ENABLE_INPUT_SYSTEM
+            var mouse = Mouse.current;
+            if (mouse != null && mouse.leftButton.wasPressedThisFrame)
+                return true;
+
+            var keyboard = Keyboard.current;
+            return keyboard != null && keyboard.spaceKey.wasPressedThisFrame;
+#else
+            return Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Space);
+#endif
         }
     }
 }

@@ -12,24 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b6f72d5fcc980194eaaef8538a2a403d, type: 3}
   m_Name: HealthProgressionConfig
   m_EditorClassIdentifier: Assembly-CSharp::ShellGame.Health.HealthProgressionConfig
-  _entries:
-  - LevelIndex: 0
-    PlayerMaxHealth: 4
-    EnemyMaxHealth: 4
-  - LevelIndex: 1
-    PlayerMaxHealth: 4
-    EnemyMaxHealth: 4
-  - LevelIndex: 2
-    PlayerMaxHealth: 5
-    EnemyMaxHealth: 5
-  - LevelIndex: 3
-    PlayerMaxHealth: 5
-    EnemyMaxHealth: 5
-  - LevelIndex: 4
-    PlayerMaxHealth: 6
-    EnemyMaxHealth: 6
-  - LevelIndex: 5
-    PlayerMaxHealth: 6
-    EnemyMaxHealth: 6
+  _entries: []
+  PlayerHealthBase: 5
+  PlayerHealthGain: 0
+  EnemyHealthBase: 5
+  EnemyHealthGain: 0
   DamagePerHit: 1
   TurnReturnDelayAfterPlayerDamage: 0.35

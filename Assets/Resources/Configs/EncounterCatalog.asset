@@ -15,3 +15,5 @@ MonoBehaviour:
   Encounters:
   - {fileID: 11400000, guid: 38fe22313869a293cb2c75349339fbcb, type: 2}
   - {fileID: 11400000, guid: 71cc98195ddd4fc86a4391aa4cd4ca90, type: 2}
+  - {fileID: 11400000, guid: a3d5af63b08749b18e9535d4c270d05e, type: 2}
+  - {fileID: 11400000, guid: 4edd0eb180a24c87a362d4e2cc96adaa, type: 2}

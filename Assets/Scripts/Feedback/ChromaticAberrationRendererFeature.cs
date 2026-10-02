@@ -1,6 +1,7 @@
-using System;
 using UnityEngine;
 using UnityEngine.Rendering;
+using UnityEngine.Rendering.RenderGraphModule;
+using UnityEngine.Rendering.RenderGraphModule.Util;
 using UnityEngine.Rendering.Universal;
 
 namespace ShellGame.Feedback
@@ -9,8 +10,9 @@ namespace ShellGame.Feedback
     /// Полноэкранный PSX-постэффект: хроматическая аберрация + screen warp,
     /// управляемые через ChromaticAberrationVolume в Volume-стеке.
     ///
-    /// Execute использует классический cmd.Blit(source, dest, material) —
-    /// он сам подставляет _MainTex, никаких доп. свойств/макросов не нужно.
+    /// Render Graph: источник приходит в _BlitTexture, геометрия — процедурный
+    /// полноэкранный треугольник (только SV_VertexID), поэтому Vert/Varyings
+    /// шейдер объявляет сам.
     /// </summary>
     public sealed class ChromaticAberrationRendererFeature : ScriptableRendererFeature
     {
@@ -70,13 +72,23 @@ namespace ShellGame.Feedback
         protected override void Dispose(bool disposing)
         {
             CoreUtils.Destroy(_material);
-            _pass?.Dispose();
+            _material = null;
+            _pass = null;
         }
 
         private sealed class ChromaticAberrationPass : ScriptableRenderPass
         {
+            private const string k_RenderTag = "ShellGame Chromatic Aberration (PSX)";
+
+            static readonly int IntensityId = Shader.PropertyToID("_Intensity");
+            static readonly int WarpAmplitudeId = Shader.PropertyToID("_WarpAmplitude");
+            static readonly int WarpFrequencyId = Shader.PropertyToID("_WarpFrequency");
+            static readonly int WarpSpeedId = Shader.PropertyToID("_WarpSpeed");
+            static readonly int NoiseAmplitudeId = Shader.PropertyToID("_NoiseAmplitude");
+            static readonly int NoiseFrequencyId = Shader.PropertyToID("_NoiseFrequency");
+            static readonly int NoiseSpeedId = Shader.PropertyToID("_NoiseSpeed");
+
             private readonly Material _material;
-            private RTHandle _tempHandle;
 
             public float Intensity;
             public float WarpAmplitude;
@@ -91,50 +103,38 @@ namespace ShellGame.Feedback
                 _material = material;
             }
 
-            // Проект работает с выключенным Render Graph
-            // (UniversalRenderPipelineGlobalSettings: m_EnableRenderGraph = 0), поэтому
-            // кастомный пасс обязан реализовывать compatibility-путь URP.
-            // [Obsolete] на override-ах — штатное средство, рекомендованное самим
-            // компилятором для CS0672.
-            [Obsolete("Compatibility-mode pass: активен, пока в URP выключен Render Graph.")]
-            public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
-            {
-                var descriptor = renderingData.cameraData.cameraTargetDescriptor;
-                descriptor.depthBufferBits = 0;
-#pragma warning disable CS0618 // ReAllocateIfNeeded: нет замены для compatibility-пути.
-                RenderingUtils.ReAllocateIfNeeded(ref _tempHandle, descriptor, name: "_ChromaticAberrationTempPSX");
-#pragma warning restore CS0618
-            }
-
-            [Obsolete("Compatibility-mode pass: активен, пока в URP выключен Render Graph.")]
-            public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
+            public override void RecordRenderGraph(RenderGraph renderGraph, ContextContainer frameData)
             {
                 if (_material == null) return;
 
-#pragma warning disable CS0618 // cameraColorTargetHandle: нет замены для compatibility-пути.
-                var cameraTarget = renderingData.cameraData.renderer.cameraColorTargetHandle;
-#pragma warning restore CS0618
-                var cmd = CommandBufferPool.Get("ShellGame Chromatic Aberration (PSX)");
+                UniversalResourceData resourceData = frameData.Get<UniversalResourceData>();
+                UniversalCameraData cameraData = frameData.Get<UniversalCameraData>();
 
-                _material.SetFloat("_Intensity", Intensity);
-                _material.SetFloat("_WarpAmplitude", WarpAmplitude);
-                _material.SetFloat("_WarpFrequency", WarpFrequency);
-                _material.SetFloat("_WarpSpeed", WarpSpeed);
-                _material.SetFloat("_NoiseAmplitude", NoiseAmplitude);
-                _material.SetFloat("_NoiseFrequency", NoiseFrequency);
-                _material.SetFloat("_NoiseSpeed", NoiseSpeed);
 
-                cmd.Blit(cameraTarget, _tempHandle, _material);
-                cmd.Blit(_tempHandle, cameraTarget);
+                _material.SetFloat(IntensityId, Intensity);
+                _material.SetFloat(WarpAmplitudeId, WarpAmplitude);
+                _material.SetFloat(WarpFrequencyId, WarpFrequency);
+                _material.SetFloat(WarpSpeedId, WarpSpeed);
+                _material.SetFloat(NoiseAmplitudeId, NoiseAmplitude);
+                _material.SetFloat(NoiseFrequencyId, NoiseFrequency);
+                _material.SetFloat(NoiseSpeedId, NoiseSpeed);
 
-                context.ExecuteCommandBuffer(cmd);
-                cmd.Clear();
-                CommandBufferPool.Release(cmd);
-            }
+                var descriptor = cameraData.cameraTargetDescriptor;
+                descriptor.depthBufferBits = 0;
 
-            public void Dispose()
-            {
-                _tempHandle?.Release();
+                TextureHandle source = resourceData.activeColorTexture;
+                TextureHandle temp = UniversalRenderer.CreateRenderGraphTexture(
+                    renderGraph, descriptor, "_ChromaticAberrationTempPSX", false);
+
+                // Render Graph не даёт читать и писать одну текстуру в одном пассе,
+                // поэтому эффект пишем во временную текстуру и копируем её обратно.
+                RenderGraphUtils.BlitMaterialParameters effectParams =
+                    new RenderGraphUtils.BlitMaterialParameters(source, temp, _material, 0);
+                renderGraph.AddBlitPass(effectParams, k_RenderTag);
+
+                // Шейдер этого эффекта сэмплит билинейно, поэтому копия тоже билинейная.
+                renderGraph.AddBlitPass(temp, source, Vector2.one, Vector2.zero,
+                    filterMode: RenderGraphUtils.BlitFilterMode.ClampBilinear, passName: $"{k_RenderTag} Copy Back");
             }
         }
     }

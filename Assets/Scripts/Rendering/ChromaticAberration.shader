@@ -14,12 +14,39 @@ Shader "Hidden/ShellGame/ChromaticAberration"
         {
             Name "ChromaticAberrationPass"
 
-            CGPROGRAM
-            #pragma vertex vert
-            #pragma fragment frag
-            #include "UnityCG.cginc"
+            HLSLPROGRAM
+            #pragma vertex Vert
+            #pragma fragment Frag
+            #pragma target 3.5
 
-            sampler2D _MainTex;
+            // Единственная зависимость. Даёт _Time, sampler_LinearClamp
+            // (через GlobalSamplers.hlsl), макросы SAMPLE_TEXTURE2D_X и
+            // GetFullScreenTriangle*.
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+
+            // BlitMaterialParameters биндит источник в _BlitTexture и рисует
+            // процедурный полноэкранный треугольник (вершинного буфера нет).
+            TEXTURE2D(_BlitTexture);
+
+            struct Attributes
+            {
+                uint vertexID : SV_VertexID;
+            };
+
+            struct Varyings
+            {
+                float4 positionCS : SV_POSITION;
+                float2 texcoord   : TEXCOORD0;
+            };
+
+            Varyings Vert(Attributes input)
+            {
+                Varyings output;
+                output.positionCS = GetFullScreenTriangleVertexPosition(input.vertexID);
+                output.texcoord   = GetFullScreenTriangleTexCoord(input.vertexID);
+                return output;
+            }
+
             float _Intensity;
 
             // Screen warp — плавное "плавание" картинки (не трогали).
@@ -32,26 +59,6 @@ Shader "Hidden/ShellGame/ChromaticAberration"
             float _NoiseAmplitude;
             float _NoiseFrequency;
             float _NoiseSpeed;
-
-            struct appdata
-            {
-                float4 vertex : POSITION;
-                float2 uv : TEXCOORD0;
-            };
-
-            struct v2f
-            {
-                float4 pos : SV_POSITION;
-                float2 uv : TEXCOORD0;
-            };
-
-            v2f vert (appdata v)
-            {
-                v2f o;
-                o.pos = UnityObjectToClipPos(v.vertex);
-                o.uv = v.uv;
-                return o;
-            }
 
             // --- простой value-noise на хэше, без текстур ---
             float hash21(float2 p)
@@ -99,9 +106,9 @@ Shader "Hidden/ShellGame/ChromaticAberration"
                 return warped;
             }
 
-            fixed4 frag (v2f i) : SV_Target
+            half4 Frag(Varyings input) : SV_Target
             {
-                float2 uv = i.uv;
+                float2 uv = input.texcoord.xy;
                 float2 warped = screenWarp(uv);
 
                 float2 centerOffset = warped - 0.5;
@@ -115,13 +122,14 @@ Shader "Hidden/ShellGame/ChromaticAberration"
                 float2 uvG = warped + noiseDrift;
                 float2 uvB = warped + direction * chromaStrength + noiseDrift * 0.9;
 
-                fixed r = tex2D(_MainTex, uvR).r;
-                fixed g = tex2D(_MainTex, uvG).g;
-                fixed b = tex2D(_MainTex, uvB).b;
+                // Bilinear-семплинг: каналы берутся со смещением, сглаживание убирает ступеньки.
+                half r = SAMPLE_TEXTURE2D_X(_BlitTexture, sampler_LinearClamp, uvR).r;
+                half g = SAMPLE_TEXTURE2D_X(_BlitTexture, sampler_LinearClamp, uvG).g;
+                half b = SAMPLE_TEXTURE2D_X(_BlitTexture, sampler_LinearClamp, uvB).b;
 
-                return fixed4(r, g, b, 1);
+                return half4(r, g, b, 1);
             }
-            ENDCG
+            ENDHLSL
         }
     }
 }

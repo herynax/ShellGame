@@ -36,6 +36,16 @@ namespace ShellGame.Meta
         public int MaxShellsPenalty;
         public TurnSide ActiveSide;
 
+        // --- Прогресс рана (основа новой формулы сложности) ---
+        // Старые чекпоинты этих полей не содержат: JsonUtility даст 0, и
+        // GameSessionProgression восстановит EncountersClearedInRun из LevelIndex.
+        public int EncountersClearedInRun;
+        public int RoundsInCurrentEncounter;
+
+        // Id пресета сложности. Старые чекпоинты его не содержат: JsonUtility
+        // даст null -> GameSessionProgression возьмёт «Средний» по умолчанию.
+        public string DifficultyPresetId;
+
         public int PlayerHealth;
         public int PlayerMaxHealth;
         public int EnemyHealth;

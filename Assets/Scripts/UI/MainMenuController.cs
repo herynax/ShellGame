@@ -26,6 +26,10 @@ public class MainMenuController : MonoBehaviour
     [Tooltip("Панель подтверждения 'начать заново поверх существующего чекпоинта' — показывается через OpenSubmenu только если чекпоинт есть. Кнопка 'Да' внутри неё должна вызывать ConfirmStartNewGame().")]
     [SerializeField] private CanvasGroup newRunConfirmationPanel;
 
+    [Header("Выбор сложности")]
+    [Tooltip("Панель выбора сложности перед стартом новой попытки. Кнопки внутри должны вызывать SelectDifficulty(presetId). Пусто — сложность берётся по умолчанию («Средний»).")]
+    [SerializeField] private CanvasGroup difficultyPanel;
+
     [Header("Настройки анимации (для Fallback)")]
     [SerializeField] private float fadeDuration = 0.3f;
 
@@ -36,6 +40,7 @@ public class MainMenuController : MonoBehaviour
     [SerializeField] private string tutorialSceneName = "Tutorial";
     private Stack<CanvasGroup> _menuStack = new Stack<CanvasGroup>();
     private bool isExitingOrLoading = false;
+    private bool _difficultyChosenForThisStart = false;
 
     private void Start()
     {
@@ -184,6 +189,16 @@ public class MainMenuController : MonoBehaviour
     {
         if (isExitingOrLoading) return;
 
+        // Сначала — выбор сложности (если панель назначена и игрок её ещё не
+        // прошёл в этом нажатии). Дальше идёт обычная логика подтверждения.
+        if (difficultyPanel != null && !_difficultyChosenForThisStart)
+        {
+            OpenSubmenu(difficultyPanel);
+            return;
+        }
+
+        _difficultyChosenForThisStart = false;
+
         if (!RunCheckpointStorage.HasCheckpoint)
         {
             BeginNewGame();
@@ -199,6 +214,27 @@ public class MainMenuController : MonoBehaviour
             Debug.LogWarning("[MainMenuController] Есть чекпоинт, но newRunConfirmationPanel не назначена — стартую без подтверждения.");
             BeginNewGame();
         }
+    }
+
+    /// <summary>
+    /// Выбор сложности из панели difficultyPanel. Вешать на кнопки пресетов;
+    /// presetId — Id из DifficultyCatalog (Easy/Medium/Hard/Martyr).
+    /// </summary>
+    public void SelectDifficulty(string presetId)
+    {
+        if (isExitingOrLoading) return;
+
+        if (GameSessionProgression.Instance != null)
+            GameSessionProgression.Instance.SetSelectedPresetById(presetId);
+
+        _difficultyChosenForThisStart = true;
+
+        // Закрываем панель сложности и продолжаем запуск (проверка чекпоинта
+        // откроет подтверждение поверх уже возвращённого корневого меню).
+        if (_menuStack.Count > 1 && _menuStack.Peek() == difficultyPanel)
+            ForceCloseTopMenu();
+
+        StartGame();
     }
 
     /// <summary>
@@ -219,6 +255,7 @@ public class MainMenuController : MonoBehaviour
     private void BeginNewGame()
     {
         isExitingOrLoading = true;
+        _difficultyChosenForThisStart = false;
 
         if (GameSessionProgression.Instance != null)
             GameSessionProgression.Instance.Reset();

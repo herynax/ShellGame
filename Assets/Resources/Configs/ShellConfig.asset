@@ -16,13 +16,19 @@ MonoBehaviour:
   LiftDuration: 0.35
   LiftEase: 27
   HoldRevealedDuration: 0.6
-  ShuffleMoveDurationBase: 0.5
-  ShuffleMoveDurationMin: 0.35
-  ShuffleRoundReduction: 0.07
-  ShuffleLevelReduction: 0.05
+  ShuffleMoveDurationBase: 0.6
+  ShuffleMoveDurationMin: 0.24
+  ShuffleRoundReduction: 0.0043
+  ShuffleLevelReduction: 0.0028
   ShuffleEase: 4
-  EnemyShuffleSpeedMultiplier: 0.55
-  EnemyShuffleMoveDurationMin: 0.18
+  EnemyShuffleSpeedMultiplier: 0.8
+  EnemyShuffleMoveDurationMin: 0.16
+  SwapCountBase: 4
+  SwapCountPerDifficulty: 0.111
+  SwapCountMin: 3
+  SwapCountMax: 9
+  EnemySwapCount: 5
+  BetweenSwapDelay: 0.1
   HoverScale: 1.2
   HoverTweenDuration: 0.12
   HoverAuraPrefab: {fileID: 5413855323393444088, guid: 6e4ca1a29bae0d74f9862336019269c2,

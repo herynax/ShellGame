@@ -396,6 +396,18 @@ namespace ShellGame.Gameplay
                 _sessionProgression.SetCompletedRounds(checkpoint.CompletedRoundsInSession);
                 _sessionProgression.SetMaxShellsPenalty(checkpoint.MaxShellsPenalty);
 
+                // Старые чекпоинты не содержат EncountersClearedInRun — JsonUtility
+                // отдаёт 0. Тогда восстанавливаем прогресс по индексу уровня,
+                // чтобы продолжение не сбросило сложность в начало рана.
+                int encounters = checkpoint.EncountersClearedInRun > 0
+                    ? checkpoint.EncountersClearedInRun
+                    : Mathf.Max(0, checkpoint.LevelIndex);
+                _sessionProgression.SetEncountersClearedInRun(encounters);
+                _sessionProgression.SetRoundsInCurrentEncounter(checkpoint.RoundsInCurrentEncounter);
+
+                // «Продолжить» должно вернуть ту же сложность, что была выбрана.
+                _sessionProgression.SetSelectedPresetById(checkpoint.DifficultyPresetId);
+
                 _pendingCheckpointRestore = checkpoint;
             }
             else
@@ -473,6 +485,11 @@ namespace ShellGame.Gameplay
                 CompletedRoundsInSession = _completedRoundsInSession,
                 MaxShellsPenalty = _sessionProgression != null ? _sessionProgression.MaxShellsPenalty : 0,
                 ActiveSide = _activeSide,
+                EncountersClearedInRun = _sessionProgression != null ? _sessionProgression.EncountersClearedInRun : 0,
+                RoundsInCurrentEncounter = _sessionProgression != null ? _sessionProgression.RoundsInCurrentEncounter : 0,
+                DifficultyPresetId = _sessionProgression != null && _sessionProgression.SelectedPreset != null
+                    ? _sessionProgression.SelectedPreset.Id
+                    : null,
                 PlayerHealth = _healthController.GetHealth(TurnSide.Player),
                 PlayerMaxHealth = _healthController.GetMaxHealth(TurnSide.Player),
                 EnemyHealth = _healthController.GetHealth(TurnSide.Enemy),
@@ -800,12 +817,14 @@ namespace ShellGame.Gameplay
 
                         if (!_roundLayoutGenerated)
                         {
+                            // Сложность = функция позиции в ране (пройденные
+                            // энкаунтеры + раунды внутри текущего боя), а не
+                            // L + 0.45*(CompletedRounds + t). Старая формула
+                            // копила раунды весь ран и выходила за 45 уже в
+                            // первой карте.
                             float difficultyIndex = _sessionProgression != null
-                                ? _sessionProgression.GetDifficultyForRound(
-                                    _levelIndex,
-                                    _roundIndex,
-                                    _completedRoundsInSession)
-                                : _levelIndex + 0.45f * (_completedRoundsInSession + _roundIndex);
+                                ? _sessionProgression.RecomputeDifficultyIndex()
+                                : 0f;
 
                             _currentParameters = _roundGenerator.GenerateRound(
                                 _levelIndex,
@@ -1174,9 +1193,38 @@ namespace ShellGame.Gameplay
         private void EnsureHealthInitializedForLevel()
         {
             if (_healthController == null || _healthInitializedForLevel == _levelIndex) return;
-            var (playerMax, enemyMax) = _healthProgressionConfig != null
-                ? _healthProgressionConfig.GetHealthForLevel(_levelIndex)
-                : (10, 10);
+
+            // Здоровье теперь растёт по прогрессу РАНА (доля пройденных
+            // энкаунтеров), а не по индексу уровня — при ~55 энкаунтерах
+            // старая шкала уровней давала бы запредельные 118 HP на боссе.
+            float runProgress = _sessionProgression != null && _sessionProgression.RunDifficulty != null
+                ? _sessionProgression.RunDifficulty.EvaluateRunProgress01(_sessionProgression.EncountersClearedInRun)
+                : Mathf.Clamp01(_levelIndex / 12f);
+
+            // Пресет сложности задаёт статичное HP на весь ран. Если каталога/
+            // пресета нет — работает прежняя HP-кривая HealthProgressionConfig.
+            var preset = _sessionProgression != null ? _sessionProgression.SelectedPreset : null;
+
+            int playerMax, enemyMax;
+            if (preset != null)
+            {
+                playerMax = Mathf.Max(1, preset.PlayerHealth);
+                enemyMax = Mathf.Max(1, preset.EnemyHealth);
+            }
+            else
+            {
+                (playerMax, enemyMax) = _healthProgressionConfig != null
+                    ? _healthProgressionConfig.GetHealthForProgress(runProgress)
+                    : (5, 5);
+            }
+
+            // Особые бои (минибосс/босс) живучее обычного врага — множитель
+            // живёт в EnemyAIConfig текущего энкаунтера, а не в кривой рана,
+            // чтобы не раздувать HP всей линии.
+            var enemyAIConfig = _enemyAI != null ? _enemyAI.Config : null;
+            if (enemyAIConfig != null)
+                enemyMax = enemyAIConfig.ApplyHealthMultiplier(enemyMax);
+
             _healthController.Initialize(playerMax, enemyMax);
             _healthInitializedForLevel = _levelIndex;
         }
