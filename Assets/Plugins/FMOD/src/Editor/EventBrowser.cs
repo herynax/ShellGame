@@ -1663,6 +1663,8 @@ namespace FMODUnity
                 EditorUtils.UnloadPreviewBanks();
             }
 
+            SceneView.duringSceneGui -= SceneUpdate;
+
             IsOpen = false;
         }
 

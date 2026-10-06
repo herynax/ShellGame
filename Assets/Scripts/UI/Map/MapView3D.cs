@@ -539,8 +539,10 @@ namespace ShellGame.Map.Presentation
                     Vector3 pos = view.transform.position;
                     
                     // Draw PathId label above the node
+#if UNITY_EDITOR
                     Handles.color = Color.white;
                     Handles.Label(pos + Vector3.up * 2, $"P{pathId}");
+#endif
                     
                     // Draw connection lines to next layer
                     if (i < layout.Layers.Length - 1)

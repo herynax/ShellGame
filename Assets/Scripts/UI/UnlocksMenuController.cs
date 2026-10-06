@@ -17,7 +17,7 @@ namespace ShellGame.UI
         [Tooltip("Опционально: панель подтверждения ('вы уверены?') — если назначена, кнопка 'Сбросить прогресс' сначала открывает её (через тот же CanvasGroup-паттерн, что и в MainMenuController), а фактический сброс вызывается отдельно из кнопки 'Да' внутри неё через ConfirmResetProgress(). Если не назначена — ResetProgress() сбрасывает сразу, без вопросов.")]
         [SerializeField] private CanvasGroup _resetConfirmationPanel;
         [Tooltip("Имя сцены, которая загрузится после сброса прогресса.")]
-        [SerializeField] private string _tutorialSceneName = "Tutorial";
+        [SerializeField] private string _tutorialSceneName = "GameScene";
 
         [Inject] private IUnlockManager _unlockManager = null;
         [Inject] private UnlocksConfig _unlocksConfig = null;

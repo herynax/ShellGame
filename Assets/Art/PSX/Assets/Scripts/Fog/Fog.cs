@@ -27,7 +27,7 @@ namespace PSX
         public FloatParameter noiseStrength = new FloatParameter(0.05f);
 
         //INTERFACE REQUIREMENT 
-        public bool IsActive() => true;
+        public bool IsActive() => Application.isPlaying;
         public bool IsTileCompatible() => false;
     }
 }

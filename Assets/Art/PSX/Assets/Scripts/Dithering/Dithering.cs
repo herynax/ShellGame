@@ -15,7 +15,7 @@ namespace PSX
         
         
         //INTERFACE REQUIREMENT 
-        public bool IsActive() => true;
+        public bool IsActive() => Application.isPlaying;
         public bool IsTileCompatible() => false;
     }
 }

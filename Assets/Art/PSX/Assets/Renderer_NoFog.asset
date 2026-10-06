@@ -60,7 +60,9 @@ MonoBehaviour:
   - {fileID: 6965443398785072023}
   - {fileID: 3413204628056034656}
   - {fileID: -4162374452850903596}
-  m_RendererFeatureMap: 0ec2c510764748e544b20f47e3332c24977bacdfdd39aa6060cdff7886235e2fd435a9037d463cc6
+  - {fileID: 450548668107445454}
+  - {fileID: -1093564994199676090}
+  m_RendererFeatureMap: 0ec2c510764748e544b20f47e3332c24977bacdfdd39aa6060cdff7886235e2fd435a9037d463cc6ced49164a0ab4006461bed856ee0d2f0
   m_UseNativeRenderPass: 1
   xrSystemData: {fileID: 0}
   postProcessData: {fileID: 11400000, guid: 41439944d30ece34e96484bdb6645b55, type: 2}
@@ -111,9 +113,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f62c9c65cf3354c93be831c8bc075510, type: 3}
-  m_Name: ScreenSpaceAmbientOcclusion
-  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.ScreenSpaceAmbientOcclusion
+  m_Script: {fileID: 11500000, guid: 7a3c1f92b6d84e05a1c7e93f42b8d560, type: 3}
+  m_Name: PSXAmbientOcclusionFeature
+  m_EditorClassIdentifier: Assembly-CSharp::ShellGame.Rendering.PSXAmbientOcclusionFeature
   m_Active: 1
   m_Settings:
     AOMethod: 0
@@ -141,3 +143,33 @@ MonoBehaviour:
   m_Name: Pixelation
   m_EditorClassIdentifier: 
   m_Active: 1
+--- !u!114 &450548668107445454
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0ddf871177e647ba8f5391164ddd2309, type: 3}
+  m_Name: WobbleRendererFeature
+  m_EditorClassIdentifier: Assembly-CSharp::ShellGame.Feedback.WobbleRendererFeature
+  m_Active: 1
+  _shader: {fileID: 4800000, guid: 999b50f3827443c2abd7643479b77a54, type: 3}
+  _renderPassEvent: 1000
+--- !u!114 &-1093564994199676090
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 704bba44bd1045d5b1ecd91f9f0fb90f, type: 3}
+  m_Name: OldScreenRendererFeature
+  m_EditorClassIdentifier: Assembly-CSharp::ShellGame.Feedback.OldScreenRendererFeature
+  m_Active: 1
+  _shader: {fileID: 4800000, guid: c3daf6d84e684490bad529e5c1b2dd48, type: 3}
+  _renderPassEvent: 1000

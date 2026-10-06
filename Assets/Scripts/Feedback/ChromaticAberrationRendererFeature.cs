@@ -3,12 +3,17 @@ using UnityEngine.Rendering;
 using UnityEngine.Rendering.RenderGraphModule;
 using UnityEngine.Rendering.RenderGraphModule.Util;
 using UnityEngine.Rendering.Universal;
+using ShellGame.Rendering;
 
 namespace ShellGame.Feedback
 {
     /// <summary>
-    /// Полноэкранный PSX-постэффект: хроматическая аберрация + screen warp,
-    /// управляемые через ChromaticAberrationVolume в Volume-стеке.
+    /// Полноэкранный PSX-постэффект: хроматическая аберрация, управляемая через
+    /// ChromaticAberrationVolume в Volume-стеке.
+    ///
+    /// Screen warp и шум раньше были здесь же, но вынесены в отдельную фичу
+    /// (WobbleRendererFeature + WobbleVolume), потому что «плавание» экрана —
+    /// самостоятельный эффект, не зависимый от хроматики.
     ///
     /// Render Graph: источник приходит в _BlitTexture, геометрия — процедурный
     /// полноэкранный треугольник (только SV_VertexID), поэтому Vert/Varyings
@@ -38,10 +43,6 @@ namespace ShellGame.Feedback
             {
                 Debug.LogWarning("ChromaticAberrationRendererFeature: материал не создан из шейдера.");
             }
-            else
-            {
-                Debug.Log("ChromaticAberrationRendererFeature: шейдер найден и материал создан.");
-            }
 
             _pass = new ChromaticAberrationPass(_material) { renderPassEvent = _renderPassEvent };
         }
@@ -49,7 +50,7 @@ namespace ShellGame.Feedback
         public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
         {
             if (_material == null || _pass == null) return;
-            if (renderingData.cameraData.cameraType != CameraType.Game) return;
+            if (!PSXCameraFilter.ShouldEnqueue(ref renderingData.cameraData)) return;
 
             var stack = VolumeManager.instance.stack;
             var component = stack.GetComponent<ChromaticAberrationVolume>();
@@ -60,12 +61,6 @@ namespace ShellGame.Feedback
             }
 
             _pass.Intensity = component.intensity.value;
-            _pass.WarpAmplitude = component.warpAmplitude.value;
-            _pass.WarpFrequency = component.warpFrequency.value;
-            _pass.WarpSpeed = component.warpSpeed.value;
-            _pass.NoiseAmplitude = component.noiseAmplitude.value;
-            _pass.NoiseFrequency = component.noiseFrequency.value;
-            _pass.NoiseSpeed = component.noiseSpeed.value;
             renderer.EnqueuePass(_pass);
         }
 
@@ -81,22 +76,10 @@ namespace ShellGame.Feedback
             private const string k_RenderTag = "ShellGame Chromatic Aberration (PSX)";
 
             static readonly int IntensityId = Shader.PropertyToID("_Intensity");
-            static readonly int WarpAmplitudeId = Shader.PropertyToID("_WarpAmplitude");
-            static readonly int WarpFrequencyId = Shader.PropertyToID("_WarpFrequency");
-            static readonly int WarpSpeedId = Shader.PropertyToID("_WarpSpeed");
-            static readonly int NoiseAmplitudeId = Shader.PropertyToID("_NoiseAmplitude");
-            static readonly int NoiseFrequencyId = Shader.PropertyToID("_NoiseFrequency");
-            static readonly int NoiseSpeedId = Shader.PropertyToID("_NoiseSpeed");
 
             private readonly Material _material;
 
             public float Intensity;
-            public float WarpAmplitude;
-            public float WarpFrequency;
-            public float WarpSpeed;
-            public float NoiseAmplitude;
-            public float NoiseFrequency;
-            public float NoiseSpeed;
 
             public ChromaticAberrationPass(Material material)
             {
@@ -105,24 +88,21 @@ namespace ShellGame.Feedback
 
             public override void RecordRenderGraph(RenderGraph renderGraph, ContextContainer frameData)
             {
-                if (_material == null) return;
+            if (_material == null) return;
 
-                UniversalResourceData resourceData = frameData.Get<UniversalResourceData>();
-                UniversalCameraData cameraData = frameData.Get<UniversalCameraData>();
+            UniversalResourceData resourceData = frameData.Get<UniversalResourceData>();
+            UniversalCameraData cameraData = frameData.Get<UniversalCameraData>();
 
+            if (!PSXCameraFilter.ShouldRender(cameraData)) return;
 
-                _material.SetFloat(IntensityId, Intensity);
-                _material.SetFloat(WarpAmplitudeId, WarpAmplitude);
-                _material.SetFloat(WarpFrequencyId, WarpFrequency);
-                _material.SetFloat(WarpSpeedId, WarpSpeed);
-                _material.SetFloat(NoiseAmplitudeId, NoiseAmplitude);
-                _material.SetFloat(NoiseFrequencyId, NoiseFrequency);
-                _material.SetFloat(NoiseSpeedId, NoiseSpeed);
+            _material.SetFloat(IntensityId, Intensity);
 
                 var descriptor = cameraData.cameraTargetDescriptor;
                 descriptor.depthBufferBits = 0;
 
-                TextureHandle source = resourceData.activeColorTexture;
+                // cameraColor is always a valid RenderGraph texture (unlike activeColorTexture
+                // which can be the system back buffer without a valid descriptor)
+                TextureHandle source = resourceData.cameraColor;
                 TextureHandle temp = UniversalRenderer.CreateRenderGraphTexture(
                     renderGraph, descriptor, "_ChromaticAberrationTempPSX", false);
 
@@ -133,7 +113,8 @@ namespace ShellGame.Feedback
                 renderGraph.AddBlitPass(effectParams, k_RenderTag);
 
                 // Шейдер этого эффекта сэмплит билинейно, поэтому копия тоже билинейная.
-                renderGraph.AddBlitPass(temp, source, Vector2.one, Vector2.zero,
+                // Копируем обратно в activeColorTexture (cameraColor или backBuffer).
+                renderGraph.AddBlitPass(temp, resourceData.activeColorTexture, Vector2.one, Vector2.zero,
                     filterMode: RenderGraphUtils.BlitFilterMode.ClampBilinear, passName: $"{k_RenderTag} Copy Back");
             }
         }

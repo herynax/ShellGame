@@ -94,7 +94,8 @@ LightmapSettings:
     m_TrainingDataDestination: TrainingData
     m_LightProbeSampleCountMultiplier: 4
   m_LightingDataAsset: {fileID: 20201, guid: 0000000000000000f000000000000000, type: 0}
-  m_LightingSettings: {fileID: 0}
+  m_LightingSettings: {fileID: 4890085278179872738, guid: 6757c3be9aec58346950082da6e199b5,
+    type: 2}
 --- !u!196 &4
 NavMeshSettings:
   serializedVersion: 2
@@ -131,6 +132,11 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Name
       value: ===Managers
+      objectReference: {fileID: 0}
+    - target: {fileID: 1189992467765810066, guid: 1af5593e793d8884998e80f4b7b52259,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 1291078403557956507, guid: 1af5593e793d8884998e80f4b7b52259,
         type: 3}
@@ -442,7 +448,7 @@ BoxCollider:
     serializedVersion: 2
     m_Bits: 0
   m_LayerOverridePriority: 0
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
@@ -463,11 +469,21 @@ MonoBehaviour:
   _coinPrefab: {fileID: 1558589264175684235, guid: b1dd13147cd1c0a5b8156073e4b7c98e,
     type: 3}
   _coinZone: {fileID: 701783458}
-  _stackDistance: 0.03
+  _softPickScale: 0.75
+  _doubleClickThreshold: 0.3
+  _doubleClickRadius: 40
+  _dropHeight: 0.4
+  _floorProbeHeight: 2
+  _minFallTime: 0.1
+  _maxFlightTime: 2.5
+  _restSpeedThreshold: 0.02
+  _restSpinThreshold: 0.02
   _maxCoinsPerStack: 10
+  _cellSpacing: 1.15
+  _edgeMargin: 0.02
+  _stackScatterForce: 1
   _stackFormationDuration: 0.3
-  _stackHighlightPrefab: {fileID: 5413855323393444088, guid: 6e4ca1a29bae0d74f9862336019269c2,
-    type: 3}
+  _stackReflowDuration: 0.15
 --- !u!114 &701783460
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -484,18 +500,7 @@ MonoBehaviour:
     type: 3}
   _maxCoinsPerSpawn: 40
   _spawnDelay: 0.05
-  _flyDuration: 0.8
-  _flyEase: 4
-  _flyHeight: 1.5
-  _spawnRadius: 0.3
   _coinSpawnSound:
-    Guid:
-      Data1: 0
-      Data2: 0
-      Data3: 0
-      Data4: 0
-    Path: 
-  _coinLandSound:
     Guid:
       Data1: 0
       Data2: 0
@@ -744,6 +749,11 @@ PrefabInstance:
       propertyPath: m_Name
       value: ===Render
       objectReference: {fileID: 0}
+    - target: {fileID: 4453171619149428312, guid: 96ac7d0b169680e4ea19543a45591f2a,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 7154999835017391383, guid: 96ac7d0b169680e4ea19543a45591f2a,
         type: 3}
       propertyPath: m_LocalPosition.x
@@ -794,10 +804,7 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    m_RemovedComponents:
-    - {fileID: 2827848858169251235, guid: 96ac7d0b169680e4ea19543a45591f2a, type: 3}
-    - {fileID: 3746127654465746846, guid: 96ac7d0b169680e4ea19543a45591f2a, type: 3}
-    - {fileID: 6463870585206002903, guid: 96ac7d0b169680e4ea19543a45591f2a, type: 3}
+    m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []
@@ -26273,56 +26280,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!1 &1900000001
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1900000002}
-  - component: {fileID: 1900000003}
-  m_Layer: 0
-  m_Name: Global Volume
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1900000002
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1900000001}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_RootOrder: 7
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1900000003
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1900000001}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 172515602e62fb746b5d573b38a5fe58, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  isGlobal: 1
-  priority: 0
-  blendDistance: 0
-  weight: 1
-  sharedProfile: {fileID: 11400000, guid: 475c4423276f49e1926ee8e2bf7294f0, type: 2}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -26334,4 +26291,3 @@ SceneRoots:
   - {fileID: 5414762893268682858}
   - {fileID: 608008948}
   - {fileID: 1942982573}
-  - {fileID: 1900000001}

@@ -10,7 +10,7 @@ namespace ShellGame.Tutorial
 {
     public class TutorialScenarioManager : MonoBehaviour
     {
-        [SerializeField] private string _nextSceneName = "Level_1";
+        [SerializeField] private string _nextSceneName = "GameScene";
 
         [Header("--- CINEMACHINE КАМЕРЫ ---")]
         [SerializeField] private CinemachineCamera _hpCamera;

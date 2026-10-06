@@ -3,6 +3,7 @@ using UnityEngine.Rendering;
 using UnityEngine.Rendering.RenderGraphModule;
 using UnityEngine.Rendering.RenderGraphModule.Util;
 using UnityEngine.Rendering.Universal;
+using ShellGame.Rendering;
 
 namespace PSX
 {
@@ -17,6 +18,7 @@ namespace PSX
 
         public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
         {
+            if (!PSXCameraFilter.ShouldEnqueue(ref renderingData.cameraData)) return;
             renderer.EnqueuePass(ditheringPass);
         }
 
@@ -61,7 +63,7 @@ namespace PSX
             UniversalResourceData resourceData = frameData.Get<UniversalResourceData>();
             UniversalCameraData cameraData = frameData.Get<UniversalCameraData>();
 
-            if (!cameraData.postProcessEnabled) return;
+            if (!PSXCameraFilter.ShouldRender(cameraData)) return;
 
             var stack = VolumeManager.instance.stack;
             this.dithering = stack.GetComponent<Dithering>();

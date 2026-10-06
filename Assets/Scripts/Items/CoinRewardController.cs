@@ -1,17 +1,18 @@
 using System.Collections;
-using System.Collections.Generic;
-using DG.Tweening;
 using FMODUnity;
 using ShellGame.Audio;
 using ShellGame.Core;
-using ShellGame.Items;
 using UnityEngine;
 
 namespace ShellGame.Items
 {
     /// <summary>
     /// Контроллер награды монетами после победы над врагом.
-    /// Спавнит монеты у врага, анимирует их полет в зону монет.
+    ///
+    /// Монеты больше не летят по дуге от врага (DOPath + Settle в конце): они
+    /// появляются над зоной и падают в неё, как и любая другая выдача. Точка
+    /// появления, пол и физика живут в CoinPileController — здесь только счётчик
+    /// и задержка между монетами, чтобы падение шло не одной стеной.
     /// </summary>
     public sealed class CoinRewardController : MonoBehaviour
     {
@@ -19,16 +20,13 @@ namespace ShellGame.Items
 
         [Header("Settings")]
         [SerializeField] private CoinPickupView _coinPrefab;
-        [SerializeField] private int _maxCoinsPerSpawn = 20; // Limit for performance
-        [SerializeField] private float _spawnDelay = 0.05f;
-        [SerializeField] private float _flyDuration = 0.8f;
-        [SerializeField] private Ease _flyEase = Ease.OutCubic;
-        [SerializeField] private float _flyHeight = 1.5f; // Arc height
-        [SerializeField] private float _spawnRadius = 0.3f; // Initial spawn spread
+        [Tooltip("Ограничение за раз, чтобы не завалить сцену физическими монетами.")]
+        [SerializeField, Min(1)] private int _maxCoinsPerSpawn = 20;
+        [Tooltip("Пауза между падениями, с.")]
+        [SerializeField, Min(0f)] private float _spawnDelay = 0.05f;
 
         [Header("Sounds")]
         [SerializeField] private EventReference _coinSpawnSound;
-        [SerializeField] private EventReference _coinLandSound;
 
         private CoinPileController _pileController;
         private IAudioService _audio;
@@ -45,7 +43,7 @@ namespace ShellGame.Items
             }
 
             _pileController = CoinPileController.Instance;
-            
+
             if (!ServiceLocator.TryGet<IAudioService>(out _audio))
             {
                 _audio = new FMODAudioService();
@@ -54,10 +52,13 @@ namespace ShellGame.Items
         }
 
         /// <summary>
-        /// Спавнить монеты за победу. Монеты анимируются от позиции врага к зоне монет.
+        /// Спавнить монеты за победу — падением сверху зоны.
         /// </summary>
         /// <param name="coinCount">Количество монет (обычно = текущее HP игрока)</param>
-        /// <param name="enemyPosition">Позиция врага</param>
+        /// <param name="enemyPosition">
+        /// Позиция врага. Больше не используется: раньше от неё строилась дуга
+        /// полёта. Оставлена, чтобы не трогать вызов в GameManager.
+        /// </param>
         /// <param name="coinZone">Зона монет (BoxCollider)</param>
         public void SpawnCoins(int coinCount, Vector3 enemyPosition, BoxCollider coinZone)
         {
@@ -65,94 +66,36 @@ namespace ShellGame.Items
             if (coinCount <= 0) return;
 
             int actualCount = Mathf.Min(coinCount, _maxCoinsPerSpawn);
-            StartCoroutine(SpawnCoinsRoutine(actualCount, enemyPosition, coinZone));
+            StartCoroutine(SpawnCoinsRoutine(actualCount, coinZone));
         }
 
-        private IEnumerator SpawnCoinsRoutine(int count, Vector3 enemyPosition, BoxCollider coinZone)
+        private IEnumerator SpawnCoinsRoutine(int count, BoxCollider coinZone)
         {
             _isSpawning = true;
 
-            Vector3 zoneCenter = coinZone.bounds.center;
-            Vector3 zoneSize = coinZone.bounds.size;
+            // Зону и кучу берём заново перед выдачей: пока шла корутина, мог
+            // смениться энкаунтер, и монеты полетели бы в прошлую зону.
+            var pile = CoinPileController.Instance;
+            if (pile == null || pile.CoinZone == null)
+            {
+                _isSpawning = false;
+                yield break;
+            }
+
+            Vector3 soundPosition = coinZone.bounds.center;
 
             for (int i = 0; i < count; i++)
             {
-                // Spawn near enemy
-                Vector3 spawnPos = enemyPosition + new Vector3(
-                    Random.Range(-_spawnRadius, _spawnRadius),
-                    0.5f,
-                    Random.Range(-_spawnRadius, _spawnRadius)
-                );
-
-                var coin = Instantiate(_coinPrefab, spawnPos, Quaternion.identity, _pileController.transform);
-                coin.name = $"RewardCoin_{i}";
-                
-                _pileController.RegisterCoin(coin);
-
-                // Animate to random position in coin zone
-                Vector3 targetPos = zoneCenter + new Vector3(
-                    Random.Range(-zoneSize.x * 0.4f, zoneSize.x * 0.4f),
-                    0.1f,
-                    Random.Range(-zoneSize.z * 0.4f, zoneSize.z * 0.4f)
-                );
-
-                // Arc flight
-                Vector3 midPoint = Vector3.Lerp(spawnPos, targetPos, 0.5f);
-                midPoint.y += _flyHeight;
-
-                coin.transform.DOKill();
-                coin.transform.DOPath(new[] { spawnPos, midPoint, targetPos }, _flyDuration, PathType.CatmullRom)
-                    .SetEase(_flyEase)
-                    .OnComplete(() =>
-                    {
-                        _pileController.TryAddCoin(coin);
-                        if (!_coinLandSound.IsNull)
-                            _audio?.PlayOneShot(_coinLandSound, targetPos);
-                    });
+                pile.DropCoins(1);
 
                 if (!_coinSpawnSound.IsNull)
-                    _audio?.PlayOneShot(_coinSpawnSound, spawnPos);
+                    _audio?.PlayOneShot(_coinSpawnSound, soundPosition);
 
                 if (_spawnDelay > 0f)
                     yield return new WaitForSeconds(_spawnDelay);
             }
 
             _isSpawning = false;
-        }
-
-        /// <summary>
-        /// Мгновенно добавить монеты (для тестов или магазина)
-        /// </summary>
-        public void AddCoinsInstant(int count, BoxCollider coinZone)
-        {
-            if (_coinPrefab == null || _pileController == null || coinZone == null) return;
-
-            Vector3 zoneCenter = coinZone.bounds.center;
-            Vector3 zoneSize = coinZone.bounds.size;
-
-            for (int i = 0; i < count; i++)
-            {
-                Vector3 targetPos = zoneCenter + new Vector3(
-                    Random.Range(-zoneSize.x * 0.4f, zoneSize.x * 0.4f),
-                    0.1f,
-                    Random.Range(-zoneSize.z * 0.4f, zoneSize.z * 0.4f)
-                );
-
-                var coin = Instantiate(_coinPrefab, targetPos, Quaternion.identity, _pileController.transform);
-                coin.name = $"InstantCoin_{i}";
-
-                _pileController.RegisterCoin(coin);
-                _pileController.TryAddCoin(coin);
-            }
-        }
-
-        /// <summary>
-        /// Добавить N монет в кучу (используется магазином при продаже).
-        /// Делегирует CoinPileController, чтобы не дублировать логику зоны.
-        /// </summary>
-        public int GiveCoins(int count)
-        {
-            return _pileController != null ? _pileController.AddCoinsInstant(count) : 0;
         }
     }
 }

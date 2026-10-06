@@ -14,7 +14,7 @@ namespace PSX
         public FloatParameter colorPrecision = new FloatParameter(32.0f);
         
         //INTERFACE REQUIREMENT 
-        public bool IsActive() => true;
+        public bool IsActive() => Application.isPlaying;
         public bool IsTileCompatible() => false;
     }
 }

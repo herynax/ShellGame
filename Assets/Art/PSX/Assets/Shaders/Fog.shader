@@ -76,7 +76,9 @@
                 half4 color = SAMPLE_TEXTURE2D_X(_BlitTexture, sampler_PointClamp, uv);
 
                 // Правильное чтение глубины в URP
+                // Защита от невалидной глубины в Scene View (может возвращать 0/NaN)
                 float rawDepth = SampleSceneDepth(uv);
+                if (rawDepth <= 0.0) return color;
                 float linearDepth = LinearEyeDepth(rawDepth, _ZBufferParams);
 
                 // Дистанция с отступом (FogDistance)

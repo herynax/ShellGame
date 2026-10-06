@@ -1,5 +1,6 @@
 // START OF FILE RoundInputSystem.cs
-using ShellGame.Items; // Добавлено для доступа к ItemPickupView
+using ShellGame.Core;
+using ShellGame.Items; // Добавлено для доступа к ItemPickupView и CoinPickupView
 using ShellGame.Shells;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -26,6 +27,9 @@ namespace ShellGame.Gameplay
         private IRoundInputTarget _hoveredTarget;
         private ItemPickupView _hoveredItem;
         private RoundStartButton _roundStartButton;
+
+        /// <summary>Монета под прицелом в этом кадре. Голосует и за клик, и за блокировку магнита.</summary>
+        private CoinPickupView _hoveredCoin;
 
         private bool _hasSmoothedRay;
         private Vector3 _smoothedRayOrigin;
@@ -109,22 +113,16 @@ namespace ShellGame.Gameplay
             if (mouse == null)
                 return;
 
-            Ray rawRay;
-            if (Cursor.lockState == CursorLockMode.Locked || Cursor.visible == false)
-            {
-                rawRay = interactionCamera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
-            }
-            else
-            {
-                rawRay = interactionCamera.ScreenPointToRay(mouse.position.ReadValue());
-            }
-
-            var ray = SmoothAimRay(rawRay);
+            // Один источник истины для прицела, предметов и монет: пока курсор
+            // захвачен — луч из центра экрана, иначе луч от мыши.
+            var ray = SmoothAimRay(CrosshairRay.Build(interactionCamera));
 
             IRoundInputTarget targetUnderCursor = null;
             ItemPickupView itemUnderCursor = null;
+            CoinPickupView coinUnderCursor = null;
             bool buttonHit = false;
             bool itemHit = false;
+            bool coinHit = false;
 
             // 1. Проверяем кнопку старта. Она живёт в канале напертка, поэтому
             // на ходу врага (когда _isEnabled == false) её не ищем вовсе.
@@ -163,7 +161,24 @@ namespace ShellGame.Gameplay
                 }
             }
 
+            // 3. Монеты. Тот же блокер магнита, что и у предметов: под прицелом
+            //    лежит куча, и наперток из-под неё тянуть нельзя.
+            if (!buttonHit && !itemHit)
+            {
+                var pile = CoinPileController.Instance;
+                if (pile != null)
+                {
+                    var coin = pile.PickUnderRay(ray);
+                    if (coin != null)
+                    {
+                        coinHit = true;
+                        coinUnderCursor = coin;
+                    }
+                }
+            }
+
             UpdateItemHover(itemUnderCursor);
+            UpdateCoinHover(coinUnderCursor);
 
             if (!_isEnabled)
             {
@@ -176,8 +191,9 @@ namespace ShellGame.Gameplay
                 return;
             }
 
-            // 3. Ищем наперсток толстым лучом, только если не смотрим на кнопку или предмет
-            if (!buttonHit && !itemHit)
+            // 4. Ищем наперсток толстым лучом, только если не смотрим на кнопку,
+            //    предмет или монету — иначе магнит утащил бы наперток из-под руки.
+            if (!buttonHit && !itemHit && !coinHit)
             {
                 targetUnderCursor = FindShellUnderAim(ray);
             }
@@ -205,6 +221,18 @@ namespace ShellGame.Gameplay
 
             if (next != null && next.IsInteractive)
                 next.SetHovered(true);
+        }
+
+        private void UpdateCoinHover(CoinPickupView coinUnderCursor)
+        {
+            if (_hoveredCoin == coinUnderCursor)
+                return;
+
+            _hoveredCoin = coinUnderCursor;
+
+// Ховер отдаёт куча: она держит состояние монеты и снимает его,
+            // когда монету разбросили или она улетела из-под прицела.
+            CoinPileController.Instance?.SetHoveredCoin(coinUnderCursor);
         }
 
         private Ray SmoothAimRay(Ray rawRay)
@@ -269,10 +297,19 @@ namespace ShellGame.Gameplay
             if (!mouse.leftButton.wasPressedThisFrame)
                 return;
 
-            // Сначала предмет, если смотрим прямо на него, иначе — наперсток/кнопка.
+            // Приоритет: кнопка → предмет → монета → наперток. Кнопку и предмет
+            // разобрали в HandleHover, здесь осталось развести клик.
             if (_itemInteractionEnabled && _hoveredItem != null && _hoveredItem.IsInteractive)
             {
                 _hoveredItem.TryUse();
+                return;
+            }
+
+            // Монету обрабатываем раньше напертка: под прицелом может лежать и куча,
+            // и наперток, и клик должен достаться тому, что видно игроку.
+            if (_hoveredCoin != null)
+            {
+                CoinPileController.Instance?.HandleClick();
                 return;
             }
 

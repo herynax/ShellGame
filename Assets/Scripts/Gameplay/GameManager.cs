@@ -195,8 +195,8 @@ namespace ShellGame.Gameplay
         public static bool IsTutorialCompleted() =>
             PlayerPrefs.GetInt(TutorialCompletedPrefKey, 0) == 1;
 
-        public const string TutorialSceneName = "Tutorial";
-        public const string FirstGameplaySceneName = "Level_1";
+        public const string TutorialSceneName = "GameScene";
+        public const string FirstGameplaySceneName = "GameScene";
 
         /// <summary>
         /// Сцена, с которой должна начинаться новая попытка или рестарт:

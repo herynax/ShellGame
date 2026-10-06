@@ -14,8 +14,8 @@ namespace ShellGame.Feedback
     /// Управляет тремя вещами на одном Volume-профиле:
     ///  - Vignette (встроен в URP) — тёмная кайма экрана;
     ///  - ChromaticAberrationVolume.intensity — цветовые полосы по краям;
-    ///  - ChromaticAberrationVolume.warp* — синусоидальное "плавание" экрана;
-    ///  - ChromaticAberrationVolume.noise* — дополнительное дрожание/цветовая
+    ///  - WobbleVolume.warp* — синусоидальное "плавание" экрана;
+    ///  - WobbleVolume.noise* — дополнительное дрожание/цветовая
     ///    смазка, которая включается только во второй половине дозы и резко
     ///    разгоняется к передозу.
     ///
@@ -72,6 +72,7 @@ namespace ShellGame.Feedback
 
         private Vignette _vignette;
         private ChromaticAberrationVolume _chromaticAberration;
+        private WobbleVolume _wobble;
         private float _targetFraction;
         private float _currentFraction;
         private float _velocity;
@@ -93,6 +94,7 @@ namespace ShellGame.Feedback
             {
                 _volume.profile.TryGet(out _vignette);
                 _volume.profile.TryGet(out _chromaticAberration);
+                _volume.profile.TryGet(out _wobble);
             }
         }
 
@@ -157,24 +159,25 @@ namespace ShellGame.Feedback
                 _vignette.smoothness.value = Mathf.LerpUnclamped(_vignetteSmoothnessMin, _vignetteSmoothnessMax, aggressiveness);
             }
 
-            if (_chromaticAberration != null)
-            {
+if (_chromaticAberration != null)
                 _chromaticAberration.intensity.value = aggressiveness * _chromaticAberrationMax;
 
+            if (_wobble != null)
+            {
                 // Варп — линейно от текущей дозы, кривую не применяем (как просили).
                 float warpBoost = 1f;
                 float noiseRamp = Mathf.Clamp01(Mathf.InverseLerp(_noiseThreshold, 1f, _currentFraction));
                 if (_extraWarpBoostMax > 0f)
                     warpBoost = 1f + noiseRamp * _extraWarpBoostMax;
 
-                _chromaticAberration.warpAmplitude.value = _currentFraction * _warpAmplitudeMax * warpBoost;
-                _chromaticAberration.warpFrequency.value = Mathf.Lerp(_warpFrequencyMin, _warpFrequencyMax, _currentFraction);
-                _chromaticAberration.warpSpeed.value = Mathf.Lerp(_warpSpeedMin, _warpSpeedMax, _currentFraction);
+                _wobble.warpAmplitude.value = _currentFraction * _warpAmplitudeMax * warpBoost;
+                _wobble.warpFrequency.value = Mathf.Lerp(_warpFrequencyMin, _warpFrequencyMax, _currentFraction);
+                _wobble.warpSpeed.value = Mathf.Lerp(_warpSpeedMin, _warpSpeedMax, _currentFraction);
 
                 // Шум: строго 0 до половины дозы, затем разгон к максимуму.
-                _chromaticAberration.noiseAmplitude.value = noiseRamp * _noiseAmplitudeMax;
-                _chromaticAberration.noiseFrequency.value = Mathf.Lerp(_noiseFrequencyMin, _noiseFrequencyMax, noiseRamp);
-                _chromaticAberration.noiseSpeed.value = Mathf.Lerp(_noiseSpeedMin, _noiseSpeedMax, noiseRamp);
+                _wobble.noiseAmplitude.value = noiseRamp * _noiseAmplitudeMax;
+                _wobble.noiseFrequency.value = Mathf.Lerp(_noiseFrequencyMin, _noiseFrequencyMax, noiseRamp);
+                _wobble.noiseSpeed.value = Mathf.Lerp(_noiseSpeedMin, _noiseSpeedMax, noiseRamp);
             }
         }
 
@@ -187,14 +190,16 @@ namespace ShellGame.Feedback
             }
 
             if (_chromaticAberration != null)
-            {
                 _chromaticAberration.intensity.value = _chromaticAberrationMax;
-                _chromaticAberration.warpAmplitude.value = _warpAmplitudeMax;
-                _chromaticAberration.warpFrequency.value = _warpFrequencyMax;
-                _chromaticAberration.warpSpeed.value = _warpSpeedMax;
-                _chromaticAberration.noiseAmplitude.value = _noiseAmplitudeMax;
-                _chromaticAberration.noiseFrequency.value = _noiseFrequencyMax;
-                _chromaticAberration.noiseSpeed.value = _noiseSpeedMax;
+
+            if (_wobble != null)
+            {
+                _wobble.warpAmplitude.value = _warpAmplitudeMax;
+                _wobble.warpFrequency.value = _warpFrequencyMax;
+                _wobble.warpSpeed.value = _warpSpeedMax;
+                _wobble.noiseAmplitude.value = _noiseAmplitudeMax;
+                _wobble.noiseFrequency.value = _noiseFrequencyMax;
+                _wobble.noiseSpeed.value = _noiseSpeedMax;
             }
         }
     }

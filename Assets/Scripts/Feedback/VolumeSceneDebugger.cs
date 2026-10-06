@@ -26,9 +26,19 @@ namespace ShellGame.Feedback
                             Debug.Log("  profile missing Vignette override");
 
                         if (v.profile.TryGet<ChromaticAberrationVolume>(out var ca))
-                            Debug.Log($"  profile has ChromaticAberrationVolume intensity={ca.intensity.value} warpAmp={ca.warpAmplitude.value} noiseAmp={ca.noiseAmplitude.value}");
+                            Debug.Log($"  profile has ChromaticAberrationVolume intensity={ca.intensity.value}");
                         else
                             Debug.Log("  profile missing ChromaticAberrationVolume override");
+
+                        if (v.profile.TryGet<WobbleVolume>(out var wb))
+                            Debug.Log($"  profile has WobbleVolume warpAmp={wb.warpAmplitude.value} warpFreq={wb.warpFrequency.value} warpSpeed={wb.warpSpeed.value} noiseAmp={wb.noiseAmplitude.value}");
+                        else
+                            Debug.Log("  profile missing WobbleVolume override");
+
+                        if (v.profile.TryGet<OldScreenVolume>(out var os))
+                            Debug.Log($"  profile has OldScreenVolume curvature={os.curvature.value} aperture={os.apertureIntensity.value} scanlines={os.scanlineIntensity.value} roll={os.rollIntensity.value} bleed={os.bleedIntensity.value}");
+                        else
+                            Debug.Log("  profile missing OldScreenVolume override");
                     }
                 }
             }

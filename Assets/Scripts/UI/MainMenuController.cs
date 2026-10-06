@@ -35,9 +35,9 @@ public class MainMenuController : MonoBehaviour
 
     [Header("Настройки сцены")]
     [Tooltip("Имя сцены, которая загрузится при нажатии 'Новая попытка', если обучение уже пройдено")]
-    [SerializeField] private string firstGameplaySceneName = "Level_1";
+    [SerializeField] private string firstGameplaySceneName = "GameScene";
     [Tooltip("Имя сцены обучения — старт новой попытки, пока обучение не пройдено")]
-    [SerializeField] private string tutorialSceneName = "Tutorial";
+    [SerializeField] private string tutorialSceneName = "GameScene";
     private Stack<CanvasGroup> _menuStack = new Stack<CanvasGroup>();
     private bool isExitingOrLoading = false;
     private bool _difficultyChosenForThisStart = false;

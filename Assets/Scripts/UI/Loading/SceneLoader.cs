@@ -38,9 +38,9 @@ public class SceneLoader : MonoBehaviour
     public bool loadNextSceneByName = true; 
     public string nextSceneOnEnemyDeath;
     [Tooltip("Сцена, с которой начинается новая попытка после поражения, если обучение уже пройдено.")]
-    public string firstSceneOnPlayerDeath = "Level_1";
+    public string firstSceneOnPlayerDeath = "GameScene";
     [Tooltip("Сцена, с которой начинается новая попытка после поражения, пока обучение не пройдено.")]
-    public string tutorialSceneName = "Tutorial";
+    public string tutorialSceneName = "GameScene";
     public string roomLightTag = "RoomLight";
     public float roomDarkenDuration = 1.5f;
     [Tooltip("Не начинать затемнение/загрузку, пока не завершится анимация смерти врага. Таймаут — защита от зависания (0 = без таймаута).")]

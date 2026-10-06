@@ -2505,8 +2505,8 @@ MonoBehaviour:
   continueAttemptButton: {fileID: 2019157731}
   newRunConfirmationPanel: {fileID: 7054186}
   fadeDuration: 0.3
-  firstGameplaySceneName: Level_1
-  tutorialSceneName: Tutorial
+  firstGameplaySceneName: GameScene
+  tutorialSceneName: GameScene
 --- !u!1 &1679769381
 GameObject:
   m_ObjectHideFlags: 0
@@ -4933,7 +4933,7 @@ MonoBehaviour:
   _unlockSlotPrefab: {fileID: 5227583273447962047, guid: 90cf5a9f7335fe24c9b614777b7bc0ad,
     type: 3}
   _resetConfirmationPanel: {fileID: 1933464249}
-  _tutorialSceneName: Tutorial
+  _tutorialSceneName: GameScene
 --- !u!114 &8249074273602564886
 MonoBehaviour:
   m_ObjectHideFlags: 0

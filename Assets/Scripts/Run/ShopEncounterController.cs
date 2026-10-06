@@ -388,8 +388,8 @@ namespace ShellGame.Run
             playerInv.Remove(item, 1, TurnSide.Player);
             playerInv.Coins += sellPrice;
 
-            // Добавить физические монеты на стол
-            CoinPileController.Instance?.AddCoinsInstant(sellPrice);
+            // Добавить физические монеты на стол — падают сверху зоны
+            CoinPileController.Instance?.DropCoins(sellPrice);
 
             // Visual feedback - remove from table
             RemovePlayerItemFromTable(item);
