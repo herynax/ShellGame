@@ -21,6 +21,12 @@ namespace ShellGame.Run
         private void Awake()
         {
             _host = FindFirstObjectByType<EncounterHost>();
+
+            // _originalScale никогда не сериализуется — без него hover/press
+            // DOScale пошёл бы в Vector3.zero и кнопка исчезала бы.
+            if (_buttonVisual == null)
+                _buttonVisual = transform;
+            _originalScale = _buttonVisual.localScale;
         }
 
         public void Initialize(ShopEncounterController controller)

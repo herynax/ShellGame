@@ -26,6 +26,7 @@ namespace ShellGame.Dialogue
         [InspectorName("Выход из магазина")] ShopExit = 27,
         [InspectorName("Нет денег")] ShopNoMoney = 28,
         [InspectorName("Нет места")] ShopNoSpace = 29,
+        [InspectorName("Дар в магазине")] ShopGift = 30,
     }
 
     /// <summary>

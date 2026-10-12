@@ -60,6 +60,8 @@ namespace ShellGame.Gameplay
         private string _encounterId;
         private bool _encounterIsTutorial;
         private bool _hasEncounterContext;
+        /// <summary>Магазин: боевого раунда нет, но предметы на столе кликабельны.</summary>
+        private bool _shopMode;
 
 
         private RoundState _state = RoundState.Idle;
@@ -264,6 +266,27 @@ namespace ShellGame.Gameplay
             StopAllCoroutines();
             _gameSpeedTransition = null;
             _state = RoundState.Idle;
+            _shopMode = false;
+        }
+
+        /// <summary>
+        /// Магазин — не бой: раунд не запускается (_roundGenerator == null → StartRound
+        /// выходит рано, _state остаётся Idle), поэтому без этого режима
+        /// IsItemUsageAllowedNow всегда false и предметы на столе некликабельны.
+        /// </summary>
+        public void EnterShopMode()
+        {
+            _shopMode = true;
+            _inputSystem?.SetEnabled(true);
+            _inputSystem?.SetItemInteractionEnabled(true);
+        }
+
+        public void EndShopMode()
+        {
+            if (!_shopMode) return;
+            _shopMode = false;
+            _inputSystem?.SetEnabled(false);
+            _inputSystem?.SetItemInteractionEnabled(false);
         }
 
         private void ResetEncounterState()
@@ -360,6 +383,13 @@ namespace ShellGame.Gameplay
             _encounterId = encounterId;
             _encounterIsTutorial = isTutorial;
             _hasEncounterContext = true;
+
+            bool isShop = ShellGame.Run.RunManager.Instance != null
+                && ShellGame.Run.RunManager.Instance.CurrentEncounterKind == ShellGame.Run.EncounterKind.Shop;
+            if (isShop)
+                EnterShopMode();
+            else
+                EndShopMode();
 
             if (_sessionProgression == null)
             {
@@ -601,6 +631,9 @@ namespace ShellGame.Gameplay
         public bool IsItemUsageAllowedNow(ItemDefinition item)
         {
             if (item == null) return false;
+
+            // Магазин: боевого окна нет, предметы можно использовать всегда.
+            if (_shopMode) return true;
 
             if (_state != RoundState.PlayerTurn && _state != RoundState.WaitForStart)
                 return false;

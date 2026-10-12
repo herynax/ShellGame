@@ -146,6 +146,19 @@ namespace ShellGame.Items
             HasFinishedSpawning = true;
         }
 
+        /// <summary>
+        /// Родитель для спавнящихся предметов. Предмет живёт в своём слоте,
+        /// а не у спавнера: спавнер врага висит на его модели, которую трясёт
+        /// анимация смерти/дыхания, и предметы не должны ехать с ней.
+        /// </summary>
+        protected virtual Transform GetItemsParent(ItemSpawnPoint point)
+        {
+            if (point != null && point.transform.parent != null)
+                return point.transform.parent;
+
+            return transform;
+        }
+
         public List<ItemSpawnPoint> GetPointsForSide(int requestedCount)
         {
             var points = new List<ItemSpawnPoint>();
@@ -182,7 +195,7 @@ namespace ShellGame.Items
             if (definition == null || definition.WorldPrefab == null)
                 return false;
 
-            var itemObject = Instantiate(definition.WorldPrefab, spawnPosition, point.Rotation, transform);
+            var itemObject = Instantiate(definition.WorldPrefab, spawnPosition, point.Rotation, GetItemsParent(point));
             if (itemObject == null)
             {
                 Debug.LogError($"[BaseItemSpawner] Не удалось создать WorldPrefab для предмета '{definition.name}'.", this);

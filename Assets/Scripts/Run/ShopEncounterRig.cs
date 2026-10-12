@@ -15,8 +15,8 @@ namespace ShellGame.Run
     /// - PlayerItemSpawner для предметов игрока (постоянные)
     /// - ShopItemSpawner для товаров магазина
     /// - ShopEncounterController для логики магазина
-    /// - CoinPileController для монет (persistent)
-    /// - Зоны для монет, продажи и выхода
+    /// - CoinPileController для монет (persistent, обычная зона кучи)
+    /// - Позиция кнопки выхода и точка магазинщика
     /// </summary>
     public sealed class ShopEncounterRig : MonoBehaviour
     {
@@ -27,9 +27,6 @@ namespace ShellGame.Run
         [SerializeField] private EncounterHost _encounterHost;
 
         [Header("Table Zones")]
-        [Tooltip("Зона монет в магазине. На неё переезжает персистентная куча CoinPileController. Должна быть назначена явно.")]
-        [SerializeField] private BoxCollider _coinZone;
-        [SerializeField] private Transform _sellZonePosition;
         [SerializeField] private Transform _exitButtonPosition;
 
         [Header("Visual")]
@@ -39,8 +36,6 @@ namespace ShellGame.Run
         public PlayerItemSpawner PlayerItemSpawner => _playerItemSpawner;
         public ShopItemSpawner ShopItemSpawner => _shopItemSpawner;
         public ShopEncounterController ShopController => _shopController;
-        public BoxCollider CoinZone => _coinZone;
-        public Transform SellZonePosition => _sellZonePosition;
         public Transform ExitButtonPosition => _exitButtonPosition;
         public GameObject MerchantVisual => _merchantVisual;
         public Transform MerchantLookTarget => _merchantLookTarget;
@@ -56,10 +51,6 @@ namespace ShellGame.Run
                 _shopItemSpawner = GetComponentInChildren<ShopItemSpawner>(true);
             if (_shopController == null)
                 _shopController = GetComponentInChildren<ShopEncounterController>(true);
-
-            // _coinZone намеренно НЕ ищется автоматически: GetComponentInChildren<BoxCollider>
-            // может подхватить любой коллайдер стола (например зону предметов) и куча монет
-            // уедет не туда. Зона назначается в инспекторе на объект с именем CoinZone.
         }
     }
 }

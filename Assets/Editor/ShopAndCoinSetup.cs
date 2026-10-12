@@ -19,12 +19,10 @@ namespace ShellGame.EditorTools
 
         private const string ConfigsDir = "Assets/Resources/Configs";
         private const string EncountersDir = ConfigsDir + "/Encounters";
-        private const string ItemsDir = ConfigsDir + "/Items";
 
         private const string PlayerInventoryPath = ConfigsDir + "/PlayerInventory.asset";
         private const string ShopConfigPath = EncountersDir + "/ShopConfig.asset";
         private const string ShopEncounterPath = EncountersDir + "/Shop.asset";
-        private const string SellMarkerPath = ItemsDir + "/SellMarker.asset";
         private const string CoinPrefabPath = "Assets/Prefabs/Propses/Coin.prefab";
         private const string ShopRigPath = "Assets/Prefabs/EncoutersRigs/ShopEncouterRig.prefab";
         private const string GameScenePath = "Assets/Scenes/GameScene.unity";
@@ -40,11 +38,9 @@ namespace ShellGame.EditorTools
             }
 
             EnsureFolder(ConfigsDir);
-            EnsureFolder(ItemsDir);
 
             ConfigurePlayerInventory();
-            var sellMarker = ConfigureSellMarker();
-            ConfigureShopConfig(sellMarker);
+            ConfigureShopConfig();
             ConfigureShopRig();
             ConfigureShopEncounterDefinition();
             ConfigureGameScene(coinPrefab);
@@ -86,37 +82,9 @@ namespace ShellGame.EditorTools
             Debug.Log($"[ShopAndCoinSetup] PlayerInventory: стартовых монет = {StartingCoins}");
         }
 
-        // ---------------------------------------------------------------- SellMarker
-
-        private static UIMarkerItemDefinition ConfigureSellMarker()
-        {
-            var marker = AssetDatabase.LoadAssetAtPath<UIMarkerItemDefinition>(SellMarkerPath);
-            if (marker == null)
-            {
-                marker = ScriptableObject.CreateInstance<UIMarkerItemDefinition>();
-                AssetDatabase.CreateAsset(marker, SellMarkerPath);
-            }
-
-            marker.name = "SellMarker";
-            // BuyPrice = 0 → предмет никогда не попадёт в ассортимент магазина.
-            marker.BuyPrice = 0;
-            marker.SellPriceMultiplier = 0f;
-
-            // Внешний вид маркера: если у item-префабов есть отдельный визуал — укажи здесь.
-            if (marker.WorldPrefab == null)
-            {
-                var fallback = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Propses/SellMarker.prefab");
-                if (fallback != null)
-                    marker.WorldPrefab = fallback;
-            }
-
-            EditorUtility.SetDirty(marker);
-            return marker;
-        }
-
         // ---------------------------------------------------------------- ShopConfig
 
-        private static void ConfigureShopConfig(UIMarkerItemDefinition sellMarker)
+        private static void ConfigureShopConfig()
         {
             var config = AssetDatabase.LoadAssetAtPath<ShopConfig>(ShopConfigPath);
             if (config == null)
@@ -130,10 +98,9 @@ namespace ShellGame.EditorTools
             config.OnlySellableItems = true;
             config.GrantFreeUnlockedItemOnEntry = true;
             config.SellPriceMultiplier = 0.5f;
-            config.SellMarkerItemAsset = sellMarker;
 
             EditorUtility.SetDirty(config);
-            Debug.Log("[ShopAndCoinSetup] ShopConfig: UseUnlockedItems=true, маркер продажи назначен.");
+            Debug.Log("[ShopAndCoinSetup] ShopConfig: UseUnlockedItems=true.");
         }
 
         // ---------------------------------------------------------------- ShopRig

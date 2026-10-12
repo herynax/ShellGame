@@ -483,7 +483,7 @@ MonoBehaviour:
     m_Value: 0.015
   rollSpeed:
     m_OverrideState: 1
-    m_Value: 0.08
+    m_Value: 0.2
   rollWidth:
     m_OverrideState: 1
     m_Value: 0.04
@@ -845,7 +845,7 @@ MonoBehaviour:
     m_Value: 0
   fogColor:
     m_OverrideState: 1
-    m_Value: {r: 0.2, g: 0.2, b: 0.25, a: 0}
+    m_Value: {r: 0.6603774, g: 0.6603774, b: 0.6603774, a: 0}
   fogNear:
     m_OverrideState: 1
     m_Value: 1

@@ -110,7 +110,7 @@ namespace ShellGame.Items
             if (definition == null || definition.WorldPrefab == null) return;
 
             var spawnPosition = point.SpawnPosition;
-            var itemObject = Instantiate(definition.WorldPrefab, spawnPosition, point.Rotation, transform);
+            var itemObject = Instantiate(definition.WorldPrefab, spawnPosition, point.Rotation, GetItemsParent(point));
             if (itemObject == null) return;
 
             RotateVisualRandomly(itemObject.transform);

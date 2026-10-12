@@ -56,6 +56,17 @@ namespace ShellGame.Items
         [Tooltip("Множитель цены продажи (от цены покупки). 0.5 = продажа за половину цены.")]
         [Range(0f, 1f)] public float SellPriceMultiplier = 0.5f;
 
+        /// <summary>
+        /// Цена продажи предмета. Если у предмета множитель не задан (<= 0),
+        /// берётся переданный от каталога/магазина. Минимум — 1 монета.
+        /// </summary>
+        public int GetSellPrice(float fallbackMultiplier = 0.5f)
+        {
+            float multiplier = SellPriceMultiplier > 0f ? SellPriceMultiplier : fallbackMultiplier;
+            int basePrice = BuyPrice > 0 ? BuyPrice : 5;
+            return Mathf.Max(1, Mathf.RoundToInt(basePrice * multiplier));
+        }
+
         /// <summary>Можно ли вообще применить предмет сейчас (например, хилка бесполезна на полном ХП).</summary>
         public virtual bool CanUse(ItemEffectContext context) => true;
 

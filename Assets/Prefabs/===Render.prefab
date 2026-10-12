@@ -10,6 +10,8 @@ GameObject:
   m_Component:
   - component: {fileID: 4408144903469620874}
   - component: {fileID: 8151641659458100160}
+  - component: {fileID: 4058721426764674014}
+  - component: {fileID: 1899111210811625553}
   m_Layer: 0
   m_Name: PostEffects
   m_TagString: Untagged
@@ -49,6 +51,56 @@ MonoBehaviour:
   blendDistance: 0
   weight: 1
   sharedProfile: {fileID: 11400000, guid: 475c4423276f49e1926ee8e2bf7294f0, type: 2}
+--- !u!114 &4058721426764674014
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2286688826833197066}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0937c7c002c2d46469852730ae62995b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BrightnessManager
+  globalVolume: {fileID: 8151641659458100160}
+  minExposure: -2
+  maxExposure: 1
+  applyTweenDuration: 0.15
+--- !u!114 &1899111210811625553
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2286688826833197066}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 11e4a0b67e1ea51418b586ad018880d8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ShellGame.Feedback.PsychedelicEffectController
+  _volume: {fileID: 8151641659458100160}
+  _vignetteIntensityMin: 0.15
+  _vignetteIntensityMax: 0.55
+  _vignetteSmoothnessMin: 0.3
+  _vignetteSmoothnessMax: 0.6
+  _chromaticAberrationMax: 2.6
+  _warpAmplitudeMax: 0.06
+  _warpFrequencyMin: 4
+  _warpFrequencyMax: 10
+  _warpSpeedMin: 0.6
+  _warpSpeedMax: 2.5
+  _curvePower: 3
+  _lateKickStart: 0.7
+  _lateKickMultiplier: 10
+  _noiseThreshold: 0.5
+  _noiseAmplitudeMax: 0.05
+  _noiseFrequencyMin: 6
+  _noiseFrequencyMax: 18
+  _noiseSpeedMin: 1
+  _noiseSpeedMax: 4
+  _extraWarpBoostMax: 0.35
+  _smoothTime: 0.4
 --- !u!1 &4453171619149428312
 GameObject:
   m_ObjectHideFlags: 0
@@ -78,108 +130,6 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 4856118231302384447}
   - {fileID: 4408144903469620874}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &7972514946370678126
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 4856118231302384447}
-  - component: {fileID: 4213470841031957147}
-  - component: {fileID: 1082905421915899954}
-  - component: {fileID: 4436590512001625601}
-  m_Layer: 0
-  m_Name: Global Volume
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &4856118231302384447
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7972514946370678126}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: -0.5, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 7154999835017391383}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &4213470841031957147
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7972514946370678126}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 172515602e62fb746b5d573b38a5fe58, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  m_IsGlobal: 1
-  priority: 1
-  blendDistance: 0
-  weight: 1
-  sharedProfile: {fileID: 11400000, guid: 10fc4df2da32a41aaa32d77bc913491c, type: 2}
---- !u!114 &1082905421915899954
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7972514946370678126}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 11e4a0b67e1ea51418b586ad018880d8, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ShellGame.Feedback.PsychedelicEffectController
-  _volume: {fileID: 4213470841031957147}
-  _vignetteIntensityMin: 0.15
-  _vignetteIntensityMax: 2.5
-  _vignetteSmoothnessMin: 2
-  _vignetteSmoothnessMax: 0.6
-  _chromaticAberrationMax: 2
-  _warpAmplitudeMax: 0.1
-  _warpFrequencyMin: 0.5
-  _warpFrequencyMax: 1
-  _warpSpeedMin: 0.6
-  _warpSpeedMax: 2.5
-  _curvePower: 2
-  _lateKickStart: 0.2
-  _lateKickMultiplier: 0
-  _noiseThreshold: 0.2
-  _noiseAmplitudeMax: 0.15
-  _noiseFrequencyMin: 0.5
-  _noiseFrequencyMax: 2
-  _noiseSpeedMin: 0.5
-  _noiseSpeedMax: 1
-  _extraWarpBoostMax: 0
-  _smoothTime: 0.4
---- !u!114 &4436590512001625601
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7972514946370678126}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0937c7c002c2d46469852730ae62995b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::BrightnessManager
-  globalVolume: {fileID: 4213470841031957147}
-  minExposure: -2
-  maxExposure: 2
-  applyTweenDuration: 0.15

@@ -29,9 +29,5 @@ namespace ShellGame.Run
         [Header("Pricing")]
         [Tooltip("Множитель цены продажи (от цены покупки). 0.5 = продажа за половину цены. Переопределяется ItemDefinition.SellPriceMultiplier")]
         public float SellPriceMultiplier = 0.5f;
-
-        [Header("Sell Marker")]
-        [Tooltip("Префаб UIMarkerItemDefinition для маркера продажи. Позиции зон берутся из ShopEncounterRig.")]
-        public UIMarkerItemDefinition SellMarkerItemAsset;
     }
 }
