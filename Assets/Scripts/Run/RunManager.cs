@@ -40,13 +40,11 @@ namespace ShellGame.Run
         public static void EnsureExists()
         {
             if (Instance != null) return;
-            Debug.Log("[RunManager] EnsureExists: создаём RunManager.");
             new GameObject(nameof(RunManager)).AddComponent<RunManager>();
         }
 
         private void Awake()
         {
-            Debug.Log("[RunManager] Awake.");
             if (Instance != null && Instance != this) { Destroy(gameObject); return; }
             Instance = this;
             DontDestroyOnLoad(gameObject);
@@ -55,10 +53,8 @@ namespace ShellGame.Run
         private EncounterCatalog Catalog =>
             _catalog != null ? _catalog : (_catalog = Resources.Load<EncounterCatalog>(EncounterCatalog.ResourcesPath));
 
-        public void RegisterMap(MapSceneController map) { Debug.Log("[RunManager] RegisterMap."); _map = map; }
-        public void RegisterHost(EncounterHost host) { Debug.Log("[RunManager] RegisterHost."); _host = host; }
-
-        // ---------------- жизненный цикл ----------------
+        public void RegisterMap(MapSceneController map) => _map = map;
+        public void RegisterHost(EncounterHost host) => _host = host;
 
         public void StartNewRun()
         {
@@ -85,16 +81,8 @@ namespace ShellGame.Run
             State = RunState.OnMap;
         }
 
-        /// <summary>
-        /// Путь к конфиг-ассету с начальными слотами и стартовым кошельком.
-        /// </summary>
         public const string PlayerInventoryConfigResourcePath = "Configs/PlayerInventory";
 
-        /// <summary>
-        /// Создаёт рантайм-инвентарь, применяя стартовые настройки из конфиг-ассета.
-        /// Рантайм-инвентарь всегда новый (CreateInstance), поэтому значения ассета
-        /// нужно скопировать вручную — иначе он не участвует в игре.
-        /// </summary>
         private static PlayerInventorySO CreateRuntimeInventory()
         {
             var playerInventory = ScriptableObject.CreateInstance<PlayerInventorySO>();
@@ -103,8 +91,6 @@ namespace ShellGame.Run
             var template = Resources.Load<PlayerInventorySO>(PlayerInventoryConfigResourcePath);
             if (template != null)
                 playerInventory.ApplyStartingSettings(template);
-            else
-                Debug.LogWarning($"[RunManager] Не найден конфиг инвентаря по пути Resources/{PlayerInventoryConfigResourcePath} — используются значения по умолчанию.");
 
             DontDestroyOnLoad(playerInventory);
             return playerInventory;
@@ -118,69 +104,41 @@ namespace ShellGame.Run
             State = RunState.None;
         }
 
-        /// <summary>Из GameManager.OnSideDied. Сцены не грузит, карту не двигает.</summary>
         public void NotifyEncounterFinished(TurnSide sideThatDied)
         {
             if (State == RunState.EncounterActive && sideThatDied == TurnSide.Enemy)
                 State = RunState.EncounterCleared;
         }
 
-        // ---------------- вход после загрузки сцены Game ----------------
-
         public static IEnumerator PostSceneLoad()
         {
-            if (Instance == null)
-            {
-                Debug.LogWarning("[RunManager] PostSceneLoad вызван, но Instance == null (не вызван EnsureExists?).");
-                yield break;
-            }
-            Debug.Log("[RunManager] PostSceneLoad: старт.");
+            if (Instance == null) yield break;
             yield return Instance.PostSceneLoadRoutine();
         }
 
         public IEnumerator PostSceneLoadRoutine()
         {
             var sceneName = SceneManager.GetActiveScene().name;
-            Debug.Log($"[RunManager] PostSceneLoadRoutine: активная сцена = '{sceneName}', ожидается '{GameSceneName}'.");
-            if (sceneName != GameSceneName)
-            {
-                Debug.LogWarning("[RunManager] Имя сцены не совпадает, выходим.");
-                yield break;
-            }
+            if (sceneName != GameSceneName) yield break;
 
             yield return null;
 
-            Debug.Log($"[RunManager] _map={(_map != null)}, _host={(_host != null)}, HasActiveRun={HasActiveRun}, State={State}");
-
-            if (_map == null || _host == null)
-            {
-                Debug.LogError("[RunManager] В сцене Game нет MapSceneController или EncounterHost.");
-                yield break;
-            }
+            if (_map == null || _host == null) yield break;
 
             if (!HasActiveRun)
-            {
-                Debug.Log("[RunManager] Активного рана нет, StartNewRun().");
                 StartNewRun();
-            }
 
             var current = CurrentRun.Map.GetNode(CurrentRun.MapState.CurrentNodeId);
-            Debug.Log($"[RunManager] Текущий узел: id={current.Id}, type={current.Type}, connections={current.Connections.Length}, resume={_resumeEncounterOnLoad}");
 
             if (_resumeEncounterOnLoad)
             {
-                Debug.Log("[RunManager] Возобновляем энкаунтер из чекпоинта.");
                 _resumeEncounterOnLoad = false;
                 yield return EnterEncounterRoutine(current.Id, advanceMap: false);
                 yield break;
             }
 
             bool tutorialDone = GameManager.IsTutorialCompleted();
-            bool needsTutorial =
-                !tutorialDone &&
-                current.Type == MapNodeType.Start;
-
-            Debug.Log($"[RunManager] tutorialDone={tutorialDone}, needsTutorial={needsTutorial}");
+            bool needsTutorial = !tutorialDone && current.Type == MapNodeType.Start;
 
             if (needsTutorial)
             {
@@ -193,41 +151,34 @@ namespace ShellGame.Run
 
         private IEnumerator EnterTutorialRoutine()
         {
-            var tutorial = Catalog?.GetTutorial(); // конкретную реализацию надо посмотреть
-
-            if (tutorial == null || tutorial.RigPrefab == null)
-            {
-                Debug.LogError("[RunManager] Tutorial не найден в EncounterCatalog.");
-                yield break;
-            }
+            var tutorial = Catalog?.GetTutorial();
+            if (tutorial == null || tutorial.RigPrefab == null) yield break;
 
             CurrentEncounterId = tutorial.Id;
             CurrentEncounterKind = tutorial.Kind;
             State = RunState.EncounterLoading;
 
-            _map.Hide();
+            if (_map != null)
+                yield return _map.HideRoutine(animate: false);
 
             yield return _host.EnterRoutine(tutorial);
 
             State = RunState.EncounterActive;
         }
 
-        // ---------------- карта -> энкаунтер ----------------
-
         public bool SelectNode(int nodeId)
         {
-            if (State != RunState.OnMap || CurrentRun == null || SceneLoader.Instance == null) return false;
+            if (State != RunState.OnMap || CurrentRun == null) return false;
             if (!CurrentRun.MapState.CanMoveTo(CurrentRun.Map, nodeId)) return false;
 
-            var def = ResolveEncounter(CurrentRun.Map.GetNode(nodeId));
-            return SceneLoader.Instance.RunTransition(EnterEncounterRoutine(nodeId), def?.TipsGroup);
+            StartCoroutine(EnterEncounterRoutine(nodeId));
+            return true;
         }
 
         private IEnumerator EnterEncounterRoutine(int nodeId, bool advanceMap = true)
         {
             var node = CurrentRun.Map.GetNode(nodeId);
             var def = ResolveEncounter(node);
-            Debug.Log($"[RunManager] EnterEncounter: node={nodeId}, type={node.Type}, forced='{node.ForcedEncounterId}', def={(def != null ? def.Id : "NULL")}, rig={(def != null && def.RigPrefab != null)}");
 
             if (def == null || def.RigPrefab == null)
             {
@@ -242,50 +193,41 @@ namespace ShellGame.Run
             CurrentEncounterId = def.Id;
             CurrentEncounterKind = def.Kind;
             State = RunState.EncounterLoading;
-            _map.Hide();
 
-            Debug.Log($"[RunManager] Вызываем _host.EnterRoutine({def.Id})...");
-            
-            // Subscribe to exit request for shop encounters
+            // Карта улетает вверх в потолок
+            if (_map != null)
+                yield return _map.HideRoutine(animate: true);
+
             if (def.Kind == EncounterKind.Shop && _host != null)
             {
                 _host.OnExitRequested += OnShopExitRequested;
             }
-            
+
+            // Новая комната опускается сверху на стол
             yield return _host.EnterRoutine(def);
-            
-            // Unsubscribe
+
             if (_host != null)
             {
                 _host.OnExitRequested -= OnShopExitRequested;
             }
-            
-            Debug.Log("[RunManager] _host.EnterRoutine завершён.");
 
             State = RunState.EncounterActive;
         }
 
         private void OnShopExitRequested()
         {
-            // Called when player exits shop - return to map
             StartCoroutine(ReturnToMapRoutine());
         }
 
         private EncounterDefinition ResolveEncounter(MapNode node)
         {
             var catalog = Catalog;
-            if (catalog == null)
-            {
-                Debug.LogError($"[RunManager] Нет EncounterCatalog в Resources/{EncounterCatalog.ResourcesPath}.");
-                return null;
-            }
+            if (catalog == null) return null;
 
             if (!string.IsNullOrEmpty(node.ForcedEncounterId) && catalog.TryGet(node.ForcedEncounterId, out var forced))
                 return forced;
 
-            // Детерминированно: повторный вход в узел (загрузка чекпоинта) даёт того же врага.
             var rng = new SeededRandomSource(unchecked(CurrentRun.Map.Seed * 397 + node.Id));
-
             var kind = node.Type switch
             {
                 MapNodeType.Boss => EncounterKind.Boss,
@@ -294,30 +236,31 @@ namespace ShellGame.Run
                 MapNodeType.Challenge => EncounterKind.MiniBoss,
                 _ => EncounterKind.Enemy
             };
-            var result = catalog.PickRandom(kind, rng) ?? catalog.PickRandom(EncounterKind.Enemy, rng);
-            Debug.Log($"[RunManager] ResolveEncounter: node={node.Id}, type={node.Type}, kind={kind}, result={(result != null ? result.Id : "NULL")}");
-            return result;
-        }
 
-        // ---------------- энкаунтер -> карта (вызывает SceneLoader, экран чёрный) ----------------
+            return catalog.PickRandom(kind, rng) ?? catalog.PickRandom(EncounterKind.Enemy, rng);
+        }
 
         public IEnumerator ReturnToMapRoutine()
         {
+            // Старая комната энкаунтера улетает вверх
             yield return _host.ExitRoutine();
-            ShowMap();
+
+            // Карта опускается сверху вниз
+            if (_map != null)
+                yield return _map.ShowRoutine(CurrentRun.Map, CurrentRun.MapState, animate: true);
+            else
+                ShowMap();
+
+            State = RunState.OnMap;
             SaveMapCheckpoint();
         }
 
         private void ShowMap()
         {
             if (_map == null) return;
-            _map.Show(CurrentRun.Map, CurrentRun.MapState);
+            _map.Show(CurrentRun.Map, CurrentRun.MapState, animate: true);
             State = RunState.OnMap;
         }
-
-        // ---------------- чекпоинт ----------------
-        // Типы чекпоинта указаны полными именами: в проекте есть RunCheckpointData
-        // в глобальном namespace, и он перекрывает using ShellGame.Meta.
 
         public void FillCheckpoint(ShellGame.Meta.RunCheckpointData data)
         {
@@ -353,19 +296,8 @@ namespace ShellGame.Run
             var map = FirstRunMapFactory.BuildFirstRun(prefix, data.RunSeed, new MapGenerationConfig());
 
             var playerInventory = CreateRuntimeInventory();
-
-            // Restore coins
             playerInventory.Coins = data.PlayerCoins;
-            
-            // Restore items - we need a resolver function
-            // The resolver will be set up when ItemSpawner restores
-            // For now, store the checkpoint data to be applied later
-            playerInventory.RestoreFromCheckpoint(data.PlayerItems, data.EnemyItems, name => 
-            {
-                // This will be properly resolved when ItemSpawner restores
-                // For now, return null - items will be restored by ItemSpawner
-                return null;
-            });
+            playerInventory.RestoreFromCheckpoint(data.PlayerItems, data.EnemyItems, name => null);
 
             CurrentRun = new RunData
             {
@@ -389,8 +321,6 @@ namespace ShellGame.Run
                 p.SetCompletedRounds(data.CompletedRoundsInSession);
                 p.SetMaxShellsPenalty(data.OnMap ? 0 : data.MaxShellsPenalty);
 
-                // Совместимость со старыми чекпоинтами: если прогресс рана не
-                // сохранён, восстанавливаем его по индексу уровня.
                 int encounters = data.EncountersClearedInRun > 0
                     ? data.EncountersClearedInRun
                     : Mathf.Max(0, data.LevelIndex);

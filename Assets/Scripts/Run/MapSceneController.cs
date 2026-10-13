@@ -1,4 +1,6 @@
+using System.Collections;
 using System.Collections.Generic;
+using DG.Tweening;
 using ShellGame.Map;
 using ShellGame.Map.Presentation;
 using Unity.Cinemachine;
@@ -21,7 +23,18 @@ namespace ShellGame.Run
         [SerializeField] private float _wheelScrollSensitivity = 0.002f;
         [SerializeField] private float _scrollSmoothTime = 0.08f;
 
-        [Inject] private Camera _camera = null; // основная камера игры
+        [Header("Анимация полета карты")]
+        [SerializeField] private float _flyDownDuration = 0.65f;
+        [SerializeField] private float _flyUpDuration = 0.55f;
+        [SerializeField] private float _flyHeightOffset = 30f;
+        [SerializeField] private Ease _flyDownEase = Ease.OutCubic;
+        [SerializeField] private Ease _flyUpEase = Ease.InCubic;
+
+        [Header("Импакт камеры")]
+        [SerializeField] private float _cameraImpactShakeStrength = 0.12f;
+        [SerializeField] private float _cameraImpactShakeDuration = 0.3f;
+
+        [Inject] private Camera _camera = null;
         [Inject] private List<CinemachineStationaryLook> _lookControllers = null;
         [Inject] private MapGenerationConfig _mapConfig = null;
 
@@ -29,14 +42,23 @@ namespace ShellGame.Run
         private float _currentScroll;
         private float _targetScroll;
         private float _scrollVelocity;
+        private Vector3 _baseMapPosition;
 
         private void Awake()
         {
             RunManager.EnsureExists();
             RunManager.Instance.RegisterMap(this);
-            if (_view != null) _view.NodeSelected += OnNodeSelected;
-            if (_mapRoot != null) _mapRoot.SetActive(false);
+
+            if (_mapRoot != null)
+            {
+                _baseMapPosition = _mapRoot.transform.position;
+                _mapRoot.SetActive(false);
+            }
+
             SetMapCameraActive(false);
+
+            if (_view != null)
+                _view.NodeSelected += OnNodeSelected;
         }
 
         private void Start()
@@ -46,12 +68,28 @@ namespace ShellGame.Run
 
         private void OnDestroy()
         {
-            if (_view != null) _view.NodeSelected -= OnNodeSelected;
+            if (_view != null)
+                _view.NodeSelected -= OnNodeSelected;
         }
 
-        public void Show(MapData map, MapState state)
+        public void Show(MapData map, MapState state, bool animate = true)
         {
-            if (_mapRoot != null) _mapRoot.SetActive(true);
+            StartCoroutine(ShowRoutine(map, state, animate));
+        }
+
+        /// <summary>
+        /// Карта опускается сверху вниз, слегка сотрясает камеру при ударе о стол и становится интерактивной.
+        /// </summary>
+        public IEnumerator ShowRoutine(MapData map, MapState state, bool animate = true)
+        {
+            _interactive = false;
+
+            if (_mapRoot != null)
+            {
+                _mapRoot.SetActive(true);
+                _mapRoot.transform.DOKill();
+            }
+
             if (_view != null)
             {
                 MapLayout layout = _mapConfig?.Layout;
@@ -63,18 +101,84 @@ namespace ShellGame.Run
             }
 
             SetLookControllers(false);
+            SetMapCameraActive(true);
+
+            if (animate && _mapRoot != null)
+            {
+                Vector3 spawnPos = _baseMapPosition + Vector3.up * _flyHeightOffset;
+                _mapRoot.transform.position = spawnPos;
+
+                Camera mainCam = _camera != null ? _camera : Camera.main;
+                if (mainCam != null)
+                {
+                    mainCam.transform.DOKill();
+                    mainCam.transform.DOPunchRotation(new Vector3(-2f, 0f, 0f), _flyDownDuration, vibrato: 3, elasticity: 0.5f).SetUpdate(true);
+                }
+
+                Tween moveTween = _mapRoot.transform.DOMove(_baseMapPosition, _flyDownDuration).SetEase(_flyDownEase).SetUpdate(true);
+                yield return moveTween.WaitForCompletion();
+
+                _mapRoot.transform.position = _baseMapPosition;
+
+                // Упругий отскок карты и сотрясение камеры
+                _mapRoot.transform.DOPunchPosition(new Vector3(0f, -0.06f, 0f), 0.22f, vibrato: 5).SetUpdate(true);
+
+                if (mainCam != null)
+                {
+                    mainCam.transform.DOShakePosition(_cameraImpactShakeDuration, strength: new Vector3(0f, _cameraImpactShakeStrength, 0f), vibrato: 12, randomness: 45).SetUpdate(true);
+                    mainCam.transform.DOPunchRotation(new Vector3(-1.8f, 0f, 0f), _cameraImpactShakeDuration, vibrato: 6).SetUpdate(true);
+                }
+
+                yield return new WaitForSeconds(0.08f);
+            }
+            else if (_mapRoot != null)
+            {
+                _mapRoot.transform.position = _baseMapPosition;
+            }
+
             Cursor.lockState = CursorLockMode.None;
             Cursor.visible = true;
-
-            SetMapCameraActive(true);
             _interactive = true;
         }
 
-        public void Hide()
+        public void Hide(bool animate = false)
+        {
+            StartCoroutine(HideRoutine(animate));
+        }
+
+        /// <summary>
+        /// Карта улетает вверх в потолок, освобождая место для падающей комнаты энкаунтера.
+        /// </summary>
+        public IEnumerator HideRoutine(bool animate = true)
         {
             _interactive = false;
+            Cursor.lockState = CursorLockMode.Locked;
+            Cursor.visible = false;
+
+            if (animate && _mapRoot != null && _mapRoot.activeSelf)
+            {
+                _mapRoot.transform.DOKill();
+
+                Camera mainCam = _camera != null ? _camera : Camera.main;
+                if (mainCam != null)
+                {
+                    mainCam.transform.DOKill();
+                    mainCam.transform.DOPunchRotation(new Vector3(2f, 0f, 0f), _flyUpDuration, vibrato: 3, elasticity: 0.5f).SetUpdate(true);
+                    mainCam.transform.DOShakePosition(_flyUpDuration, strength: new Vector3(0.01f, 0.025f, 0.01f), vibrato: 12).SetUpdate(true);
+                }
+
+                Tween exitTween = _mapRoot.transform.DOMoveY(_baseMapPosition.y + _flyHeightOffset, _flyUpDuration).SetEase(_flyUpEase).SetUpdate(true);
+                yield return exitTween.WaitForCompletion();
+            }
+
             SetMapCameraActive(false);
-            if (_mapRoot != null) _mapRoot.SetActive(false);
+
+            if (_mapRoot != null)
+            {
+                _mapRoot.SetActive(false);
+                _mapRoot.transform.position = _baseMapPosition;
+            }
+
             SetLookControllers(true);
         }
 
@@ -114,40 +218,27 @@ namespace ShellGame.Run
         {
             float scrollDelta = 0f;
 
-            // 1. Колесо мыши
             var mouse = Mouse.current;
             if (mouse != null)
             {
                 float wheel = mouse.scroll.ReadValue().y;
                 if (Mathf.Abs(wheel) > 0.01f)
-                {
-                    // Прокрутка колесом вперед -> просмотр будущих слоев (вверх по карте)
                     scrollDelta -= wheel * _wheelScrollSensitivity;
-                }
             }
 
-            // 2. Клавиатура (W/S, стрелки вверх/вниз)
             var keyboard = Keyboard.current;
             if (keyboard != null)
             {
                 float keyInput = 0f;
-                if (keyboard.wKey.isPressed || keyboard.upArrowKey.isPressed)
-                    keyInput += 1f;
-                if (keyboard.sKey.isPressed || keyboard.downArrowKey.isPressed)
-                    keyInput -= 1f;
+                if (keyboard.wKey.isPressed || keyboard.upArrowKey.isPressed) keyInput += 1f;
+                if (keyboard.sKey.isPressed || keyboard.downArrowKey.isPressed) keyInput -= 1f;
 
                 if (Mathf.Abs(keyInput) > 0.01f)
-                {
-                    // W / UpArrow -> прокрутка вперед к боссу
                     scrollDelta -= keyInput * _keyboardScrollSpeed * Time.unscaledDeltaTime;
-                }
             }
 
-            // Применяем инпут с ограничениями
             var (minScroll, maxScroll) = _view.GetScrollBounds();
             _targetScroll = Mathf.Clamp(_targetScroll + scrollDelta, minScroll, maxScroll);
-
-            // Плавная интерполяция скролла
             _currentScroll = Mathf.SmoothDamp(_currentScroll, _targetScroll, ref _scrollVelocity, _scrollSmoothTime, float.PositiveInfinity, Time.unscaledDeltaTime);
             _view.SetScrollOffset(_currentScroll);
         }

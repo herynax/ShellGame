@@ -518,6 +518,7 @@ GameObject:
   - component: {fileID: 1610664786}
   - component: {fileID: 1610664787}
   - component: {fileID: 1610664788}
+  - component: {fileID: 1610664789}
   m_Layer: 0
   m_Name: ===EncounterController
   m_TagString: Untagged
@@ -557,6 +558,12 @@ MonoBehaviour:
   _rigParent: {fileID: 553602273}
   _healthSoundProvider: {fileID: 1777693273}
   _playerPos: {fileID: 8891921001582325718}
+  _flyUpDuration: 0.55
+  _flyDownDuration: 0.65
+  _flyHeightOffset: 30
+  _flyUpEase: 8
+  _flyDownEase: 9
+  _landingImpulseSource: {fileID: 1610664789}
   _playerHealth: {fileID: 8891921001582325719}
   _itemUseMessageView: {fileID: 0}
   _interactCamera: {fileID: 4078946134589009490}
@@ -579,6 +586,66 @@ MonoBehaviour:
   _keyboardScrollSpeed: 1.2
   _wheelScrollSensitivity: 0.002
   _scrollSmoothTime: 0.08
+  _flyDownDuration: 0.65
+  _flyUpDuration: 0.55
+  _flyHeightOffset: 30
+  _flyDownEase: 9
+  _flyUpEase: 8
+  _cameraImpactShakeStrength: 0.12
+  _cameraImpactShakeDuration: 0.3
+--- !u!114 &1610664789
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1610664784}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 180ecf9b41d478f468eb3e9083753217, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.Cinemachine::Unity.Cinemachine.CinemachineImpulseSource
+  ImpulseDefinition:
+    ImpulseChannel: 1
+    ImpulseShape: 3
+    CustomImpulseShape:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    ImpulseDuration: 0.2
+    ImpulseType: 0
+    DissipationRate: 0.25
+    RawSignal: {fileID: 0}
+    AmplitudeGain: 1
+    FrequencyGain: 1
+    RepeatMode: 0
+    Randomize: 1
+    TimeEnvelope:
+      AttackShape:
+        serializedVersion: 2
+        m_Curve: []
+        m_PreInfinity: 2
+        m_PostInfinity: 2
+        m_RotationOrder: 4
+      DecayShape:
+        serializedVersion: 2
+        m_Curve: []
+        m_PreInfinity: 2
+        m_PostInfinity: 2
+        m_RotationOrder: 4
+      AttackTime: 0
+      SustainTime: 0.2
+      DecayTime: 0.7
+      ScaleWithImpact: 1
+      HoldForever: 0
+    ImpactRadius: 100
+    DirectionMode: 0
+    DissipationMode: 2
+    DissipationDistance: 100
+    PropagationSpeed: 343
+  DefaultVelocity: {x: 0.2, y: 0.2, z: 0.2}
 --- !u!1 &1685000677
 GameObject:
   m_ObjectHideFlags: 0
@@ -803,6 +870,11 @@ PrefabInstance:
         type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8151641659458100160, guid: 96ac7d0b169680e4ea19543a45591f2a,
+        type: 3}
+      propertyPath: weight
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

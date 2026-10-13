@@ -52,7 +52,6 @@ namespace ShellGame.Tutorial
         private RoundGenerator _roundGenerator;
         private GameManager _gameManager;
 
-
         [Inject]
         private void InjectDependencies(GameManager gameManager)
         {
@@ -69,8 +68,7 @@ namespace ShellGame.Tutorial
             }
             else
             {
-                Debug.LogError(
-                    "[TutorialScenarioManager] Не удалось найти EncounterRig в родителях.");
+                Debug.LogError("[TutorialScenarioManager] Не удалось найти EncounterRig в родителях.");
             }
         }
 
@@ -79,12 +77,9 @@ namespace ShellGame.Tutorial
             GameEvents.SideDied += OnSideDied;
 
             // Переход после смерти врага в обучении запускаем МЫ (в конце
-            // сценария, после предсмертной речи), а не SceneLoader по событию
-            // смерти. Иначе переход стартует в тот же кадр и реплики врага не
-            // успевают договорить.
+            // сценария, после предсмертной речи), а не SceneLoader по событию смерти.
             TutorialSceneTransitionGate.HoldEnemyDeathTransition = true;
 
-            // На всякий случай устанавливаем начальную камеру.
             SetMainCamera();
 
             yield return StartCoroutine(RunTutorialSequence());
@@ -94,8 +89,6 @@ namespace ShellGame.Tutorial
 
         private void OnDestroy()
         {
-            // Статик переживает смену сцены — обязательно снимаем холд,
-            // иначе на обычных уровнях переход после смерти врага не случится.
             TutorialSceneTransitionGate.HoldEnemyDeathTransition = false;
         }
 
@@ -116,82 +109,54 @@ namespace ShellGame.Tutorial
             yield return SayWithCameraReset(_intro2Line);
             yield return SayWithCameraReset(_watchCarefullyLine);
 
-
             // ==========================================
             // ЭТАП 2: ОБЪЯСНЕНИЕ ПРАВИЛ
             // ==========================================
 
             yield return new Parallel(
                 new Say(_hpDemoLine),
-                new DoAction(() =>
-                {
-                    SetHpCamera();
-                })
+                new DoAction(() => SetHpCamera())
             ).Run(this);
 
-            // Возвращаем обычную камеру.
             SetMainCamera();
-
             yield return new WaitCameraReset().Run(this);
-
 
             yield return new Parallel(
                 new Say(_rulesSimpleLine),
-                new DoAction(() =>
-                {
-                    SpawnCupsOnTable();
-                })
+                new DoAction(() => SpawnCupsOnTable())
             ).Run(this);
 
             yield return new WaitCameraReset().Run(this);
-
 
             yield return new Parallel(
                 new Say(_markerRevealLine),
-                new DoAction(() =>
-                {
-                    RevealCupWithMarker();
-                })
+                new DoAction(() => RevealCupWithMarker())
             ).Run(this);
 
             yield return new WaitCameraReset().Run(this);
-
 
             yield return new Parallel(
                 new Say(_damageRuleLine),
-                new DoAction(() =>
-                {
-                    CloseCup();
-                })
+                new DoAction(() => CloseCup())
             ).Run(this);
 
             yield return new WaitCameraReset().Run(this);
-
 
             yield return new Parallel(
                 new Say(_emptyRevealLine),
-                new DoAction(() =>
-                {
-                    RevealEmptyCup();
-                })
+                new DoAction(() => RevealEmptyCup())
             ).Run(this);
 
             yield return new WaitCameraReset().Run(this);
-
 
             yield return new Parallel(
                 new Say(_enemyRuleLine),
-                new DoAction(() =>
-                {
-                    CloseCup();
-                })
+                new DoAction(() => CloseCup())
             ).Run(this);
 
             yield return new WaitCameraReset().Run(this);
 
-
             yield return SayWithCameraReset(_startLine);
-
 
             // ==========================================
             // ЗАПУСК ИГРЫ
@@ -203,56 +168,50 @@ namespace ShellGame.Tutorial
                 _gameManager.UnlockTutorialPlayerChoice();
             }
 
-
             // ==========================================
             // ЭТАП 3: ПЕРВЫЙ ХОД ИГРОКА И ПЕРВЫЙ ХОД ВРАГА
-            // (озвучиваем только эти два хода — по одному разу на сторону)
             // ==========================================
 
-        for (int turnNumber = 0; turnNumber < ReactedTurnsCount && !_isEnemyDead; turnNumber++)
-        {
-            var result = new WaitForShellResult();
-
-            // Ждём конкретную пару:
-            // выбор напёрстка -> раскрытие именно выбранного напёрстка.
-            yield return result.Run(this);
-
-            if (_isEnemyDead)
-                break;
-
-            if (_gameManager != null)
-                _gameManager.PauseTutorialGameplay();
-
-            if (result.SelectedBy == TurnSide.Player)
+            for (int turnNumber = 0; turnNumber < ReactedTurnsCount && !_isEnemyDead; turnNumber++)
             {
-                var lines = result.HasMarker
-                    ? _playerFoundMarkerLines
-                    : _playerFoundEmptyLines;
+                var result = new WaitForShellResult();
+                yield return result.Run(this);
 
-                foreach (var line in lines)
-                    yield return SayWithCameraReset(line);
+                if (_isEnemyDead)
+                    break;
+
+                if (_gameManager != null)
+                    _gameManager.PauseTutorialGameplay();
+
+                if (result.SelectedBy == TurnSide.Player)
+                {
+                    var lines = result.HasMarker
+                        ? _playerFoundMarkerLines
+                        : _playerFoundEmptyLines;
+
+                    foreach (var line in lines)
+                        yield return SayWithCameraReset(line);
+                }
+                else
+                {
+                    var lines = result.HasMarker
+                        ? _enemyFoundMarkerLines
+                        : _enemyFoundEmptyLines;
+
+                    foreach (var line in lines)
+                        yield return SayWithCameraReset(line);
+                }
+
+                if (_gameManager != null)
+                    _gameManager.ResumeTutorialGameplay();
             }
-            else
-            {
-                var lines = result.HasMarker
-                    ? _enemyFoundMarkerLines
-                    : _enemyFoundEmptyLines;
-
-                foreach (var line in lines)
-                    yield return SayWithCameraReset(line);
-            }
-
-            if (_gameManager != null)
-                _gameManager.ResumeTutorialGameplay();
-        }
 
             // ==========================================
-            // ЭТАП 3.5: ТИШИНА — ИГРА ИДЁТ САМА ДО СМЕРТИ ВРАГА
+            // ЭТАП 3.5: ТИШИНА ДО СМЕРТИ ВРАГА
             // ==========================================
 
             while (!_isEnemyDead)
                 yield return null;
-
 
             // ==========================================
             // ЭТАП 4: ФИНАЛ
@@ -265,12 +224,9 @@ namespace ShellGame.Tutorial
                 yield return SayWithCameraReset(line);
             }
 
-            // Флаг прохождения ставим ДО перехода: карта после возврата
-            // и RunManager уже должны считать обучение пройденным.
             OnTutorialCompleted();
             GoToNextLevel();
         }
-
 
         // =========================================================
         // CINEMACHINE
@@ -278,35 +234,26 @@ namespace ShellGame.Tutorial
 
         private void SetMainCamera()
         {
-            if (_hpCamera == null)
-                return;
+            if (_hpCamera == null) return;
             _hpCamera.Priority = SecondaryCameraPriority;
         }
 
         private void SetHpCamera()
         {
-            if (_hpCamera == null)
-                return;
+            if (_hpCamera == null) return;
             _hpCamera.Priority = MainCameraPriority;
         }
-
 
         // =========================================================
         // DIALOGUE
         // =========================================================
 
-        private IEnumerator SayWithCameraReset(
-            DialogueLine line,
-            float pauseAfterReset = 0.05f)
+        private IEnumerator SayWithCameraReset(DialogueLine line, float pauseAfterReset = 0.05f)
         {
-            if (line == null)
-                yield break;
-
+            if (line == null) yield break;
             yield return new Say(line).Run(this);
-
             yield return new WaitCameraReset(pauseAfterReset).Run(this);
         }
-
 
         // =========================================================
         // GAMEPLAY DEMONSTRATION
@@ -334,24 +281,20 @@ namespace ShellGame.Tutorial
             // ShellAnimator сам опустит напёрсток.
         }
 
-
         private void GoToNextLevel()
         {
-            // Реплики предсмертной речи уже произнесены — холд нам больше не
-            // нужен, а снимаем его до перехода, чтобы статик не уехал дальше.
             TutorialSceneTransitionGate.HoldEnemyDeathTransition = false;
 
-            // Обучение — обычный энкаунтер в сцене Game: возвращаемся на карту
-            // под чёрным экраном. Сцену не грузим.
+            // Обучение — энкаунтер в сцене Game: комната улетает вверх на твинах,
+            // открывается карта (без черного экрана).
             var run = RunManager.Instance;
-            if (run != null && run.HasActiveRun && SceneLoader.Instance != null)
+            if (run != null && run.HasActiveRun)
             {
-                if (!SceneLoader.Instance.RunTransition(run.ReturnToMapRoutine()))
-                    Debug.LogWarning("[TutorialScenarioManager] Не удалось запустить возврат на карту: переход уже идёт.");
+                run.StartCoroutine(run.ReturnToMapRoutine());
                 return;
             }
 
-            // Забега нет (обучение запущено отдельной сценой) — старое поведение.
+            // Забега нет (обучение запущено отдельной сценой) — обычная загрузка сцены через SceneLoader.
             if (SceneLoader.Instance != null)
                 SceneLoader.Instance.LoadScene(_nextSceneName);
         }
@@ -360,7 +303,7 @@ namespace ShellGame.Tutorial
         {
             PlayerPrefs.SetInt(GameManager.TutorialCompletedPrefKey, 1);
             PlayerPrefs.Save();
-            Debug.Log("[TutorialScript_Level0] Обучение завершено и сохранено в PlayerPrefs.");
+            Debug.Log("[TutorialScenarioManager] Обучение завершено и сохранено в PlayerPrefs.");
         }
     }
 }

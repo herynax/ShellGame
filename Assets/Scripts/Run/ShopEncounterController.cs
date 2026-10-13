@@ -21,10 +21,6 @@ namespace ShellGame.Run
         [SerializeField] private ShopConfig _config;
         [SerializeField] private ShopEncounterRig _rig;
 
-        [Header("Merchant & Targets")]
-        [Tooltip("Конкретная точка, куда летят монеты при покупке и предметы при продаже (руки торговца, банка для монет или сам NPC).")]
-        [SerializeField] private Transform _merchantTarget;
-
         [Header("UI Prefabs")]
         [SerializeField] private GameObject _exitButtonPrefab;
 
@@ -286,35 +282,15 @@ namespace ShellGame.Run
             return true;
         }
 
-        /// <summary>
-        /// Возвращает точную точку нахождения продавца или его копилки.
-        /// </summary>
         public Vector3 GetMerchantPosition()
         {
-            if (_merchantTarget != null)
-                return _merchantTarget.position;
-
             if (_rig != null)
             {
-                // Поиск по именам в префабе
-                var target = _rig.transform.Find("MerchantTarget")
-                          ?? _rig.transform.Find("CoinTarget")
-                          ?? _rig.transform.Find("Merchant")
-                          ?? _rig.transform.Find("NPC");
-
-                if (target != null)
-                    return target.position;
-
-                return _rig.transform.position + _rig.transform.forward * 1.5f + Vector3.up * 1.1f;
+                var enemyObj = _rig.transform.Find("Enemy") ?? _rig.transform.Find("Merchant") ?? _rig.transform.Find("NPC");
+                if (enemyObj != null) return enemyObj.position + Vector3.up * 1f;
+                return _rig.transform.position + _rig.transform.forward * 1.6f + Vector3.up * 1.2f;
             }
-
             return transform.position + Vector3.up * 1.5f;
-        }
-
-        private void OnDrawGizmosSelected()
-        {
-            Gizmos.color = Color.yellow;
-            Gizmos.DrawWireSphere(GetMerchantPosition(), 0.15f);
         }
 
         private void PlayCannotBuyAnimation(ItemPickupView pickup)
@@ -395,10 +371,32 @@ namespace ShellGame.Run
             int visualCoins = Mathf.Clamp(amount, 3, 7);
 
             GameObject template = null;
+            Vector3 baseScale = new Vector3(0.035f, 0.007f, 0.035f); // Компактный дефолтный размер монетки
+
             if (CoinPileController.Instance != null)
             {
-                var mf = CoinPileController.Instance.GetComponentInChildren<MeshFilter>();
-                if (mf != null) template = mf.gameObject;
+                // Ищем конкретно Rigidbody монетки (корень монеты), чтобы получить её честный размер
+                var rb = CoinPileController.Instance.GetComponentInChildren<Rigidbody>();
+                if (rb != null)
+                {
+                    template = rb.gameObject;
+                    baseScale = template.transform.lossyScale;
+                }
+                else
+                {
+                    var mf = CoinPileController.Instance.GetComponentInChildren<MeshFilter>();
+                    if (mf != null)
+                    {
+                        template = mf.gameObject;
+                        baseScale = template.transform.lossyScale;
+                    }
+                }
+            }
+
+            // Защита: если мировой размер превышает 8 см (например, взялся масштаб стола), сжимаем до реалистичного
+            if (baseScale.x > 0.08f || baseScale.y > 0.08f || baseScale.z > 0.08f)
+            {
+                baseScale = new Vector3(0.035f, 0.007f, 0.035f);
             }
 
             for (int i = 0; i < visualCoins; i++)
@@ -406,7 +404,7 @@ namespace ShellGame.Run
                 GameObject coin;
                 if (template != null)
                 {
-                    coin = Instantiate(template, startPos + Random.insideUnitSphere * 0.1f, Random.rotation);
+                    coin = Instantiate(template, startPos + Random.insideUnitSphere * 0.08f, Random.rotation);
                     var rb = coin.GetComponent<Rigidbody>();
                     if (rb != null) Destroy(rb);
                     var col = coin.GetComponent<Collider>();
@@ -415,16 +413,18 @@ namespace ShellGame.Run
                 else
                 {
                     coin = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-                    coin.transform.position = startPos + Random.insideUnitSphere * 0.1f;
-                    coin.transform.localScale = new Vector3(0.08f, 0.015f, 0.08f);
+                    coin.transform.position = startPos + Random.insideUnitSphere * 0.08f;
                     var col = coin.GetComponent<Collider>();
                     if (col != null) Destroy(col);
                     var rend = coin.GetComponent<Renderer>();
                     if (rend != null) rend.material.color = new Color(1f, 0.84f, 0.1f);
                 }
 
+                // Жёстко выставляем реальный базовый скейл монетки перед началом полёта
+                coin.transform.localScale = baseScale;
+
                 float duration = Random.Range(0.42f, 0.55f);
-                float jumpHeight = Random.Range(0.4f, 0.65f);
+                float jumpHeight = Random.Range(0.35f, 0.55f);
 
                 coin.transform.DOJump(targetPos, jumpHeight, 1, duration).SetEase(Ease.InQuad);
                 coin.transform.DOScale(Vector3.zero, duration).SetEase(Ease.InBack);

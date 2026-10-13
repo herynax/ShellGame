@@ -1,4 +1,3 @@
-// START OF FILE SceneLoader.cs
 using System;
 using System.Collections;
 using UnityEngine;
@@ -9,9 +8,10 @@ using ShellGame.Run;
 using ShellGame.Feedback;
 using ShellGame.Gameplay;
 using ShellGame.Health;
-using ShellGame.Meta; // Добавлено для анлоков
+using ShellGame.Meta;
 using ShellGame.UI;
 using ShellGame.Tutorial;
+using Unity.Cinemachine;
 using Zenject;
 
 public class SceneLoader : MonoBehaviour
@@ -37,19 +37,15 @@ public class SceneLoader : MonoBehaviour
     [Header("Смерть и Переход")]
     public bool loadNextSceneByName = true; 
     public string nextSceneOnEnemyDeath;
-    [Tooltip("Сцена, с которой начинается новая попытка после поражения, если обучение уже пройдено.")]
     public string firstSceneOnPlayerDeath = "GameScene";
-    [Tooltip("Сцена, с которой начинается новая попытка после поражения, пока обучение не пройдено.")]
     public string tutorialSceneName = "GameScene";
     public string roomLightTag = "RoomLight";
     public float roomDarkenDuration = 1.5f;
-    [Tooltip("Не начинать затемнение/загрузку, пока не завершится анимация смерти врага. Таймаут — защита от зависания (0 = без таймаута).")]
     public float enemyDeathWaitTimeout = 10f;
 
     [Header("Победа (Смерть Босса)")]
-    [Tooltip("Если включено, смерть врага на этом уровне считается победой в игре.")]
     public bool isFinalLevel = false;
-    public string mainMenuSceneName = "MainMenu"; // Куда кидать после победы/смерти
+    public string mainMenuSceneName = "MainMenu";
 
     [Header("Экран загрузки")]
     public float minLoadingDuration = 2.0f;
@@ -57,20 +53,9 @@ public class SceneLoader : MonoBehaviour
 
     [Header("UI Контроллеры")]
     [SerializeField] private RunStatsScreenController runStatsScreen;
-    [SerializeField] private UnlockNotificationScreenController unlockScreen; // НОВЫЙ ЭКРАН АНЛОКОВ
+    [SerializeField] private UnlockNotificationScreenController unlockScreen;
 
-    /// <summary>
-    /// Группа лоадинг-типов для текущего RunTransition (EncounterDefinition.TipsGroup).
-    /// Выставляется ДО LoadingScreenShown, так что экран загрузки может прочитать её
-    /// в обработчике этого события. Пусто — группа не задана.
-    /// </summary>
     public string CurrentTipsGroup { get; private set; }
-
-    /// <summary>
-    /// true, пока идёт любой переход: затемнение, загрузка, работа под чёрным
-    /// экраном и открытие. Становится false только когда экран полностью открыт.
-    /// Так враг может начать вступление не в темноте, а после появления картинки.
-    /// </summary>
     public bool IsTransitioning => isLoading;
 
     private Canvas fadeCanvas;
@@ -125,14 +110,9 @@ public class SceneLoader : MonoBehaviour
     {
         if (isLoading) return;
 
-        // The tutorial owns the final narration after the first opponent is
-        // defeated. It will explicitly resume this same transition once the
-        // narration has ended.
         if (side == TurnSide.Enemy && TutorialSceneTransitionGate.HoldEnemyDeathTransition)
             return;
 
-        // Враг ещё не договорил (смерть = переход на следующий уровень).
-        // EnemyReactionDirector освободит холд сам и вызовет Continue.
         if (SceneTransitionGate.IsHeld)
             return;
 
@@ -149,11 +129,6 @@ public class SceneLoader : MonoBehaviour
         StartCoroutine(UnifiedDeathRoutine(TurnSide.Enemy));
     }
 
-    /// <summary>
-    /// Продолжает отложенный переход: вызывается тем, кто держал
-    /// SceneTransitionGate (реакции врага дерут его, чтобы финальные реплики
-    /// прозвучали до затемнения).
-    /// </summary>
     public void ContinueAfterHeldSceneTransition(TurnSide deadSide)
     {
         if (isLoading) return;
@@ -172,11 +147,6 @@ public class SceneLoader : MonoBehaviour
             if (lookController != null) lookController.enabled = false;
     }
 
-    /// <summary>
-    /// Курсор в игре заперт и скрыт — в том числе на всей загрузке уровня.
-    /// Показывать его могут только экраны, которым он нужен для клика
-    /// (статистика забега и анлоки): они включают его сами на время показа.
-    /// </summary>
     private static void HideCursorForLoading()
     {
         Cursor.lockState = CursorLockMode.Locked;
@@ -187,31 +157,33 @@ public class SceneLoader : MonoBehaviour
     {
         isLoading = true;
         SetPauseBlocked(true);
-        HideCursorForLoading();
 
-
-        if (fadeCanvasGroup == null) yield break;
-
-        // Экран загрузки (затемнение) начинается только после того, как анимация
-        // смерти врага полностью закончилась — судороги, падение и растворение.
         if (deadSide == TurnSide.Enemy)
+            yield return WaitForEnemyDeathAnimation();
 
-yield return WaitForEnemyDeathAnimation();
-            
-            
         var run = RunManager.Instance;
         bool inRun = run != null && run.HasActiveRun;
         if (inRun) run.NotifyEncounterFinished(deadSide);
 
-        if (blockInputDuringLoad) fadeCanvasGroup.blocksRaycasts = true;
-
-        // Определяем исход
         bool isBossEncounter = inRun && run.CurrentEncounterKind == EncounterKind.Boss;
-        bool isWin = deadSide == TurnSide.Enemy && (isBossEncounter);
+        bool isWin = deadSide == TurnSide.Enemy && isBossEncounter;
         bool isLoss = deadSide == TurnSide.Player;
-        bool returnToMap = false;
 
-        // --- ШАГ 1: ВИЗУАЛЬНОЕ ЗАТЕМНЕНИЕ ---
+        // --- ВАЖНО: Если побеждён обычный враг внутри забега — возвращаемся на карту БЕЗ черного экрана ---
+        if (!isWin && !isLoss && inRun)
+        {
+            RunStatsTracker.Instance?.RegisterEnemyDefeated();
+            EnsureSessionProgression().AdvanceToNextLevel();
+            yield return run.ReturnToMapRoutine(); // Комната плавно улетает вверх в 3D
+            isLoading = false;
+            SetPauseBlocked(false);
+            yield break;
+        }
+
+        // --- ИНАЧЕ (Смерть игрока / Финал босса) — полноценный переход сцены через черное затемнение ---
+        HideCursorForLoading();
+        if (blockInputDuringLoad && fadeCanvasGroup != null) fadeCanvasGroup.blocksRaycasts = true;
+
         Light roomLight = FindRoomLight();
         float screenFadeDuration = fadeDuration;
         if (_healthController != null && _healthController.DeathSoundDuration > 0f)
@@ -222,90 +194,49 @@ yield return WaitForEnemyDeathAnimation();
         yield return fadeCanvasGroup.DOFade(1f, screenFadeDuration).SetUpdate(true).WaitForCompletion();
 
         if (roomLight != null) roomLight.DOIntensity(0f, roomDarkenDuration).SetUpdate(true);
-
-        // ЗАМОРАЖИВАЕМ ВРЕМЯ НА ВРЕМЯ ЗАГРУЗКИ
         Time.timeScale = 0f;
 
         ScreenFullyBlack?.Invoke();
 
-        // --- ШАГ 2: СОБЫТИЕ ПОБЕДЫ ---
         if (isWin)
         {
             GameEvents.RaiseGameWon();
             FinalLevelCompleted?.Invoke();
         }
 
-        // --- ШАГ 3: ЭКРАН СТАТИСТИКИ И АНЛОКОВ ---
-        AsyncOperation asyncLoad = null;
+        RunStatsTracker.Instance?.EndRun();
+        if (runStatsScreen != null)
+            yield return runStatsScreen.ShowAndWaitForContinue(BuildStatsSnapshot());
 
-        if (isWin || isLoss)
+        EnsureSessionProgression().Reset();
+        ShellGame.Meta.RunCheckpointStorage.Clear();
+
+        if (_unlockManager != null)
         {
-
-            
-            // 3.1 Статистика
-            RunStatsTracker.Instance?.EndRun();
-            if (runStatsScreen != null)
-                yield return runStatsScreen.ShowAndWaitForContinue(BuildStatsSnapshot());
-
-            EnsureSessionProgression().Reset();
-            ShellGame.Meta.RunCheckpointStorage.Clear();
-
-            // 3.2 Анлоки
-            if (_unlockManager != null)
+            var newUnlocks = _unlockManager.GetUnacknowledgedUnlocks();
+            if (newUnlocks.Count > 0 && unlockScreen != null)
             {
-                var newUnlocks = _unlockManager.GetUnacknowledgedUnlocks();
-                if (newUnlocks.Count > 0 && unlockScreen != null)
-                {
-                    yield return unlockScreen.ShowSequence(newUnlocks, _unlockManager);
-                }
-            }
-
-            // После поражения начинаем новую попытку: обучение пройдено — с
-            // первого игрового уровня, не пройдено — с обучения (иначе игрок
-            // потеряет его по пути и попадёт в игру необученным).
-            string targetScene = isWin
-                ? mainMenuSceneName
-                : GameManager.GetNewRunSceneName(tutorialSceneName, firstSceneOnPlayerDeath);
-
-            Debug.Log($"[SceneLoader] Переход после {(isWin ? "победы" : "поражения")} на сцену '{targetScene}' " +
-                      $"(обучение пройдено: {GameManager.IsTutorialCompleted()}).");
-            
-            run?.EndRun();   // следующий PostSceneLoad начнёт новый ран
-            asyncLoad = SceneManager.LoadSceneAsync(targetScene);
-        }
-        else
-        {
-            RunStatsTracker.Instance?.RegisterEnemyDefeated();
-            EnsureSessionProgression().AdvanceToNextLevel();
-
-            if (inRun)
-                returnToMap = true;   // сцену не грузим, показываем карту
-            else if (loadNextSceneByName)
-                asyncLoad = SceneManager.LoadSceneAsync(nextSceneOnEnemyDeath);
-            else
-            {
-                int nextIndex = SceneManager.GetActiveScene().buildIndex + 1;
-                asyncLoad = SceneManager.LoadSceneAsync(nextIndex >= SceneManager.sceneCountInBuildSettings ? 0 : nextIndex);
+                yield return unlockScreen.ShowSequence(newUnlocks, _unlockManager);
             }
         }
 
+        string targetScene = isWin
+            ? mainMenuSceneName
+            : GameManager.GetNewRunSceneName(tutorialSceneName, firstSceneOnPlayerDeath);
+
+        run?.EndRun();
+        AsyncOperation asyncLoad = SceneManager.LoadSceneAsync(targetScene);
 
         HideCursorForLoading();
         LoadingScreenShown?.Invoke();
         LoadProgressChanged?.Invoke(0f);
 
-        if (returnToMap)
-            yield return run.ReturnToMapRoutine();   // под чёрным экраном: убрать риг, показать карту
-        else
-            yield return TrackAsyncLoading(asyncLoad);
+        yield return TrackAsyncLoading(asyncLoad);
 
-        // --- ШАГ 5: ФЕЙД АУТ ---
         yield return new WaitForSecondsRealtime(delayBeforeFadeOut);
         ScreenRevealing?.Invoke(fadeDuration);
-        
-        yield return fadeCanvasGroup.DOFade(0f, fadeDuration).SetUpdate(true).WaitForCompletion();
 
-        // ВОЗВРАЩАЕМ ВРЕМЯ В НОРМУ ТОЛЬКО ПОЛНОСТЬЮ ЗАВЕРШИВ ПЕРЕХОД
+        yield return fadeCanvasGroup.DOFade(0f, fadeDuration).SetUpdate(true).WaitForCompletion();
         Time.timeScale = 1f;
 
         SceneRevealCompleted?.Invoke();
@@ -353,84 +284,16 @@ yield return WaitForEnemyDeathAnimation();
         StartCoroutine(LoadSceneRoutine(sceneIndex: sceneIndex));
     }
 
-    /// <summary>
-    /// Переход без смены сцены (карта -> энкаунтер): затемнение, экран загрузки,
-    /// выполнение <paramref name="routine"/> под чёрным экраном, открытие.
-    /// Пока routine работает, Time.timeScale = 0, поэтому внутри неё нельзя
-    /// использовать WaitForSeconds — только yield return null / Realtime.
-    /// Возвращает false, если переход не запущен (уже идёт другой или routine == null).
-    /// </summary>
-    public bool RunTransition(IEnumerator routine, string tipsGroup = null)
-    {
-        if (isLoading || routine == null || fadeCanvasGroup == null) return false;
-
-        CurrentTipsGroup = tipsGroup;
-        StartCoroutine(RunTransitionRoutine(routine));
-        return true;
-    }
-
-    private IEnumerator RunTransitionRoutine(IEnumerator routine)
-    {
-        isLoading = true;
-        SetPauseBlocked(true);
-        HideCursorForLoading();
-
-        if (blockInputDuringLoad) fadeCanvasGroup.blocksRaycasts = true;
-
-        ScreenGoingBlack?.Invoke(fadeDuration);
-        yield return fadeCanvasGroup.DOFade(1f, fadeDuration).SetUpdate(true).WaitForCompletion();
-
-        // ЗАМОРАЖИВАЕМ ВРЕМЯ НА ВРЕМЯ ПЕРЕХОДА
-        Time.timeScale = 0f;
-
-        ScreenFullyBlack?.Invoke();
-        LoadingScreenShown?.Invoke();
-        LoadProgressChanged?.Invoke(0f);
-
-        float startTime = Time.unscaledTime;
-
-        // Основная работа под чёрным экраном (вход в энкаунтер / возврат на карту).
-        yield return routine;
-
-        // Держим экран загрузки минимум minLoadingDuration, чтобы он не мигал.
-        while (minLoadingDuration > 0f)
-        {
-            float elapsed = Time.unscaledTime - startTime;
-            LoadProgressChanged?.Invoke(Mathf.Clamp01(elapsed / minLoadingDuration));
-            if (elapsed >= minLoadingDuration) break;
-            yield return null;
-        }
-
-        LoadProgressChanged?.Invoke(1f);
-        if (delayAfterFullProgress > 0f) yield return new WaitForSecondsRealtime(delayAfterFullProgress);
-
-        yield return new WaitForSecondsRealtime(delayBeforeFadeOut);
-        ScreenRevealing?.Invoke(fadeDuration);
-        yield return fadeCanvasGroup.DOFade(0f, fadeDuration).SetUpdate(true).WaitForCompletion();
-
-        // ВОЗВРАЩАЕМ ВРЕМЯ В НОРМУ ТОЛЬКО ПОЛНОСТЬЮ ЗАВЕРШИВ ПЕРЕХОД
-        Time.timeScale = 1f;
-
-        SceneRevealCompleted?.Invoke();
-        fadeCanvasGroup.blocksRaycasts = false;
-        CurrentTipsGroup = null;
-        isLoading = false;
-        SetPauseBlocked(false);
-    }
-
     private IEnumerator LoadSceneRoutine(string sceneName = "", int sceneIndex = -1)
     {
         isLoading = true;
         SetPauseBlocked(true);
-        fadeCanvasGroup.blocksRaycasts = true;
-        if (blockInputDuringLoad && fadeCanvasGroup != null) fadeCanvasGroup.blocksRaycasts = true;
+        if (fadeCanvasGroup != null) fadeCanvasGroup.blocksRaycasts = true;
 
         ScreenGoingBlack?.Invoke(fadeDuration);
         if (fadeCanvasGroup != null) yield return fadeCanvasGroup.DOFade(1f, fadeDuration).SetUpdate(true).WaitForCompletion();
 
-        // ЗАМОРАЖИВАЕМ ВРЕМЯ НА ВРЕМЯ ЗАГРУЗКИ
         Time.timeScale = 0f;
-
         ScreenFullyBlack?.Invoke();
         LoadingScreenShown?.Invoke();
         LoadProgressChanged?.Invoke(0f);
@@ -452,9 +315,7 @@ yield return WaitForEnemyDeathAnimation();
             fadeCanvasGroup.blocksRaycasts = false;
         }
 
-        // ВОЗВРАЩАЕМ ВРЕМЯ В НОРМУ ТОЛЬКО ПОЛНОСТЬЮ ЗАВЕРШИВ ПЕРЕХОД
         Time.timeScale = 1f;
-
         SceneRevealCompleted?.Invoke();
         isLoading = false;
         SetPauseBlocked(false);
@@ -515,4 +376,3 @@ yield return WaitForEnemyDeathAnimation();
         mainMenuSceneName = sceneLoader.mainMenuSceneName;
     }
 }
-// END OF FILE
