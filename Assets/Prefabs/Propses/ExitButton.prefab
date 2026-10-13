@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 6476354014895799599}
   - component: {fileID: 9181429298560289831}
   - component: {fileID: 7151099959876728395}
-  m_Layer: 6
+  m_Layer: 0
   m_Name: ExitButton
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -31,8 +31,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 113435136724701104}
-  - {fileID: 6842673896498840510}
+  - {fileID: 5607083663276867509}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!65 &9181429298560289831
@@ -68,7 +67,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6351638780ed3ed3ea264d37aa35a058, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ShellGame.Run.ExitButtonView
-  _buttonVisual: {fileID: 0}
+  _buttonVisual: {fileID: 5607083663276867509}
   _hoverScale: 1.1
   _hoverDuration: 0.15
   _pressScale: 0.9
@@ -84,8 +83,7 @@ GameObject:
   - component: {fileID: 6842673896498840510}
   - component: {fileID: 1663499231940996341}
   - component: {fileID: 945698859234907444}
-  - component: {fileID: 2404976768874015932}
-  m_Layer: 6
+  m_Layer: 0
   m_Name: Cube
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -105,7 +103,7 @@ Transform:
   m_LocalScale: {x: 0.45, y: 0.24246109, z: 0.4432027}
   m_ConstrainProportionsScale: 1
   m_Children: []
-  m_Father: {fileID: 6476354014895799599}
+  m_Father: {fileID: 5607083663276867509}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &1663499231940996341
 MeshFilter:
@@ -164,27 +162,6 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!65 &2404976768874015932
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4211427399030407841}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 1, y: 1, z: 1}
-  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &6191090678309564229
 GameObject:
   m_ObjectHideFlags: 0
@@ -196,7 +173,7 @@ GameObject:
   - component: {fileID: 113435136724701104}
   - component: {fileID: 7602337163687281325}
   - component: {fileID: 133822903819246396}
-  m_Layer: 6
+  m_Layer: 0
   m_Name: Button
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -216,7 +193,7 @@ Transform:
   m_LocalScale: {x: 0.26483178, y: 0.021403803, z: 0.26083148}
   m_ConstrainProportionsScale: 1
   m_Children: []
-  m_Father: {fileID: 6476354014895799599}
+  m_Father: {fileID: 5607083663276867509}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &7602337163687281325
 MeshFilter:
@@ -275,3 +252,36 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1 &6444913482292921462
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5607083663276867509}
+  m_Layer: 0
+  m_Name: Visuals
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &5607083663276867509
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6444913482292921462}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 113435136724701104}
+  - {fileID: 6842673896498840510}
+  m_Father: {fileID: 6476354014895799599}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}

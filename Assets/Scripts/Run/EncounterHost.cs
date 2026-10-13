@@ -45,7 +45,6 @@ namespace ShellGame.Run
         public CoinPileController CoinPileController => CoinPileController.Instance;
 
         /// <summary>Зона монет текущего энкаунтера: в магазине — зона стола, иначе null.</summary>
-        public BoxCollider CoinZone => _shopRig != null ? _shopRig.CoinZone : null;
         public GameObject PlayerPos => _playerPos;
 
         private EncounterRig _rig;

@@ -12,11 +12,11 @@ namespace ShellGame.Run
 {
     /// <summary>
     /// Риг для энкаунтера магазина.
-    /// - PlayerItemSpawner для предметов игрока (постоянные)
-    /// - ShopItemSpawner для товаров магазина
-    /// - ShopEncounterController для логики магазина
-    /// - CoinPileController для монет (persistent, обычная зона кучи)
-    /// - Позиция кнопки выхода и точка магазинщика
+    /// - PlayerItemSpawner: доступ к анлокам (предметы игрока раскладывает ShopItemSpawner)
+    /// - ShopItemSpawner: товары магазина и предметы игрока на столе
+    /// - ShopEncounterController: логика магазина
+    /// - CoinPileController: монеты (persistent, обычная зона кучи)
+    /// - Позиции кнопки выхода и маркера продажи, точка магазинщика
     /// </summary>
     public sealed class ShopEncounterRig : MonoBehaviour
     {
@@ -28,15 +28,45 @@ namespace ShellGame.Run
 
         [Header("Table Zones")]
         [SerializeField] private Transform _exitButtonPosition;
+        [SerializeField] private Transform _sellZonePosition;
 
         [Header("Visual")]
         [SerializeField] private GameObject _merchantVisual;
         [SerializeField] private Transform _merchantLookTarget;
 
-        public PlayerItemSpawner PlayerItemSpawner => _playerItemSpawner;
-        public ShopItemSpawner ShopItemSpawner => _shopItemSpawner;
-        public ShopEncounterController ShopController => _shopController;
+        // Геттеры сами ищут компоненты: порядок Awake у рига и контроллера не гарантирован.
+        public PlayerItemSpawner PlayerItemSpawner
+        {
+            get
+            {
+                if (_playerItemSpawner == null)
+                    _playerItemSpawner = GetComponentInChildren<PlayerItemSpawner>(true);
+                return _playerItemSpawner;
+            }
+        }
+
+        public ShopItemSpawner ShopItemSpawner
+        {
+            get
+            {
+                if (_shopItemSpawner == null)
+                    _shopItemSpawner = GetComponentInChildren<ShopItemSpawner>(true);
+                return _shopItemSpawner;
+            }
+        }
+
+        public ShopEncounterController ShopController
+        {
+            get
+            {
+                if (_shopController == null)
+                    _shopController = GetComponentInChildren<ShopEncounterController>(true);
+                return _shopController;
+            }
+        }
+
         public Transform ExitButtonPosition => _exitButtonPosition;
+        public Transform SellZonePosition => _sellZonePosition;
         public GameObject MerchantVisual => _merchantVisual;
         public Transform MerchantLookTarget => _merchantLookTarget;
 
@@ -44,13 +74,10 @@ namespace ShellGame.Run
         {
             _encounterHost = GetComponentInParent<EncounterHost>();
 
-            // Auto-find components if not set
-            if (_playerItemSpawner == null)
-                _playerItemSpawner = GetComponentInChildren<PlayerItemSpawner>(true);
-            if (_shopItemSpawner == null)
-                _shopItemSpawner = GetComponentInChildren<ShopItemSpawner>(true);
-            if (_shopController == null)
-                _shopController = GetComponentInChildren<ShopEncounterController>(true);
+            // Прогреваем авто-поиск.
+            _ = PlayerItemSpawner;
+            _ = ShopItemSpawner;
+            _ = ShopController;
         }
     }
 }

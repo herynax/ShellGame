@@ -5,7 +5,8 @@ using UnityEngine.EventSystems;
 namespace ShellGame.Run
 {
     /// <summary>
-    /// Кнопка выхода из магазина "Продолжить путь"
+    /// Кнопка выхода из магазина "Продолжить путь".
+    /// Поддерживает 3D-коллайдеры на столе, ввод из ShopPickupInput и стандартный UI EventSystem.
     /// </summary>
     public sealed class ExitButtonView : MonoBehaviour, IPointerClickHandler, IPointerEnterHandler, IPointerExitHandler
     {
@@ -17,56 +18,86 @@ namespace ShellGame.Run
 
         private EncounterHost _host;
         private Vector3 _originalScale;
+        private bool _isHovered;
 
         private void Awake()
         {
-            _host = FindFirstObjectByType<EncounterHost>();
+            ResolveHost();
 
-            // _originalScale никогда не сериализуется — без него hover/press
-            // DOScale пошёл бы в Vector3.zero и кнопка исчезала бы.
             if (_buttonVisual == null)
                 _buttonVisual = transform;
+
             _originalScale = _buttonVisual.localScale;
+
+            // Если это 3D-объект и забыли повесить коллайдер — добавляем автоматически
+            if (GetComponent<Collider>() == null && GetComponent<RectTransform>() == null)
+            {
+                gameObject.AddComponent<BoxCollider>();
+            }
+        }
+
+        private void ResolveHost()
+        {
+            if (_host == null)
+                _host = Object.FindFirstObjectByType<EncounterHost>();
         }
 
         public void Initialize(ShopEncounterController controller)
         {
-            // Kept for compatibility, but we use EncounterHost for exit
+            ResolveHost();
         }
 
-        public void OnPointerClick(PointerEventData eventData)
+        public void TriggerHover(bool hovered)
         {
-            if (_host != null)
-            {
-                // Press animation
-                if (_buttonVisual != null)
-                {
-                    _buttonVisual.DOKill();
-                    _buttonVisual.DOScale(_originalScale * _pressScale, _pressDuration)
-                        .SetEase(Ease.OutQuad)
-                        .OnComplete(() => _buttonVisual.DOScale(_originalScale * _hoverScale, _hoverDuration).SetEase(Ease.OutBack));
-                }
+            if (_isHovered == hovered) return;
+            _isHovered = hovered;
 
-                _host.RequestExit();
-            }
-        }
+            if (_buttonVisual == null) return;
+            _buttonVisual.DOKill();
 
-        public void OnPointerEnter(PointerEventData eventData)
-        {
-            if (_buttonVisual != null)
+            if (hovered)
             {
-                _buttonVisual.DOKill();
                 _buttonVisual.DOScale(_originalScale * _hoverScale, _hoverDuration).SetEase(Ease.OutBack);
             }
+            else
+            {
+                _buttonVisual.DOScale(_originalScale, _hoverDuration).SetEase(Ease.InQuad);
+            }
         }
 
-        public void OnPointerExit(PointerEventData eventData)
+        public void TriggerClick()
         {
+            ResolveHost();
+            if (_host == null) return;
+
             if (_buttonVisual != null)
             {
                 _buttonVisual.DOKill();
-                _buttonVisual.DOScale(_originalScale, _hoverDuration).SetEase(Ease.InQuad);
+                _buttonVisual.DOScale(_originalScale * _pressScale, _pressDuration)
+                    .SetEase(Ease.OutQuad)
+                    .OnComplete(() =>
+                    {
+                        if (_buttonVisual != null)
+                            _buttonVisual.DOScale(_originalScale * _hoverScale, _hoverDuration).SetEase(Ease.OutBack);
+                    });
             }
+
+            _host.RequestExit();
+        }
+
+        // --- Поддержка стандартного ввода мыши по 3D-коллайдеру ---
+        private void OnMouseDown() => TriggerClick();
+        private void OnMouseEnter() => TriggerHover(true);
+        private void OnMouseExit() => TriggerHover(false);
+
+        // --- Поддержка UI EventSystem ---
+        public void OnPointerClick(PointerEventData eventData) => TriggerClick();
+        public void OnPointerEnter(PointerEventData eventData) => TriggerHover(true);
+        public void OnPointerExit(PointerEventData eventData) => TriggerHover(false);
+
+        private void OnDisable()
+        {
+            TriggerHover(false);
         }
 
         private void OnDestroy()

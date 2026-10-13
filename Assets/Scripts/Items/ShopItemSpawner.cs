@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using DG.Tweening;
 using ShellGame.Core;
-using ShellGame.Dialogue;
 using ShellGame.Items;
 using ShellGame.Run;
 using UnityEngine;
@@ -21,6 +20,10 @@ namespace ShellGame.Items
         private ShopEncounterController _shopController;
         private List<ItemDefinition> _currentShopItems = new List<ItemDefinition>();
 
+        private readonly Dictionary<int, GameObject> _playerSlots = new Dictionary<int, GameObject>();
+
+        public bool HasFreePlayerSlot => TryGetFreePlayerSlot(out _, out _);
+
         public void Initialize(ShopEncounterController controller)
         {
             _shopController = controller;
@@ -31,14 +34,7 @@ namespace ShellGame.Items
             _currentShopItems = shopItems ?? new List<ItemDefinition>();
         }
 
-        protected override List<ItemDefinition> GetAvailableItemPool()
-        {
-            // Shop spawner handles two types of items:
-            // 1. Player's persistent items (from PlayerInventorySO)
-            // 2. Shop items for sale (from _currentShopItems)
-            // Both are handled in SpawnItems override
-            return new List<ItemDefinition>();
-        }
+        protected override List<ItemDefinition> GetAvailableItemPool() => new List<ItemDefinition>();
 
         public override IEnumerator SpawnItems()
         {
@@ -52,40 +48,34 @@ namespace ShellGame.Items
             yield return null;
 
             _spawnCounts.Clear();
+            _playerSlots.Clear();
 
-            // 1. Spawn player's persistent items at player item points
+            var persistent = new List<ItemDefinition>();
             var runManager = ShellGame.Run.RunManager.Instance;
             if (runManager != null && runManager.CurrentRun != null && runManager.CurrentRun.PlayerInventory != null)
             {
-                var playerInv = runManager.CurrentRun.PlayerInventory;
-                var playerItems = playerInv.PlayerItems;
-
-                var points = GetPlayerItemPoints();
-                int pointIndex = 0;
-
-                foreach (var stack in playerItems)
+                foreach (var stack in runManager.CurrentRun.PlayerInventory.PlayerItems.ToList())
                 {
                     if (stack.Item == null || stack.Count <= 0) continue;
-                    if (pointIndex >= points.Count) break;
-
                     for (int i = 0; i < stack.Count; i++)
-                    {
-                        if (pointIndex >= points.Count) break;
-
-                        SpawnSpecificItem(points[pointIndex], stack.Item, _spawnCounts, isShopItem: false);
-                        pointIndex++;
-                    }
+                        persistent.Add(stack.Item);
                 }
             }
 
-            // 2. Spawn shop items for sale at shop item points
+            foreach (var definition in persistent)
+            {
+                if (!HasFreePlayerSlot) break;
+                SpawnPlayerItem(definition);
+            }
+
             var shopPoints = GetShopItemPoints();
-            for (int i = 0; i < Mathf.Min(_currentShopItems.Count, shopPoints.Count); i++)
+            int shopCount = Mathf.Min(_currentShopItems.Count, shopPoints.Count);
+            for (int i = 0; i < shopCount; i++)
             {
                 var item = _currentShopItems[i];
                 if (item == null) continue;
 
-                SpawnSpecificItem(shopPoints[i], item, _spawnCounts, isShopItem: true);
+                CreatePickup(shopPoints[i], item, isForSale: true);
 
                 if (_spawnDelay > 0f)
                     yield return new WaitForSeconds(_spawnDelay);
@@ -97,24 +87,121 @@ namespace ShellGame.Items
             HasFinishedSpawning = true;
         }
 
+        public ItemPickupView SpawnPlayerItem(ItemDefinition definition)
+        {
+            if (definition == null || definition.WorldPrefab == null) return null;
+            if (!TryGetFreePlayerSlot(out int slotIndex, out var point)) return null;
+
+            var pickup = CreatePickup(point, definition, isForSale: false);
+            if (pickup == null) return null;
+
+            _playerSlots[slotIndex] = pickup.gameObject;
+            return pickup;
+        }
+
+        public List<ItemPickupView> GetPlayerPickups()
+        {
+            var result = new List<ItemPickupView>();
+            foreach (var itemObject in _spawnedItems)
+            {
+                if (itemObject == null) continue;
+                var pickup = itemObject.GetComponent<ItemPickupView>();
+                if (pickup != null && pickup.Owner == OwnerSide && !pickup.IsSellExempt)
+                    result.Add(pickup);
+            }
+            return result;
+        }
+
+        private ItemPickupView CreatePickup(ItemSpawnPoint point, ItemDefinition definition, bool isForSale)
+        {
+            if (point == null || definition == null || definition.WorldPrefab == null) return null;
+
+            var spawnPosition = point.SpawnPosition;
+            var itemObject = Instantiate(definition.WorldPrefab, spawnPosition, point.Rotation, transform);
+            if (itemObject == null) return null;
+
+            RotateVisualRandomly(itemObject.transform);
+            ShellGame.Core.TableSurfacePlacement.PlaceObjectOnSurface(itemObject.transform, spawnPosition);
+
+            var pickup = itemObject.GetComponent<ItemPickupView>() ?? itemObject.AddComponent<ItemPickupView>();
+            pickup.SetItem(definition);
+            pickup.SetOwner(OwnerSide);
+            pickup.SetAlwaysInteractive(true);
+            pickup.SetSellExempt(isForSale);
+            _spawnedItems.Add(itemObject);
+
+            _spawnCounts.TryGetValue(definition, out var count);
+            _spawnCounts[definition] = count + 1;
+
+            if (isForSale)
+            {
+                var shopBehavior = itemObject.AddComponent<ShopItemBehavior>();
+                shopBehavior.Initialize(_shopController, definition);
+            }
+
+            var baseScale = itemObject.transform.localScale;
+            itemObject.transform.localScale = Vector3.zero;
+            itemObject.transform.DOScale(baseScale, Mathf.Max(0f, _spawnAnimationDuration)).SetEase(_spawnEase);
+
+            return pickup;
+        }
+
+        private bool TryGetFreePlayerSlot(out int index, out ItemSpawnPoint point)
+        {
+            var points = GetPlayerItemPoints();
+            for (int i = 0; i < points.Count; i++)
+            {
+                if (points[i] == null) continue;
+                if (_playerSlots.TryGetValue(i, out var occupant) && occupant != null) continue;
+
+                index = i;
+                point = points[i];
+                return true;
+            }
+
+            index = -1;
+            point = null;
+            return false;
+        }
+
+        private void FreePlayerSlotOf(GameObject itemObject)
+        {
+            int foundKey = -1;
+            foreach (var pair in _playerSlots)
+            {
+                if (pair.Value == itemObject)
+                {
+                    foundKey = pair.Key;
+                    break;
+                }
+            }
+
+            if (foundKey >= 0)
+                _playerSlots.Remove(foundKey);
+        }
+
         private List<ItemSpawnPoint> GetPlayerItemPoints()
         {
-            if (_playerItemPoints.Count > 0)
+            if (_playerItemPoints != null && _playerItemPoints.Count > 0)
             {
                 var points = new List<ItemSpawnPoint>(_playerItemPoints);
+                points.RemoveAll(p => p == null);
                 points.Sort((left, right) => left.Index.CompareTo(right.Index));
                 return points;
             }
 
-            // Fallback to base spawn points for player
-            return GetPointsForSide(_itemCount);
+            var fallback = GetPointsForSide(_itemCount);
+            if (fallback != null)
+                fallback.RemoveAll(p => p == null);
+            return fallback ?? new List<ItemSpawnPoint>();
         }
 
         private List<ItemSpawnPoint> GetShopItemPoints()
         {
-            if (_shopItemPoints.Count > 0)
+            if (_shopItemPoints != null && _shopItemPoints.Count > 0)
             {
                 var points = new List<ItemSpawnPoint>(_shopItemPoints);
+                points.RemoveAll(p => p == null);
                 points.Sort((left, right) => left.Index.CompareTo(right.Index));
                 return points;
             }
@@ -124,131 +211,87 @@ namespace ShellGame.Items
 
         protected override bool SpawnItem(ItemSpawnPoint point, List<ItemDefinition> availableItems, Dictionary<ItemDefinition, int> sideCounts, out Vector3 spawnPosition)
         {
-            // Not used - we use SpawnSpecificItem directly
             spawnPosition = Vector3.zero;
             return false;
         }
 
-        private void SpawnSpecificItem(ItemSpawnPoint point, ItemDefinition definition, Dictionary<ItemDefinition, int> sideCounts, bool isShopItem)
+        public bool AnimateItemPurchase(ItemPickupView pickup)
         {
-            if (definition == null || definition.WorldPrefab == null) return;
+            if (pickup == null) return false;
+            if (!TryGetFreePlayerSlot(out int slotIndex, out var point)) return false;
 
-            var spawnPosition = point.SpawnPosition;
-            var itemObject = Instantiate(definition.WorldPrefab, spawnPosition, point.Rotation, transform);
-            if (itemObject == null) return;
+            var shopBehavior = pickup.GetComponent<ShopItemBehavior>();
+            if (shopBehavior != null)
+                shopBehavior.Detach();
 
-            RotateVisualRandomly(itemObject.transform);
-            ShellGame.Core.TableSurfacePlacement.PlaceObjectOnSurface(itemObject.transform, spawnPosition);
+            pickup.SetSellExempt(false);
 
-            var pickup = itemObject.GetComponent<ItemPickupView>();
-            if (pickup == null)
-                pickup = itemObject.AddComponent<ItemPickupView>();
+            var itemObject = pickup.gameObject;
+            _playerSlots[slotIndex] = itemObject;
 
-            pickup.SetItem(definition);
-            pickup.SetOwner(OwnerSide);
-            _spawnedItems.Add(itemObject);
+            var targetPos = point.SpawnPosition;
+            var targetRot = point.Rotation;
 
-            sideCounts.TryGetValue(definition, out var count);
-            sideCounts[definition] = count + 1;
+            itemObject.transform.DOKill();
 
-            // Add to PlayerInventorySO for player items
-            if (!isShopItem)
+            Sequence seq = DOTween.Sequence();
+            seq.Join(itemObject.transform.DOJump(targetPos, jumpPower: 0.35f, numJumps: 1, duration: 0.55f).SetEase(Ease.OutQuad));
+            seq.Join(itemObject.transform.DORotateQuaternion(targetRot, 0.55f).SetEase(Ease.OutQuad));
+            seq.OnComplete(() =>
             {
-                var runManager = ShellGame.Run.RunManager.Instance;
-                if (runManager != null && runManager.CurrentRun != null && runManager.CurrentRun.PlayerInventory != null)
+                if (itemObject != null)
                 {
-                    runManager.CurrentRun.PlayerInventory.Add(definition, 1, OwnerSide);
+                    ShellGame.Core.TableSurfacePlacement.PlaceObjectOnSurface(itemObject.transform, targetPos);
+                    itemObject.transform.DOPunchScale(new Vector3(0.1f, -0.08f, 0.1f), 0.22f, vibrato: 5);
                 }
-            }
-            else
-            {
-                // Add shop behavior for buyable items
-                var shopBehavior = itemObject.AddComponent<ShopItemBehavior>();
-                shopBehavior.Initialize(_shopController, definition);
-            }
+            });
 
-            var baseScale = itemObject.transform.localScale;
-            itemObject.transform.localScale = Vector3.zero;
-            itemObject.transform.DOScale(baseScale, Mathf.Max(0f, _spawnAnimationDuration)).SetEase(_spawnEase);
+            return true;
         }
 
-        /// <summary>
-        /// Анимация покупки: предмет перелетает от позиции магазина к следующей свободной позиции игрока
-        /// </summary>
-        public void AnimateItemPurchase(ItemPickupView pickup, Vector3 targetPosition)
+        public void SellPickup(ItemPickupView pickup, Vector3 merchantPos = default)
         {
-            if (pickup == null || _shopController == null) return;
+            if (pickup == null) return;
 
-            var runManager = ShellGame.Run.RunManager.Instance;
-            if (runManager != null && runManager.CurrentRun != null && runManager.CurrentRun.PlayerInventory != null)
+            var itemObject = pickup.gameObject;
+            _spawnedItems.Remove(itemObject);
+            FreePlayerSlotOf(itemObject);
+
+            pickup.SetSellExempt(true);
+            itemObject.transform.DOKill();
+
+            if (merchantPos == default)
+                merchantPos = itemObject.transform.position + Vector3.up * 1f;
+
+            Sequence seq = DOTween.Sequence();
+            seq.Join(itemObject.transform.DOJump(merchantPos, jumpPower: 0.45f, numJumps: 1, duration: 0.48f).SetEase(Ease.InQuad));
+            seq.Join(itemObject.transform.DOScale(Vector3.zero, 0.48f).SetEase(Ease.InBack));
+            seq.Join(itemObject.transform.DORotate(new Vector3(360f, 180f, 0f), 0.48f, RotateMode.FastBeyond360));
+            seq.OnComplete(() =>
             {
-                runManager.CurrentRun.PlayerInventory.Add(pickup.Item, 1, TurnSide.Player);
-            }
-
-            pickup.transform.DOKill();
-            pickup.transform.DOMove(targetPosition, 0.5f).SetEase(Ease.OutBack).OnComplete(() =>
-            {
-                // Re-parent to player item hierarchy
-                var playerPoints = GetPlayerItemPoints();
-                var occupied = new HashSet<int>();
-
-                foreach (var itemObj in _spawnedItems)
-                {
-                    if (itemObj == null) continue;
-                    var p = itemObj.GetComponent<ItemPickupView>();
-                    if (p != null && p.Owner == TurnSide.Player)
-                    {
-                        for (int i = 0; i < playerPoints.Count; i++)
-                        {
-                            if (Vector3.Distance(itemObj.transform.position, playerPoints[i].SpawnPosition) < 0.1f)
-                            {
-                                occupied.Add(i);
-                                break;
-                            }
-                        }
-                    }
-                }
-
-                int targetIndex = -1;
-                for (int i = 0; i < playerPoints.Count; i++)
-                {
-                    if (!occupied.Contains(i))
-                    {
-                        targetIndex = i;
-                        break;
-                    }
-                }
-
-                if (targetIndex >= 0)
-                {
-                    pickup.transform.SetParent(transform);
-                    // Item is now at player slot position
-                }
+                if (itemObject != null)
+                    Destroy(itemObject);
             });
         }
 
         public void RemoveShopItem(ItemPickupView pickup)
         {
             if (pickup == null) return;
-            pickup.Used -= HandleItemUsed;
             _spawnedItems.Remove(pickup.gameObject);
         }
 
         public void ClearShopItems()
         {
-            foreach (var itemObj in new List<GameObject>(_spawnedItems))
+            foreach (var itemObject in new List<GameObject>(_spawnedItems))
             {
-                if (itemObj == null) continue;
-                var pickup = itemObj.GetComponent<ItemPickupView>();
-                if (pickup != null && pickup.Item != null)
+                if (itemObject == null) continue;
+
+                var pickup = itemObject.GetComponent<ItemPickupView>();
+                if (pickup != null && pickup.IsSellExempt)
                 {
-                    var shopBehavior = itemObj.GetComponent<ShopItemBehavior>();
-                    if (shopBehavior != null)
-                    {
-                        pickup.Used -= HandleItemUsed;
-                        _spawnedItems.Remove(itemObj);
-                        Destroy(itemObj);
-                    }
+                    itemObject.transform.DOKill();
+                    _spawnedItems.Remove(itemObject);
+                    Destroy(itemObject);
                 }
             }
         }
@@ -263,17 +306,22 @@ namespace ShellGame.Items
             }
             _spawnedItems.Clear();
             _spawnCounts.Clear();
+            _playerSlots.Clear();
             _hasSpawned = false;
             HasFinishedSpawning = false;
         }
     }
 
+    /// <summary>
+    /// Поведение товара на прилавке: клик = покупка, ховер = тултип с ценой.
+    /// </summary>
     public sealed class ShopItemBehavior : MonoBehaviour
     {
         private ShopEncounterController _controller;
         private ItemDefinition _item;
         private ItemPickupView _pickupView;
         private Coroutine _tooltipRoutine;
+        private bool _wasHovered;
 
         public ItemDefinition Item => _item;
 
@@ -284,31 +332,33 @@ namespace ShellGame.Items
             _pickupView = GetComponent<ItemPickupView>();
 
             if (_pickupView != null)
-            {
                 _pickupView.Used += OnUsed;
+        }
+
+        public void Detach()
+        {
+            Destroy(this);
+        }
+
+        private void Update()
+        {
+            bool hovered = _pickupView != null && _pickupView.IsHovered;
+
+            if (hovered && !_wasHovered)
+                StartTooltipTimer();
+            else if (!hovered && _wasHovered)
+            {
+                StopTooltipTimer();
+                ShopTooltipView.Instance?.Hide(this);
             }
+
+            _wasHovered = hovered;
         }
 
         private void OnUsed(ItemPickupView pickup)
         {
-            if (!_controller.IsInSellMode)
-            {
-                _controller.TryBuyItem(_item);
-            }
-        }
-
-        private void OnMouseEnter()
-        {
-            if (_pickupView != null && _pickupView.IsInteractive)
-            {
-                StartTooltipTimer();
-            }
-        }
-
-        private void OnMouseExit()
-        {
-            StopTooltipTimer();
-            ShopTooltipView.Instance?.Hide(this);
+            if (_controller == null || _controller.IsInSellMode) return;
+            _controller.TryBuyItem(_item, _pickupView);
         }
 
         private void StartTooltipTimer()

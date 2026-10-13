@@ -88,6 +88,10 @@ namespace ShellGame.Dialogue
         private ItemDefinition _pendingItem;
         private TurnSide _pendingItemUser = TurnSide.Player;
 
+        /// <summary>true, пока директор показывает вступление или реплику.</summary>
+        public bool IsPresenting => _isShowing;
+
+
         public EnemyReactionConfig Config => _config;
 
         /// <summary>Конфиг ставит EnemyReactionBootstrap, ручной вариант — инспектор.</summary>
@@ -664,6 +668,23 @@ namespace ShellGame.Dialogue
                 EnemyHealthFraction = GetRemainingHealthFraction(TurnSide.Enemy),
                 DeadSide = TurnSide.Player,
             };
+        }
+
+        /// <summary>
+        /// Версия ForceReaction, которую можно дождаться (yield return).
+        /// Если директор сейчас что-то говорит, сначала ждёт конца.
+        /// </summary>
+        public IEnumerator ForceReactionRoutine(EnemyReactionContext context)
+        {
+            if (_config == null || _levelEnded)
+                yield break;
+
+            while (_isShowing)
+                yield return null;
+
+            var group = SelectGroup(BuildQuery(context, TurnSide.Enemy), true);
+            if (group != null)
+                yield return PresentLines(group);
         }
 
         private float GetRemainingHealthFraction(TurnSide side)

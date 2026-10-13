@@ -27,6 +27,12 @@ namespace ShellGame.Items
         private TurnSide _owner;
         private Coroutine _tooltipRoutine;
 
+        // Магазин: предмет доступен для ховера/клика независимо от окна использования.
+        private bool _alwaysInteractive;
+
+        // Магазин: товар на продажу и маркер продажи нельзя «продать» кликом в режиме продажи.
+        private bool _sellExempt;
+
         private IAudioService Audio => ServiceLocator.TryGet(out IAudioService audio) ? audio : null;
 
         /// <summary>
@@ -70,8 +76,8 @@ namespace ShellGame.Items
             if (!IsInteractive) return;
             StopTooltipTimer();
             ItemTooltipView.Instance?.Hide(this);
-            
-            if (_isInSellMode && Owner == TurnSide.Player)
+
+            if (_isInSellMode && Owner == TurnSide.Player && !_sellExempt)
             {
                 OnSellModeClick?.Invoke(this);
             }
@@ -85,7 +91,11 @@ namespace ShellGame.Items
         public TurnSide Owner => _owner;
 
         /// <summary>Может ли игрок взаимодействовать с предметом (ховер и использование).</summary>
-        public bool IsInteractive => _owner == TurnSide.Player && (IsUsageWindowOpenNow() || _isInSellMode);
+        public bool IsInteractive => _owner == TurnSide.Player
+                                     && (_alwaysInteractive || IsUsageWindowOpenNow() || _isInSellMode);
+
+        /// <summary>true — предмет нельзя продать кликом в режиме продажи (товар магазина, маркер продажи).</summary>
+        public bool IsSellExempt => _sellExempt;
 
         private bool IsUsageWindowOpenNow()
         {
@@ -95,6 +105,18 @@ namespace ShellGame.Items
         public bool IsHovered => _isHovered;
 
         public event Action<ItemPickupView> Used;
+
+        /// <summary>Магазин: ховер и клик работают всегда, вне зависимости от окна использования.</summary>
+        public void SetAlwaysInteractive(bool value)
+        {
+            _alwaysInteractive = value;
+        }
+
+        /// <summary>Магазин: исключить предмет из продажи (товар на прилавке, маркер продажи).</summary>
+        public void SetSellExempt(bool value)
+        {
+            _sellExempt = value;
+        }
 
         private void Awake()
         {
@@ -126,7 +148,8 @@ namespace ShellGame.Items
         }
 
         /// <summary>
-        /// Внешнее управление ховером из RoundInputSystem. Не используем legacy
+        /// Внешнее управление ховером из RoundInputSystem (в раунде) или
+        /// ShopPickupInput (в магазине). Не используем legacy
         /// OnMouseEnter/OnMouseExit: они водятся от физики окна и требуют камеры
         /// с тегом MainCamera, а у нас её нет, поэтому ховер "иногда" не стартует.
         /// </summary>

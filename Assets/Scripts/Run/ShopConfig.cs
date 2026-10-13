@@ -26,6 +26,13 @@ namespace ShellGame.Run
         [Tooltip("Выдавать бесплатный предмет при входе из разблокированных")]
         public bool GrantFreeUnlockedItemOnEntry = true;
 
+        [Tooltip("Пауза между концом вступительной реплики торговца и появлением бесплатного предмета (сек)")]
+        public float FreeItemDelayAfterIntro = 0.3f;
+
+        [Header("Sell Mode")]
+        [Tooltip("Предмет-маркер продажи (крестик). Появляется в SellZonePosition рига. Нужен WorldPrefab с коллайдером.")]
+        public ItemDefinition SellMarkerItemAsset;
+
         [Header("Pricing")]
         [Tooltip("Множитель цены продажи (от цены покупки). 0.5 = продажа за половину цены. Переопределяется ItemDefinition.SellPriceMultiplier")]
         public float SellPriceMultiplier = 0.5f;

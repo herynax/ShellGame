@@ -1,6 +1,5 @@
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using DG.Tweening;
 using ShellGame.Audio;
 using ShellGame.Core;
@@ -12,36 +11,40 @@ using UnityEngine;
 
 namespace ShellGame.Run
 {
-    /// <summary>
-    /// Основной контроллер магазина. Управляет:
-    /// - Диалогами торговца
-    /// - Покупкой/продажей предметов
-    /// - Выдачей бесплатного предмета при входе
-    /// - Режимом продажи (клик по крестику -> выбор предмета для продажи)
-    /// - Выходом из магазина
-    /// </summary>
     public sealed class ShopEncounterController : MonoBehaviour
     {
+        private const float SpawnWaitTimeout = 15f;
+        private const float IntroWaitTimeout = 30f;
+        private const float ExitLineTimeout = 10f;
+
         [Header("Config")]
         [SerializeField] private ShopConfig _config;
         [SerializeField] private ShopEncounterRig _rig;
 
-        [Header("UI Prefabs")]
-        [SerializeField] private GameObject _exitButtonPrefab; // "Продолжить путь" button
+        [Header("Merchant & Targets")]
+        [Tooltip("Конкретная точка, куда летят монеты при покупке и предметы при продаже (руки торговца, банка для монет или сам NPC).")]
+        [SerializeField] private Transform _merchantTarget;
 
-        [Header("Visual Feedback")]
-        [SerializeField] private GameObject _selectionHighlightPrefab;
+        [Header("UI Prefabs")]
+        [SerializeField] private GameObject _exitButtonPrefab;
 
         private EnemyReactionDirector _dialogueDirector;
+        private ShopPickupInput _input;
         private GameObject _sellMarkerInstance;
         private GameObject _exitButtonInstance;
-        private bool _isInSellMode = false;
+        private bool _isInSellMode;
+        private bool _isExiting;
+        private bool _isCleanedUp;
         private List<ItemDefinition> _currentShopItems = new List<ItemDefinition>();
         private IAudioService _audio;
-        private Coroutine _sellModeHintRoutine;
 
-        // Events
         public System.Action OnShopExited;
+
+        public bool IsInSellMode => _isInSellMode;
+        public List<ItemDefinition> CurrentShopItems => _currentShopItems;
+        public ShopConfig Config => _config;
+
+        private ShopItemSpawner Spawner => _rig != null ? _rig.ShopItemSpawner : null;
 
         private void Awake()
         {
@@ -54,24 +57,13 @@ namespace ShellGame.Run
                 ServiceLocator.Register(_audio);
             }
 
-            // Setup coin zone reference
-            if (_rig != null && _rig.CoinZone != null)
-            {
-                var pileController = CoinPileController.Instance;
-                if (pileController != null)
-                {
-                    pileController.CoinZone = _rig.CoinZone;
-                }
-            }
-
-            // Спавнеру товаров нужен контроллер: он берёт из него конфиг и зоны.
-            _rig?.ShopItemSpawner?.Initialize(this);
+            var spawner = Spawner;
+            if (spawner != null)
+                spawner.Initialize(this);
         }
 
-        private void Start()
-        {
-            InitializeShop();
-        }
+        private void Start() => InitializeShop();
+        private void OnDestroy() => Cleanup();
 
         private void InitializeShop()
         {
@@ -81,37 +73,122 @@ namespace ShellGame.Run
                 return;
             }
 
-            // Setup dialogue director
             if (_config.MerchantDialogue != null)
-            {
                 _dialogueDirector = EnemyReactionBootstrap.CreateDirector(_config.MerchantDialogue);
-            }
 
-            // Generate shop inventory for this visit
+            _input = gameObject.AddComponent<ShopPickupInput>();
+
             GenerateShopInventory();
 
-            // Pass shop items to spawner
-            if (_rig?.ShopItemSpawner != null)
+            var spawner = Spawner;
+            if (spawner != null)
             {
-                _rig.ShopItemSpawner.SetShopItems(_currentShopItems);
-
-                // ShopItemSpawner сам раскладывает и товары, и постоянные предметы игрока
-                // (см. его SpawnItems). Отдельный PlayerItemSpawner тут только для доступа
-                // к анлокам, поэтому второй раз предметы не спавним.
-                StartCoroutine(_rig.ShopItemSpawner.SpawnItems());
+                spawner.Initialize(this);
+                spawner.SetShopItems(_currentShopItems);
+                StartCoroutine(spawner.SpawnItems());
             }
 
-            // Spawn sell marker
             SpawnSellMarker();
-
-            // Spawn exit button
             SpawnExitButton();
 
-            // Grant free item on entry
-            StartCoroutine(GrantFreeItemRoutine());
+            StartCoroutine(EntrySequenceRoutine());
+        }
 
-            // Play enter dialogue
-            PlayDialogue(EnemyReactionContext.GameStart);
+        private IEnumerator EntrySequenceRoutine()
+        {
+            var spawner = Spawner;
+            if (spawner != null)
+            {
+                float waited = 0f;
+                while (!spawner.HasFinishedSpawning && waited < SpawnWaitTimeout)
+                {
+                    waited += Time.unscaledDeltaTime;
+                    yield return null;
+                }
+            }
+
+            yield return WaitForMerchantIntro();
+            if (_isExiting) yield break;
+
+            float delay = Mathf.Max(0f, _config.FreeItemDelayAfterIntro);
+            if (delay > 0f)
+                yield return new WaitForSeconds(delay);
+
+            if (_isExiting) yield break;
+            GrantFreeItem();
+        }
+
+        private IEnumerator WaitForMerchantIntro()
+        {
+            if (_dialogueDirector == null) yield break;
+
+            float waited = 0f;
+            while (_dialogueDirector != null && _dialogueDirector.IsPresenting && waited < IntroWaitTimeout)
+            {
+                waited += Time.unscaledDeltaTime;
+                yield return null;
+            }
+        }
+
+        private void GrantFreeItem()
+        {
+            if (!_config.GrantFreeUnlockedItemOnEntry) return;
+
+            var runManager = RunManager.Instance;
+            if (runManager == null || runManager.CurrentRun == null || runManager.CurrentRun.PlayerInventory == null) return;
+
+            var playerInv = runManager.CurrentRun.PlayerInventory;
+            var spawner = Spawner;
+            if (spawner == null) return;
+            if (!playerInv.HasSpace(TurnSide.Player) || !spawner.HasFreePlayerSlot) return;
+
+            var pool = GetUnlockedItems();
+            pool.RemoveAll(candidate => candidate == null || candidate.WorldPrefab == null);
+            if (pool.Count == 0) return;
+
+            var freeItem = pool[UnityEngine.Random.Range(0, pool.Count)];
+            playerInv.Add(freeItem, 1, TurnSide.Player);
+            spawner.SpawnPlayerItem(freeItem);
+        }
+
+        private bool TryGetUnlocks(out IUnlockManager manager, out UnlocksConfig config)
+        {
+            manager = null;
+            config = null;
+
+            var playerSpawner = _rig != null ? _rig.PlayerItemSpawner : null;
+            if (playerSpawner != null)
+            {
+                manager = playerSpawner.UnlockManager;
+                config = playerSpawner.UnlocksConfigAsset;
+            }
+
+            if (manager == null || config == null)
+            {
+                var shopSpawner = Spawner;
+                if (shopSpawner != null)
+                {
+                    if (manager == null) manager = shopSpawner.UnlockManager;
+                    if (config == null) config = shopSpawner.UnlocksConfigAsset;
+                }
+            }
+
+            return manager != null && config != null;
+        }
+
+        private List<ItemDefinition> GetUnlockedItems()
+        {
+            var result = new List<ItemDefinition>();
+            if (!TryGetUnlocks(out var unlockManager, out var unlocksConfig))
+                return result;
+
+            foreach (var entry in unlocksConfig.Entries)
+            {
+                if (entry.Item != null && unlockManager.IsUnlocked(entry.Item))
+                    result.Add(entry.Item);
+            }
+
+            return result;
         }
 
         private void GenerateShopInventory()
@@ -120,66 +197,41 @@ namespace ShellGame.Run
 
             if (_config.UseUnlockedItems)
             {
-                // Get unlocked items from UnlockManager
-                if (_rig?.PlayerItemSpawner != null)
-                {
-                    // Use the unlock manager from player spawner
-                    var unlockManager = _rig.PlayerItemSpawner.UnlockManager;
-                    var unlocksConfig = _rig.PlayerItemSpawner.UnlocksConfigAsset;
+                var candidates = GetUnlockedItems();
+                if (_config.OnlySellableItems)
+                    candidates.RemoveAll(candidate => candidate.BuyPrice <= 0);
 
-                    if (unlockManager != null && unlocksConfig != null)
-                    {
-                        foreach (var entry in unlocksConfig.Entries)
-                        {
-                            if (entry.Item != null && unlockManager.IsUnlocked(entry.Item))
-                            {
-                                // Filter: only items with BuyPrice > 0 if OnlySellableItems
-                                if (_config.OnlySellableItems && entry.Item.BuyPrice <= 0)
-                                    continue;
-
-                                _currentShopItems.Add(entry.Item);
-                            }
-                        }
-                    }
-                }
-
-                // Shuffle and pick random subset
-                var shuffled = new List<ItemDefinition>(_currentShopItems);
-                for (int i = shuffled.Count - 1; i > 0; i--)
+                for (int i = candidates.Count - 1; i > 0; i--)
                 {
                     int j = UnityEngine.Random.Range(0, i + 1);
-                    var temp = shuffled[i];
-                    shuffled[i] = shuffled[j];
-                    shuffled[j] = temp;
+                    var temp = candidates[i];
+                    candidates[i] = candidates[j];
+                    candidates[j] = temp;
                 }
 
-                int count = Mathf.Min(_config.MaxShopItemsPerVisit, shuffled.Count);
-                _currentShopItems = shuffled.GetRange(0, count);
-            }
-            else
-            {
-                // Legacy: use manual list (not supported anymore, but keep for compat)
-                Debug.LogWarning("[ShopEncounterController] UseUnlockedItems is false but manual list is not supported. Shop will be empty.");
+                int count = Mathf.Min(_config.MaxShopItemsPerVisit, candidates.Count);
+                _currentShopItems = candidates.GetRange(0, count);
             }
 
-            // Assign to spawner
-            if (_rig?.ShopItemSpawner != null)
-            {
-                _rig.ShopItemSpawner.SetShopItems(_currentShopItems);
-            }
+            var spawner = Spawner;
+            if (spawner != null)
+                spawner.SetShopItems(_currentShopItems);
         }
 
         private void SpawnSellMarker()
         {
-            if (_config.SellMarkerItemAsset == null || _rig?.SellZonePosition == null) return;
+            var markerItem = _config.SellMarkerItemAsset;
+            var zone = _rig != null ? _rig.SellZonePosition : null;
+            if (markerItem == null || zone == null || markerItem.WorldPrefab == null) return;
 
-            _sellMarkerInstance = new GameObject("SellMarker");
-            _sellMarkerInstance.transform.SetPositionAndRotation(_rig.SellZonePosition.position, _rig.SellZonePosition.rotation);
-            _sellMarkerInstance.transform.SetParent(transform);
+            _sellMarkerInstance = Instantiate(markerItem.WorldPrefab, zone.position, zone.rotation, transform);
+            _sellMarkerInstance.name = "SellMarker";
 
-            var pickup = _sellMarkerInstance.AddComponent<ItemPickupView>();
-            pickup.SetItem(_config.SellMarkerItemAsset);
+            var pickup = _sellMarkerInstance.GetComponent<ItemPickupView>() ?? _sellMarkerInstance.AddComponent<ItemPickupView>();
+            pickup.SetItem(markerItem);
             pickup.SetOwner(TurnSide.Player);
+            pickup.SetAlwaysInteractive(true);
+            pickup.SetSellExempt(true);
 
             var sellBehavior = _sellMarkerInstance.AddComponent<SellMarkerBehavior>();
             sellBehavior.Initialize(this);
@@ -187,297 +239,341 @@ namespace ShellGame.Run
 
         private void SpawnExitButton()
         {
-            if (_exitButtonPrefab == null || _rig?.ExitButtonPosition == null) return;
+            if (_exitButtonPrefab == null || _rig == null || _rig.ExitButtonPosition == null) return;
 
             _exitButtonInstance = Instantiate(_exitButtonPrefab, _rig.ExitButtonPosition.position, _rig.ExitButtonPosition.rotation, transform);
             _exitButtonInstance.name = "ExitButton";
 
-            var exitButton = _exitButtonInstance.GetComponent<ExitButtonView>();
-            if (exitButton == null)
-                exitButton = _exitButtonInstance.AddComponent<ExitButtonView>();
-
+            var exitButton = _exitButtonInstance.GetComponent<ExitButtonView>() ?? _exitButtonInstance.AddComponent<ExitButtonView>();
             exitButton.Initialize(this);
         }
 
-        private IEnumerator GrantFreeItemRoutine()
+        public bool TryBuyItem(ItemDefinition item, ItemPickupView pickup = null)
         {
-            yield return new WaitForSeconds(1f); // Wait for items to spawn
-
-            if (!_config.GrantFreeUnlockedItemOnEntry) yield break;
-
-            var runManager = RunManager.Instance;
-            if (runManager == null || runManager.CurrentRun == null || runManager.CurrentRun.PlayerInventory == null) yield break;
-
-            var playerInv = runManager.CurrentRun.PlayerInventory;
-            if (!playerInv.HasSpace(TurnSide.Player)) yield break;
-
-            // Get unlocked items for free item pool
-            var unlockedItems = new List<ItemDefinition>();
-            if (_rig?.PlayerItemSpawner != null)
-            {
-                var unlockManager = _rig.PlayerItemSpawner.UnlockManager;
-                var unlocksConfig = _rig.PlayerItemSpawner.UnlocksConfigAsset;
-
-                if (unlockManager != null && unlocksConfig != null)
-                {
-                    foreach (var entry in unlocksConfig.Entries)
-                    {
-                        if (entry.Item != null && unlockManager.IsUnlocked(entry.Item))
-                        {
-                            unlockedItems.Add(entry.Item);
-                        }
-                    }
-                }
-            }
-
-            if (unlockedItems.Count == 0) yield break;
-
-            // Pick random free item
-            var freeItem = unlockedItems[UnityEngine.Random.Range(0, unlockedItems.Count)];
-            if (freeItem == null) yield break;
-
-            playerInv.Add(freeItem, 1, TurnSide.Player);
-
-            // Visual feedback - spawn the item on table
-            var itemSpawner = _rig?.PlayerItemSpawner;
-            if (itemSpawner != null && freeItem.WorldPrefab != null)
-            {
-                var targetPos = itemSpawner.GetNextEmptySlotPosition();
-                var itemObject = Instantiate(freeItem.WorldPrefab, targetPos, Quaternion.identity, itemSpawner.transform);
-                var pickup = itemObject.GetComponent<ItemPickupView>();
-                if (pickup == null) pickup = itemObject.AddComponent<ItemPickupView>();
-                pickup.SetItem(freeItem);
-                pickup.SetOwner(TurnSide.Player);
-
-                var baseScale = itemObject.transform.localScale;
-                itemObject.transform.localScale = Vector3.zero;
-                itemObject.transform.DOScale(baseScale, 0.3f).SetEase(Ease.OutBack);
-            }
-
-            // Could play a "free item received" dialogue here
-        }
-
-        /// <summary>
-        /// Попытка купить предмет
-        /// </summary>
-        public bool TryBuyItem(ItemDefinition item)
-        {
-            if (item == null) return false;
+            if (item == null || _isExiting) return false;
 
             var runManager = RunManager.Instance;
             if (runManager == null || runManager.CurrentRun == null || runManager.CurrentRun.PlayerInventory == null) return false;
 
             var playerInv = runManager.CurrentRun.PlayerInventory;
-
-            // Check coins
             int buyPrice = item.BuyPrice;
+
             if (playerInv.Coins < buyPrice)
             {
                 PlayDialogue(EnemyReactionContext.ShopNoMoney);
+                PlayCannotBuyAnimation(pickup);
                 return false;
             }
 
-            // Check space
-            if (!playerInv.HasSpace(TurnSide.Player))
+            var spawner = Spawner;
+            if (!playerInv.HasSpace(TurnSide.Player) || (spawner != null && !spawner.HasFreePlayerSlot))
             {
                 PlayDialogue(EnemyReactionContext.ShopNoSpace);
+                PlayCannotBuyAnimation(pickup);
                 return false;
             }
 
-            // Purchase!
             playerInv.Coins -= buyPrice;
             playerInv.Add(item, 1, TurnSide.Player);
 
-            // Списать физические монеты со стола
             CoinPileController.Instance?.RemoveCoins(buyPrice);
+            AnimateCoinsFlyingToMerchant(buyPrice);
 
-            // Animate item moving to player slot
-            if (_rig?.PlayerItemSpawner != null && _rig?.ShopItemSpawner != null)
-            {
-                var targetPos = _rig.PlayerItemSpawner.GetNextEmptySlotPosition();
-                var pickup = _rig.ShopItemSpawner.GetComponentsInChildren<ItemPickupView>(true)
-                    .FirstOrDefault(p => p != null && p.Item == item);
+            if (spawner != null && pickup != null)
+                spawner.AnimateItemPurchase(pickup);
 
-                if (pickup != null)
-                {
-                    _rig.ShopItemSpawner.AnimateItemPurchase(pickup, targetPos);
-                }
-            }
-
-            // Visual feedback
             PlayDialogue(EnemyReactionContext.ShopPurchase);
-
             return true;
         }
 
         /// <summary>
-        /// Войти в режим продажи
+        /// Возвращает точную точку нахождения продавца или его копилки.
         /// </summary>
+        public Vector3 GetMerchantPosition()
+        {
+            if (_merchantTarget != null)
+                return _merchantTarget.position;
+
+            if (_rig != null)
+            {
+                // Поиск по именам в префабе
+                var target = _rig.transform.Find("MerchantTarget")
+                          ?? _rig.transform.Find("CoinTarget")
+                          ?? _rig.transform.Find("Merchant")
+                          ?? _rig.transform.Find("NPC");
+
+                if (target != null)
+                    return target.position;
+
+                return _rig.transform.position + _rig.transform.forward * 1.5f + Vector3.up * 1.1f;
+            }
+
+            return transform.position + Vector3.up * 1.5f;
+        }
+
+        private void OnDrawGizmosSelected()
+        {
+            Gizmos.color = Color.yellow;
+            Gizmos.DrawWireSphere(GetMerchantPosition(), 0.15f);
+        }
+
+        private void PlayCannotBuyAnimation(ItemPickupView pickup)
+        {
+            if (pickup == null) return;
+
+            Transform t = pickup.transform;
+            t.DOKill(true);
+
+            t.DOShakePosition(0.38f, strength: new Vector3(0.06f, 0f, 0.06f), vibrato: 24, randomness: 90f);
+            t.DOShakeRotation(0.38f, strength: new Vector3(0f, 15f, 8f), vibrato: 18);
+
+            StartCoroutine(FlashRedRoutine(pickup.gameObject));
+        }
+
+        private IEnumerator FlashRedRoutine(GameObject target)
+        {
+            if (target == null) yield break;
+
+            var renderers = target.GetComponentsInChildren<Renderer>();
+            var originalColors = new Dictionary<Material, Color>();
+            var colorProps = new Dictionary<Material, string>();
+
+            foreach (var r in renderers)
+            {
+                if (r == null) continue;
+                foreach (var mat in r.materials)
+                {
+                    if (mat == null) continue;
+                    string prop = mat.HasProperty("_BaseColor") ? "_BaseColor" : (mat.HasProperty("_Color") ? "_Color" : null);
+                    if (prop != null && !originalColors.ContainsKey(mat))
+                    {
+                        originalColors[mat] = mat.GetColor(prop);
+                        colorProps[mat] = prop;
+                    }
+                }
+            }
+
+            float duration = 0.35f;
+            float elapsed = 0f;
+
+            while (elapsed < duration && target != null)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                float pingPong = Mathf.PingPong(elapsed * 7f, 1f);
+
+                foreach (var kvp in originalColors)
+                {
+                    if (kvp.Key != null)
+                    {
+                        Color flashed = Color.Lerp(kvp.Value, Color.red, pingPong);
+                        kvp.Key.SetColor(colorProps[kvp.Key], flashed);
+                    }
+                }
+                yield return null;
+            }
+
+            foreach (var kvp in originalColors)
+            {
+                if (kvp.Key != null)
+                    kvp.Key.SetColor(colorProps[kvp.Key], kvp.Value);
+            }
+        }
+
+        private void AnimateCoinsFlyingToMerchant(int amount)
+        {
+            if (amount <= 0) return;
+            StartCoroutine(SpawnFlyingCoinsRoutine(amount));
+        }
+
+        private IEnumerator SpawnFlyingCoinsRoutine(int amount)
+        {
+            Vector3 startPos = CoinPileController.Instance != null
+                ? CoinPileController.Instance.transform.position + Vector3.up * 0.1f
+                : transform.position;
+
+            Vector3 targetPos = GetMerchantPosition();
+            int visualCoins = Mathf.Clamp(amount, 3, 7);
+
+            GameObject template = null;
+            if (CoinPileController.Instance != null)
+            {
+                var mf = CoinPileController.Instance.GetComponentInChildren<MeshFilter>();
+                if (mf != null) template = mf.gameObject;
+            }
+
+            for (int i = 0; i < visualCoins; i++)
+            {
+                GameObject coin;
+                if (template != null)
+                {
+                    coin = Instantiate(template, startPos + Random.insideUnitSphere * 0.1f, Random.rotation);
+                    var rb = coin.GetComponent<Rigidbody>();
+                    if (rb != null) Destroy(rb);
+                    var col = coin.GetComponent<Collider>();
+                    if (col != null) Destroy(col);
+                }
+                else
+                {
+                    coin = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                    coin.transform.position = startPos + Random.insideUnitSphere * 0.1f;
+                    coin.transform.localScale = new Vector3(0.08f, 0.015f, 0.08f);
+                    var col = coin.GetComponent<Collider>();
+                    if (col != null) Destroy(col);
+                    var rend = coin.GetComponent<Renderer>();
+                    if (rend != null) rend.material.color = new Color(1f, 0.84f, 0.1f);
+                }
+
+                float duration = Random.Range(0.42f, 0.55f);
+                float jumpHeight = Random.Range(0.4f, 0.65f);
+
+                coin.transform.DOJump(targetPos, jumpHeight, 1, duration).SetEase(Ease.InQuad);
+                coin.transform.DOScale(Vector3.zero, duration).SetEase(Ease.InBack);
+                coin.transform.DORotate(Random.insideUnitSphere * 720f, duration, RotateMode.FastBeyond360)
+                    .OnComplete(() =>
+                    {
+                        if (coin != null) Destroy(coin);
+                    });
+
+                yield return new WaitForSeconds(0.04f);
+            }
+        }
+
         public void EnterSellMode()
         {
-            if (_isInSellMode) return;
+            if (_isInSellMode || _isExiting) return;
             _isInSellMode = true;
 
-            // Enable sell mode on all item pickups
             ItemPickupView.SetSellMode(true);
             ItemPickupView.OnSellModeClick += OnPlayerItemSellClicked;
 
-            // Highlight all player items on table
             HighlightPlayerItemsForSale(true);
-
-            // Show hint
             ShowSellModeHint();
 
-            // Play dialogue
             PlayDialogue(EnemyReactionContext.ShopSell);
         }
 
-        /// <summary>
-        /// Выйти из режима продажи
-        /// </summary>
         public void ExitSellMode()
         {
             if (!_isInSellMode) return;
             _isInSellMode = false;
 
-            // Disable sell mode on all item pickups
             ItemPickupView.SetSellMode(false);
             ItemPickupView.OnSellModeClick -= OnPlayerItemSellClicked;
 
-            // Remove highlights
             HighlightPlayerItemsForSale(false);
-
-            // Hide hint
             HideSellModeHint();
         }
 
-        private void OnPlayerItemSellClicked(ItemPickupView pickup)
-        {
-            if (pickup != null && pickup.Item != null)
-            {
-                TrySellPlayerItem(pickup.Item);
-            }
-        }
+        private void OnPlayerItemSellClicked(ItemPickupView pickup) => TrySellPlayerItem(pickup);
 
-        /// <summary>
-        /// Продать предмет игрока
-        /// </summary>
-        public bool TrySellPlayerItem(ItemDefinition item)
+        public bool TrySellPlayerItem(ItemPickupView pickup)
         {
-            if (!_isInSellMode || item == null) return false;
+            if (!_isInSellMode || _isExiting) return false;
+            if (pickup == null || pickup.Item == null || pickup.IsSellExempt) return false;
 
             var runManager = RunManager.Instance;
             if (runManager == null || runManager.CurrentRun == null || runManager.CurrentRun.PlayerInventory == null) return false;
 
             var playerInv = runManager.CurrentRun.PlayerInventory;
+            var item = pickup.Item;
             if (!playerInv.Has(item, TurnSide.Player)) return false;
 
-            // Use item's own SellPriceMultiplier
-            float sellMultiplier = item.SellPriceMultiplier;
-            if (sellMultiplier <= 0f)
-                sellMultiplier = _config.SellPriceMultiplier;
+            float sellMultiplier = item.SellPriceMultiplier <= 0f ? _config.SellPriceMultiplier : item.SellPriceMultiplier;
+            int buyPrice = item.BuyPrice <= 0 ? 5 : item.BuyPrice;
+            int sellPrice = Mathf.Max(1, Mathf.RoundToInt(buyPrice * sellMultiplier));
 
-            int buyPrice = item.BuyPrice;
-            if (buyPrice <= 0)
-                buyPrice = 5; // Default fallback
-
-            int sellPrice = Mathf.RoundToInt(buyPrice * sellMultiplier);
-            if (sellPrice < 1) sellPrice = 1;
-
-            // Sell!
             playerInv.Remove(item, 1, TurnSide.Player);
             playerInv.Coins += sellPrice;
 
-            // Добавить физические монеты на стол — падают сверху зоны
             CoinPileController.Instance?.DropCoins(sellPrice);
 
-            // Visual feedback - remove from table
-            RemovePlayerItemFromTable(item);
+            SellModeIndicator.Instance?.HighlightItem(pickup, false);
 
-            // Play dialogue
+            var spawner = Spawner;
+            if (spawner != null)
+                spawner.SellPickup(pickup, GetMerchantPosition());
+
             PlayDialogue(EnemyReactionContext.ShopSell);
-
             return true;
+        }
+
+        public bool TrySellPlayerItem(ItemDefinition item)
+        {
+            var spawner = Spawner;
+            if (spawner == null || item == null) return false;
+
+            foreach (var pickup in spawner.GetPlayerPickups())
+            {
+                if (pickup.Item == item)
+                    return TrySellPlayerItem(pickup);
+            }
+            return false;
         }
 
         private void HighlightPlayerItemsForSale(bool highlight)
         {
-            if (_rig?.PlayerItemSpawner == null) return;
-
+            var spawner = Spawner;
             var indicator = SellModeIndicator.Instance;
-            if (indicator == null) return;
+            if (spawner == null || indicator == null) return;
 
-            var pickups = _rig.PlayerItemSpawner.GetComponentsInChildren<ItemPickupView>(true);
-            foreach (var pickup in pickups)
-            {
-                if (pickup.Owner == TurnSide.Player)
-                {
-                    indicator.HighlightItem(pickup, highlight);
-                }
-            }
+            foreach (var pickup in spawner.GetPlayerPickups())
+                indicator.HighlightItem(pickup, highlight);
         }
 
-        private void ShowSellModeHint()
-        {
-            var indicator = SellModeIndicator.Instance;
-            if (indicator != null)
-            {
-                indicator.Activate();
-            }
-        }
+        private void ShowSellModeHint() => SellModeIndicator.Instance?.Activate();
+        private void HideSellModeHint() => SellModeIndicator.Instance?.Deactivate();
 
-        private void HideSellModeHint()
-        {
-            var indicator = SellModeIndicator.Instance;
-            if (indicator != null)
-            {
-                indicator.Deactivate();
-            }
-
-            if (_sellModeHintRoutine != null)
-            {
-                StopCoroutine(_sellModeHintRoutine);
-                _sellModeHintRoutine = null;
-            }
-        }
-
-        private void RemovePlayerItemFromTable(ItemDefinition item)
-        {
-            if (_rig?.PlayerItemSpawner == null) return;
-
-            var pickups = _rig.PlayerItemSpawner.GetComponentsInChildren<ItemPickupView>(true);
-            foreach (var pickup in pickups)
-            {
-                if (pickup.Item == item && pickup.Owner == TurnSide.Player)
-                {
-                    pickup.transform.DOScale(Vector3.zero, 0.2f).SetEase(Ease.InBack).OnComplete(() =>
-                    {
-                        _rig.PlayerItemSpawner.RemoveItem(pickup);
-                        Destroy(pickup.gameObject);
-                    });
-                    break;
-                }
-            }
-        }
-
-        /// <summary>
-        /// Выход из магазина
-        /// </summary>
         public void ExitShop()
         {
-            PlayDialogue(EnemyReactionContext.ShopExit);
+            if (_isExiting) return;
+            _isExiting = true;
+            StartCoroutine(ExitRoutine());
+        }
 
-            // Cleanup local objects (the rig will be destroyed by EncounterHost.ExitRoutine)
+        private IEnumerator ExitRoutine()
+        {
+            if (_isInSellMode)
+                ExitSellMode();
+
+            if (_dialogueDirector != null)
+            {
+                bool done = false;
+                StartCoroutine(RunAndFlag(_dialogueDirector.ForceReactionRoutine(EnemyReactionContext.ShopExit), () => done = true));
+
+                float waited = 0f;
+                while (!done && waited < ExitLineTimeout)
+                {
+                    waited += Time.unscaledDeltaTime;
+                    yield return null;
+                }
+            }
+
             Cleanup();
-
-            // Notify exit
             OnShopExited?.Invoke();
+        }
+
+        private static IEnumerator RunAndFlag(IEnumerator routine, System.Action onDone)
+        {
+            yield return routine;
+            onDone?.Invoke();
         }
 
         private void Cleanup()
         {
-            // Unsubscribe from sell mode event
+            if (_isCleanedUp) return;
+            _isCleanedUp = true;
+
+            if (_isInSellMode)
+                ExitSellMode();
+
+            ItemPickupView.SetSellMode(false);
             ItemPickupView.OnSellModeClick -= OnPlayerItemSellClicked;
+
+            if (_input != null)
+            {
+                Destroy(_input);
+                _input = null;
+            }
 
             if (_dialogueDirector != null)
             {
@@ -485,11 +581,7 @@ namespace ShellGame.Run
                 _dialogueDirector = null;
             }
 
-            // Clear shop items (not player items)
-            if (_rig?.ShopItemSpawner != null)
-            {
-                _rig.ShopItemSpawner.ClearShopItems();
-            }
+            Spawner?.ClearShopItems();
 
             if (_sellMarkerInstance != null) Destroy(_sellMarkerInstance);
             if (_exitButtonInstance != null) Destroy(_exitButtonInstance);
@@ -499,18 +591,10 @@ namespace ShellGame.Run
 
         private void PlayDialogue(EnemyReactionContext context)
         {
-            if (_dialogueDirector != null)
-            {
-                _dialogueDirector.ForceReaction(context);
-            }
+            _dialogueDirector?.ForceReaction(context);
         }
-
-        public bool IsInSellMode => _isInSellMode;
-        public List<ItemDefinition> CurrentShopItems => _currentShopItems;
-        public ShopConfig Config => _config;
     }
 
-    // Behavior for sell marker (X)
     public sealed class SellMarkerBehavior : MonoBehaviour
     {
         private ShopEncounterController _controller;
@@ -522,21 +606,15 @@ namespace ShellGame.Run
             _pickupView = GetComponent<ItemPickupView>();
 
             if (_pickupView != null)
-            {
                 _pickupView.Used += OnUsed;
-            }
         }
 
         private void OnUsed(ItemPickupView pickup)
         {
             if (_controller.IsInSellMode)
-            {
                 _controller.ExitSellMode();
-            }
             else
-            {
                 _controller.EnterSellMode();
-            }
         }
 
         private void OnDestroy()
