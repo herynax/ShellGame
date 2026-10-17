@@ -320,6 +320,9 @@ namespace ShellGame.EditorTools
         private static void GiveItem(PlayerInventorySO inventory, ItemDefinition item, int count)
         {
             var shopSpawner = Object.FindFirstObjectByType<ShopItemSpawner>();
+            var playerSpawner = shopSpawner == null
+                ? Object.FindFirstObjectByType<PlayerItemSpawner>()
+                : null;
 
             for (int i = 0; i < count; i++)
             {
@@ -329,16 +332,40 @@ namespace ShellGame.EditorTools
                     return;
                 }
 
-                if (shopSpawner != null && !shopSpawner.HasFreePlayerSlot)
-                {
-                    Debug.LogWarning("[CheatPanel] На столе магазина нет свободных слотов.");
-                    return;
-                }
-
-                inventory.Add(item, 1, TurnSide.Player);
-
                 if (shopSpawner != null)
-                    shopSpawner.SpawnPlayerItem(item);
+                {
+                    if (!shopSpawner.HasFreePlayerSlot)
+                    {
+                        Debug.LogWarning("[CheatPanel] На столе магазина нет свободных слотов.");
+                        return;
+                    }
+
+                    if (shopSpawner.SpawnPlayerItem(item) == null)
+                    {
+                        Debug.LogWarning("[CheatPanel] Не удалось создать предмет на столе магазина.");
+                        return;
+                    }
+
+                    inventory.Add(item, 1, TurnSide.Player);
+                }
+                else if (playerSpawner != null)
+                {
+                    if (!playerSpawner.HasFreeSlot)
+                    {
+                        Debug.LogWarning("[CheatPanel] На столе игрока нет свободных слотов.");
+                        return;
+                    }
+
+                    if (playerSpawner.SpawnNewItem(item) == null)
+                    {
+                        Debug.LogWarning("[CheatPanel] Не удалось создать предмет на столе игрока.");
+                        return;
+                    }
+                }
+                else
+                {
+                    inventory.Add(item, 1, TurnSide.Player);
+                }
             }
         }
 

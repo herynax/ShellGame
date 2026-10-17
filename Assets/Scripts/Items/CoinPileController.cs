@@ -28,11 +28,34 @@ namespace ShellGame.Items
         [Header("References")]
         [SerializeField] private CoinPickupView _coinPrefab;
         [SerializeField] private BoxCollider _coinZone;
+        [SerializeField] private Transform _coinTossPoint;
+        [SerializeField] private Renderer _tableSurfaceRenderer;
 
         public BoxCollider CoinZone
         {
             get => _coinZone;
             set => _coinZone = value;
+        }
+
+        public Vector3 GetCoinTossPosition(Vector3 fallback)
+        {
+            if (_coinTossPoint != null)
+                return TableSurfacePlacement.GetSpawnPoint(_coinTossPoint.position);
+
+            if (_tableSurfaceRenderer == null)
+            {
+                var table = GameObject.Find("Table");
+                if (table != null)
+                    _tableSurfaceRenderer = table.GetComponent<Renderer>();
+            }
+
+            if (_tableSurfaceRenderer != null)
+                return TableSurfacePlacement.GetSpawnPoint(_tableSurfaceRenderer.bounds.center);
+
+            if (_coinZone != null)
+                return TableSurfacePlacement.GetSpawnPoint(_coinZone.bounds.center);
+
+            return fallback;
         }
 
         [Header("Input")]
@@ -82,6 +105,7 @@ namespace ShellGame.Items
             if (Instance == null)
             {
                 Instance = this;
+                transform.SetParent(null);
                 DontDestroyOnLoad(gameObject);
             }
             else

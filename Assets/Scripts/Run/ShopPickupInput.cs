@@ -1,3 +1,4 @@
+using ShellGame.Core;
 using ShellGame.Run;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -11,6 +12,7 @@ namespace ShellGame.Items
     {
         [SerializeField] private float _maxDistance = 100f;
         [SerializeField] private LayerMask _mask = ~0;
+        [SerializeField, Min(0f)] private float _itemHoverRadius = 0.15f;
         [SerializeField] private bool _ignoreWhenOverUI = true;
 
         private static readonly RaycastHit[] Hits = new RaycastHit[32];
@@ -28,19 +30,20 @@ namespace ShellGame.Items
             }
 
             Camera cam = ResolveCamera();
-            if (cam == null || !TryReadPointer(out Vector2 pointer, out bool clicked))
+            if (cam == null || !TryReadPointer(out bool clicked))
                 return;
 
             ItemPickupView pickup = null;
             ExitButtonView exitBtn = null;
 
             bool overUI = _ignoreWhenOverUI
+                          && !CrosshairRay.IsCursorCaptured()
                           && EventSystem.current != null
                           && EventSystem.current.IsPointerOverGameObject();
 
             if (!overUI)
             {
-                FindInteractiveUnderPointer(cam.ScreenPointToRay(pointer), out pickup, out exitBtn);
+                FindInteractiveUnderPointer(CrosshairRay.Build(cam), out pickup, out exitBtn);
             }
 
             // Обработка кнопки выхода
@@ -83,7 +86,7 @@ namespace ShellGame.Items
             pickup = null;
             exitButton = null;
 
-            int count = Physics.RaycastNonAlloc(ray, Hits, _maxDistance, _mask, QueryTriggerInteraction.Collide);
+            int count = Physics.SphereCastNonAlloc(ray, _itemHoverRadius, Hits, _maxDistance, _mask, QueryTriggerInteraction.Collide);
             float bestDistance = float.MaxValue;
 
             for (int i = 0; i < count; i++)
@@ -131,22 +134,19 @@ namespace ShellGame.Items
             return _camera;
         }
 
-        private static bool TryReadPointer(out Vector2 position, out bool clicked)
+        private static bool TryReadPointer(out bool clicked)
         {
 #if ENABLE_INPUT_SYSTEM
             Mouse mouse = Mouse.current;
             if (mouse == null)
             {
-                position = default;
                 clicked = false;
                 return false;
             }
 
-            position = mouse.position.ReadValue();
             clicked = mouse.leftButton.wasPressedThisFrame;
             return true;
 #else
-            position = Input.mousePosition;
             clicked = Input.GetMouseButtonDown(0);
             return true;
 #endif

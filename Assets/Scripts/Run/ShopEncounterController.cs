@@ -361,7 +361,7 @@ namespace ShellGame.Run
             StartCoroutine(SpawnFlyingCoinsRoutine(amount));
         }
 
-        private IEnumerator SpawnFlyingCoinsRoutine(int amount)
+private IEnumerator SpawnFlyingCoinsRoutine(int amount)
         {
             Vector3 startPos = CoinPileController.Instance != null
                 ? CoinPileController.Instance.transform.position + Vector3.up * 0.1f
@@ -371,11 +371,10 @@ namespace ShellGame.Run
             int visualCoins = Mathf.Clamp(amount, 3, 7);
 
             GameObject template = null;
-            Vector3 baseScale = new Vector3(0.035f, 0.007f, 0.035f); // Компактный дефолтный размер монетки
+            Vector3 baseScale = new Vector3(0.035f, 0.007f, 0.035f);
 
             if (CoinPileController.Instance != null)
             {
-                // Ищем конкретно Rigidbody монетки (корень монеты), чтобы получить её честный размер
                 var rb = CoinPileController.Instance.GetComponentInChildren<Rigidbody>();
                 if (rb != null)
                 {
@@ -393,7 +392,6 @@ namespace ShellGame.Run
                 }
             }
 
-            // Защита: если мировой размер превышает 8 см (например, взялся масштаб стола), сжимаем до реалистичного
             if (baseScale.x > 0.08f || baseScale.y > 0.08f || baseScale.z > 0.08f)
             {
                 baseScale = new Vector3(0.035f, 0.007f, 0.035f);
@@ -405,10 +403,17 @@ namespace ShellGame.Run
                 if (template != null)
                 {
                     coin = Instantiate(template, startPos + Random.insideUnitSphere * 0.08f, Random.rotation);
-                    var rb = coin.GetComponent<Rigidbody>();
-                    if (rb != null) Destroy(rb);
+
+                    // ВАЖНО: сначала уничтожаем скрипт CoinPickupView, 
+                    // иначе Unity блокирует удаление Rigidbody из-за [RequireComponent]
+                    var pickup = coin.GetComponent<CoinPickupView>();
+                    if (pickup != null) Destroy(pickup);
+
                     var col = coin.GetComponent<Collider>();
                     if (col != null) Destroy(col);
+
+                    var rb = coin.GetComponent<Rigidbody>();
+                    if (rb != null) Destroy(rb);
                 }
                 else
                 {
@@ -420,7 +425,6 @@ namespace ShellGame.Run
                     if (rend != null) rend.material.color = new Color(1f, 0.84f, 0.1f);
                 }
 
-                // Жёстко выставляем реальный базовый скейл монетки перед началом полёта
                 coin.transform.localScale = baseScale;
 
                 float duration = Random.Range(0.42f, 0.55f);

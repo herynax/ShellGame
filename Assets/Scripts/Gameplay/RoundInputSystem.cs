@@ -10,12 +10,16 @@ namespace ShellGame.Gameplay
 {
     public sealed class RoundInputSystem : MonoBehaviour
     {
+        private static readonly RaycastHit[] ItemHoverHits = new RaycastHit[32];
+
         [SerializeField] private Camera _interactionCamera;
         [SerializeField] private LayerMask _shellLayerMask;
         
         [Header("Aim Assist")]
         [Tooltip("Радиус толстого луча. Чем больше, тем легче попасть, но тем сильнее магнитит.")]
         [SerializeField, Min(0f)] private float _shellAimAssistRadius = 0.22f;
+        [Tooltip("Радиус наведения на предметы, м.")]
+        [SerializeField, Min(0f)] private float _itemHoverRadius = 0.15f;
         [Tooltip("Вес дистанции до камеры при выборе цели. Если 0 - выбирается строго тот, к кому ближе прицел.")]
         [SerializeField, Range(0f, 1f)] private float _depthWeight = 0.1f;
 
@@ -149,15 +153,12 @@ namespace ShellGame.Gameplay
             // нужна всегда, а вот ховер отдаём только при открытом предметном канале.
             if (!buttonHit)
             {
-                if (Physics.Raycast(ray, out RaycastHit directHit, 100f, Physics.AllLayers, QueryTriggerInteraction.Collide))
+                itemUnderCursor = FindItemUnderAim(ray);
+                if (itemUnderCursor != null)
                 {
-                    var item = directHit.collider.GetComponentInParent<ItemPickupView>();
-                    if (item != null)
-                    {
-                        itemHit = true; // Мы смотрим прямо на предмет, магнит наперстков отключается!
-                        if (_itemInteractionEnabled)
-                            itemUnderCursor = item;
-                    }
+                    itemHit = true; // Мы смотрим прямо на предмет, магнит наперстков отключается!
+                    if (!_itemInteractionEnabled)
+                        itemUnderCursor = null;
                 }
             }
 
@@ -204,6 +205,35 @@ namespace ShellGame.Gameplay
             _hoveredTarget?.OnHoverExit();
             _hoveredTarget = targetUnderCursor;
             _hoveredTarget?.OnHoverEnter();
+        }
+
+        private ItemPickupView FindItemUnderAim(Ray ray)
+        {
+            int hitCount = Physics.SphereCastNonAlloc(
+                ray,
+                _itemHoverRadius,
+                ItemHoverHits,
+                100f,
+                Physics.AllLayers,
+                QueryTriggerInteraction.Collide);
+
+            ItemPickupView nearestItem = null;
+            float nearestDistance = float.MaxValue;
+            for (int i = 0; i < hitCount; i++)
+            {
+                var hit = ItemHoverHits[i];
+                if (hit.distance >= nearestDistance)
+                    continue;
+
+                var item = hit.collider.GetComponentInParent<ItemPickupView>();
+                if (item == null)
+                    continue;
+
+                nearestItem = item;
+                nearestDistance = hit.distance;
+            }
+
+            return nearestItem;
         }
 
         private void UpdateItemHover(ItemPickupView itemUnderCursor)
